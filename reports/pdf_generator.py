@@ -20,6 +20,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
+from reportlab.graphics.shapes import Drawing, Rect, String
 
 from .criteria import compute_report_criteria
 
@@ -92,62 +93,53 @@ class TurnitinReportCanvas(canvas.Canvas):
 
         sub_str = f"Submission ID  {self.submission_id}"
 
-        # --- Header (Pages 1+) ---
-        # Turnitin icon
-        self.setFillColor(colors.HexColor('#0284c7'))
-        self.circle(20 * mm, 282 * mm, 2.8, stroke=0, fill=1)
-        self.setFont('Helvetica-Bold', 9)
-        self.drawString(24 * mm, 280.5 * mm, "turnitin")
+        def draw_brand_decor(y_base):
+            # Authentic Turnitin blue icon (rounded rect with fold)
+            x_icon = 18 * mm
+            y_icon = y_base - 1.2 * mm
+            self.setFillColor(colors.HexColor('#0284c7'))
+            self.roundRect(x_icon, y_icon, 4.2 * mm, 4.4 * mm, 0.8 * mm, stroke=0, fill=1)
+            self.setStrokeColor(colors.white)
+            self.setLineWidth(0.65)
+            self.line(x_icon + 1.1 * mm, y_icon + 3.1 * mm, x_icon + 3.1 * mm, y_icon + 3.1 * mm)
+            self.line(x_icon + 3.1 * mm, y_icon + 3.1 * mm, x_icon + 3.1 * mm, y_icon + 1.3 * mm)
 
-        self.setFont('Helvetica', 7.5)
-        self.setFillColor(colors.HexColor('#64748b'))
-        self.drawString(45 * mm, 280.5 * mm, f"Page {page_num} of {total_pages} - {section}")
+            # "turnitin" in dark slate
+            self.setFont('Helvetica-Bold', 9.5)
+            self.setFillColor(colors.HexColor('#0f172a'))
+            self.drawString(23.5 * mm, y_base, "turnitin")
 
-        self.drawRightString(192 * mm, 280.5 * mm, sub_str)
+            # Page and Section info
+            self.setFont('Helvetica', 7.5)
+            self.setFillColor(colors.HexColor('#64748b'))
+            self.drawString(45 * mm, y_base, f"Page {page_num} of {total_pages} - {section}")
 
-        # --- Footer ---
-        self.circle(20 * mm, 14 * mm, 2.8, stroke=0, fill=1)
-        self.setFont('Helvetica-Bold', 9)
-        self.setFillColor(colors.HexColor('#0284c7'))
-        self.drawString(24 * mm, 12.5 * mm, "turnitin")
+            # Submission ID right-aligned
+            self.setFillColor(colors.HexColor('#334155'))
+            self.drawRightString(192 * mm, y_base, sub_str)
 
-        self.setFont('Helvetica', 7.5)
-        self.setFillColor(colors.HexColor('#64748b'))
-        self.drawString(45 * mm, 12.5 * mm, f"Page {page_num} of {total_pages} - {section}")
-        self.drawRightString(192 * mm, 12.5 * mm, sub_str)
+        # Header (Top)
+        draw_brand_decor(280.5 * mm)
+
+        # Footer (Bottom)
+        draw_brand_decor(12.5 * mm)
 
         self.restoreState()
 
 
 def _build_source_table_row(s):
-    """Constructs a single source row matching Turnitin Top Sources list."""
-    # 1. Colored number badge
-    badge_table = Table([[str(s['index'])]], colWidths=[20], rowHeights=[14])
-    badge_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(s['color'])),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 7.5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-    ]))
+    """Constructs a single source row matching Turnitin Top Sources list with exact pill colors and vector ovals."""
+    # 1. Colored number badge (oval pill)
+    badge_d = Drawing(22, 14)
+    badge_d.add(Rect(0, 0, 22, 14, rx=7, ry=7, fillColor=colors.HexColor(s['color']), strokeColor=None))
+    badge_d.add(String(11, 3.5, str(s['index']), fontName='Helvetica-Bold', fontSize=7.5, fillColor=colors.white, textAnchor='middle'))
 
-    # 2. Category pill tag
-    pill_bg = '#fce4ec' if s['category'] == 'Internet' else ('#e0f2fe' if s['category'] == 'Publication' else '#f1f5f9')
-    pill_text = '#be185d' if s['category'] == 'Internet' else ('#0369a1' if s['category'] == 'Publication' else '#334155')
-    pill_table = Table([[s['category']]], colWidths=[62], rowHeights=[14])
-    pill_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(pill_bg)),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor(pill_text)),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 7),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-    ]))
+    # 2. Category pill tag (matching source's pastel tone)
+    pill_bg = colors.HexColor(s.get('pill_bg', '#fce4ec'))
+    pill_text = colors.HexColor(s.get('pill_text', '#be185d'))
+    pill_d = Drawing(62, 14)
+    pill_d.add(Rect(0, 0, 62, 14, rx=7, ry=7, fillColor=pill_bg, strokeColor=None))
+    pill_d.add(String(31, 3.5, s['category'], fontName='Helvetica-Bold', fontSize=7, fillColor=pill_text, textAnchor='middle'))
 
     # 3. Title / Domain
     title_p = Paragraph(
@@ -161,7 +153,7 @@ def _build_source_table_row(s):
         ParagraphStyle('SrcPct', fontName='Helvetica-Bold', fontSize=8.5, alignment=TA_RIGHT, textColor=colors.HexColor('#0f172a'))
     )
 
-    return [badge_table, pill_table, title_p, pct_p]
+    return [badge_d, pill_d, title_p, pct_p]
 
 
 def generate_pdf_report(report):

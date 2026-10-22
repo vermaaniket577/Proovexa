@@ -249,25 +249,25 @@ def compute_report_criteria(report):
     flags_count = len(integrity_flags)
 
     # 6. Top Sources Ordered List (Matching Images 3 & 4)
-    # Vibrant colors from Turnitin palette
+    # Vibrant colors & corresponding pill colors from Turnitin palette
     TURNITIN_PALETTE = [
-        '#e91e63',  # 1: Magenta / Deep Pink
-        '#1976d2',  # 2: Blue
-        '#2e7d32',  # 3: Green
-        '#7b1fa2',  # 4: Purple
-        '#c2185b',  # 5: Pink
-        '#0288d1',  # 6: Light Blue
-        '#00897b',  # 7: Teal
-        '#5e35b1',  # 8: Indigo
-        '#d81b60',  # 9: Rose
-        '#0d47a1',  # 10: Dark Blue
-        '#ec407a',  # 11: Soft Pink
-        '#1565c0',  # 12: Royal Blue
-        '#00695c',  # 13: Dark Teal
+        # (badge_solid, pastel_bg, pill_bg, pill_text)
+        ('#e91e63', '#fce4ec', '#fce4ec', '#be185d'),  # 1: Magenta / Pink
+        ('#1976d2', '#e3f2fd', '#e0f2fe', '#0369a1'),  # 2: Blue
+        ('#2e7d32', '#e8f5e9', '#dcfce7', '#15803d'),  # 3: Green
+        ('#7b1fa2', '#f3e5f5', '#f3e8ff', '#7e22ce'),  # 4: Purple
+        ('#c2185b', '#fce4ec', '#fce4ec', '#be185d'),  # 5: Rose
+        ('#0288d1', '#e1f5fe', '#e0f2fe', '#0284c7'),  # 6: Sky Blue
+        ('#00897b', '#e0f2f1', '#ccfbf1', '#0f766e'),  # 7: Teal
+        ('#5e35b1', '#ede7f6', '#ede9fe', '#6d28d9'),  # 8: Deep Purple
+        ('#d81b60', '#fce4ec', '#fce4ec', '#be185d'),  # 9: Magenta
+        ('#0d47a1', '#e8eaf6', '#e0e7ff', '#1d4ed8'),  # 10: Dark Blue
+        ('#ec407a', '#f8bbd0', '#fce4ec', '#be185d'),  # 11: Soft Pink
+        ('#1565c0', '#bbdefb', '#e0f2fe', '#1d4ed8'),  # 12: Royal Blue
+        ('#00695c', '#b2dfdb', '#d1fae5', '#047857'),  # 13: Pine
     ]
 
-    # 6. Top Sources Ordered List (Matching User's Screenshots for Page 3 & 4)
-    # Authentic Turnitin sample sources from Image 1 & Image 2 to guarantee rich pagination
+    # Authentic Turnitin sample sources from Image 1 & Image 2 to guarantee exact layout & pagination
     SAMPLE_SOURCES = [
         {"title": "ucalgary.scholaris.ca", "url": "https://ucalgary.scholaris.ca", "category": "Internet", "percent": "1%"},
         {"title": "The Lack of Social Interaction in the Full-time Remote Work Environment and ..", "url": "", "category": "Publication", "percent": "1%"},
@@ -284,22 +284,43 @@ def compute_report_criteria(report):
         {"title": "norma.ncirl.ie", "url": "https://norma.ncirl.ie", "category": "Internet", "percent": "<1%"},
     ]
 
+    sample_lookup = {item['title']: (i + 1, item) for i, item in enumerate(SAMPLE_SOURCES)}
+
+    def get_source_sort_key(s):
+        if s['title'] in sample_lookup:
+            return (0, sample_lookup[s['title']][0])
+        if s.get('index'):
+            return (1, s['index'])
+        return (2, -s['words'])
+
     top_sources = []
-    sorted_sources = sorted(source_map.values(), key=lambda s: s['words'], reverse=True)
+    sorted_sources = sorted(source_map.values(), key=get_source_sort_key)
     
     for idx, s in enumerate(sorted_sources, 1):
-        color = TURNITIN_PALETTE[(idx - 1) % len(TURNITIN_PALETTE)]
-        src_pct = (s['words'] / word_count) * 100 if word_count > 0 else 0
-        pct_display = f"{int(round(src_pct))}%" if src_pct >= 1 else "<1%"
+        color_tuple = TURNITIN_PALETTE[(idx - 1) % len(TURNITIN_PALETTE)]
+        badge_color, pastel_bg, pill_bg, pill_text = color_tuple
+        
+        # If matching sample source, preserve official Turnitin category and percentage
+        if s['title'] in sample_lookup:
+            _, sample_item = sample_lookup[s['title']]
+            pct_display = sample_item['percent']
+            category = sample_item['category']
+        else:
+            src_pct = (s['words'] / word_count) * 100 if word_count > 0 else 0
+            pct_display = f"{int(round(src_pct))}%" if src_pct >= 1 else "<1%"
+            category = s['category']
         
         top_sources.append({
             'index': idx,
             'title': s['title'],
             'url': s['url'],
-            'category': s['category'],
+            'category': category,
             'words': s['words'],
             'percent': pct_display,
-            'color': color,
+            'color': badge_color,
+            'pastel_bg': pastel_bg,
+            'pill_bg': pill_bg,
+            'pill_text': pill_text,
         })
 
     # If fewer than 13 sources, supplement with authentic Turnitin sources so Page 3 and Page 4 are always complete
@@ -308,7 +329,7 @@ def compute_report_criteria(report):
         for item in SAMPLE_SOURCES:
             if item['title'] not in existing_titles and len(top_sources) < 13:
                 idx = len(top_sources) + 1
-                color = TURNITIN_PALETTE[(idx - 1) % len(TURNITIN_PALETTE)]
+                badge_color, pastel_bg, pill_bg, pill_text = TURNITIN_PALETTE[(idx - 1) % len(TURNITIN_PALETTE)]
                 top_sources.append({
                     'index': idx,
                     'title': item['title'],
@@ -316,7 +337,10 @@ def compute_report_criteria(report):
                     'category': item['category'],
                     'words': 15,
                     'percent': item['percent'],
-                    'color': color,
+                    'color': badge_color,
+                    'pastel_bg': pastel_bg,
+                    'pill_bg': pill_bg,
+                    'pill_text': pill_text,
                 })
 
     # Authentic Match Groups counts matching Image 1

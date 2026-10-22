@@ -288,36 +288,26 @@
 
 /* Ranked Top Sources Badges */
 .turnitin-source-badge {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
+    width: 32px;
+    height: 20px;
+    border-radius: 10px;
     color: #fff;
-    font-weight: 800;
-    font-size: 0.8rem;
+    font-weight: 700;
+    font-size: 0.76rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-right: 10px;
+    margin-right: 12px;
     flex-shrink: 0;
 }
 .source-cat-pill {
     font-size: 0.72rem;
     font-weight: 700;
-    padding: 3px 10px;
+    padding: 2px 12px;
     border-radius: 999px;
     display: inline-block;
-}
-.source-cat-pill.internet {
-    background: #fce4ec;
-    color: #be185d;
-}
-.source-cat-pill.publication {
-    background: #e0f2fe;
-    color: #0369a1;
-}
-.source-cat-pill.submitted {
-    background: #f1f5f9;
-    color: #334155;
+    border: none;
+    line-height: 1.5;
 }
 
 /* Turnitin Inline Highlight Badges & Interactivity */
@@ -638,7 +628,7 @@ mark.turnitin-highlight:hover {
                 </span>
 
                 <!-- Category Pill Tag -->
-                <span class="source-cat-pill {% if s.category == 'Internet' %}internet{% elif s.category == 'Publication' %}publication{% else %}submitted{% endif %} me-3">
+                <span class="source-cat-pill me-3" style="background-color: {{ s.pill_bg }}; color: {{ s.pill_text }};">
                     {{ s.category }}
                 </span>
 
@@ -695,7 +685,7 @@ mark.turnitin-highlight:hover {
                 </span>
 
                 <!-- Category Pill Tag -->
-                <span class="source-cat-pill {% if s.category == 'Internet' %}internet{% elif s.category == 'Publication' %}publication{% else %}submitted{% endif %} me-3">
+                <span class="source-cat-pill me-3" style="background-color: {{ s.pill_bg }}; color: {{ s.pill_text }};">
                     {{ s.category }}
                 </span>
 
