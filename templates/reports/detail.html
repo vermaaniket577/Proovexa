@@ -364,21 +364,24 @@
 
 <!-- Turnitin Page View Switcher -->
 <div class="d-flex justify-content-center mb-4">
-    <div class="btn-group shadow-sm p-1 bg-white border rounded-pill" role="group">
-        <button type="button" class="btn btn-sm btn-outline-primary active rounded-pill px-3" onclick="showReportSection('all', this)">
+    <div class="btn-group shadow-sm p-1 bg-white border rounded-pill flex-wrap" role="group">
+        <button type="button" class="btn btn-sm btn-outline-primary active rounded-pill px-3 m-1" onclick="showReportSection('all', this)">
             <i class="bi bi-grid-fill me-1"></i> Full Report Flow
         </button>
-        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showReportSection('overview', this)">
-            <i class="bi bi-bar-chart-fill me-1"></i> Integrity Overview (Page 2)
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 m-1" onclick="showReportSection('cover', this)">
+            <i class="bi bi-file-earmark-lock-fill me-1"></i> Page 1: Cover Page
         </button>
-        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showReportSection('cover', this)">
-            <i class="bi bi-file-earmark-lock-fill me-1"></i> Cover Page (Page 1)
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 m-1" onclick="showReportSection('overview', this)">
+            <i class="bi bi-bar-chart-fill me-1"></i> Page 2: Integrity Overview
         </button>
-        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showReportSection('submission', this)">
-            <i class="bi bi-file-text-fill me-1"></i> Integrity Submission
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 m-1" onclick="showReportSection('page3', this)">
+            <i class="bi bi-list-ol me-1"></i> Page 3: Sources (1-10)
         </button>
-        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showReportSection('sources', this)">
-            <i class="bi bi-list-ol me-1"></i> Top Sources
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 m-1" onclick="showReportSection('page4', this)">
+            <i class="bi bi-list-nested me-1"></i> Page 4: Sources (11+)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 m-1" onclick="showReportSection('submission', this)">
+            <i class="bi bi-file-text-fill me-1"></i> Page 5+: Submission
         </button>
     </div>
 </div>
@@ -453,7 +456,7 @@
 </div>
 
 <!-- =========================================================================
-     PAGE 2: INTEGRITY OVERVIEW (Exact Visual Replica of Uploaded Screenshot)
+     PAGE 2: INTEGRITY OVERVIEW (PART 1 - Similarity Score, Filtering, Flags)
      ========================================================================= -->
 <div class="turnitin-sheet" id="section-overview">
     <!-- Header -->
@@ -491,6 +494,56 @@
 
     <div class="turnitin-sheet-divider"></div>
 
+    <!-- Integrity Flags (Left) & Soft Blue Advisory Notice (Right) -->
+    <div class="row g-4 align-items-center">
+        <div class="col-md-6">
+            <div class="turnitin-section-header mb-2">Integrity Flags</div>
+            <div class="integrity-flag-count">{{ criteria.flags_count }} Integrity Flags for Review</div>
+            <div class="integrity-flag-desc">
+                {% if criteria.flags_count == 0 %}
+                    No suspicious text manipulations found.
+                {% else %}
+                    Suspicious text manipulations detected.
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="turnitin-advisory-box">
+                <p>Our system's algorithms look deeply at a document for any inconsistencies that would set it apart from a normal submission. If we notice something strange, we flag it for you to review.</p>
+                <p class="mb-0">A flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="turnitin-sheet-footer">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     PAGE 3: INTEGRITY OVERVIEW (PART 2 - Match Groups & Top Sources 1-10) [Image 1]
+     ========================================================================= -->
+<div class="turnitin-sheet" id="section-page3">
+    <!-- Header -->
+    <div class="turnitin-sheet-header">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+
     <!-- Match Groups (Left) & Top Sources (Right) -->
     <div class="row g-4 mb-2">
         <!-- Match Groups -->
@@ -499,16 +552,8 @@
             <div class="d-flex flex-column gap-3">
                 {% for mg in criteria.match_groups %}
                 <div class="d-flex align-items-start">
-                    <span class="mg-circle-icon me-3" style="background-color: {{ mg.color }};">
-                        {% if forloop.counter == 1 %}
-                            <i class="bi bi-file-text-fill"></i>
-                        {% elif forloop.counter == 2 %}
-                            <i class="bi bi-quote"></i>
-                        {% elif forloop.counter == 3 %}
-                            <i class="bi bi-card-text"></i>
-                        {% else %}
-                            <i class="bi bi-shield-fill-check"></i>
-                        {% endif %}
+                    <span class="badge rounded-circle text-white me-2 d-inline-flex align-items-center justify-content-center" style="width:20px; height:20px; font-size:0.75rem; background-color: {{ mg.color }};">
+                        {{ mg.count }}
                     </span>
                     <div>
                         <div>
@@ -549,25 +594,39 @@
 
     <div class="turnitin-sheet-divider"></div>
 
-    <!-- Integrity Flags (Left) & Soft Blue Advisory Notice (Right) -->
-    <div class="row g-4 align-items-center">
-        <div class="col-md-6">
-            <div class="turnitin-section-header mb-2">Integrity Flags</div>
-            <div class="integrity-flag-count">{{ criteria.flags_count }} Integrity Flags for Review</div>
-            <div class="integrity-flag-desc">
-                {% if criteria.flags_count == 0 %}
-                    No suspicious text manipulations found.
-                {% else %}
-                    Suspicious text manipulations detected.
-                {% endif %}
+    <!-- Top Sources Title & Subtitle -->
+    <div class="mb-3">
+        <h6 class="fw-bold mb-1 text-dark">Top Sources</h6>
+        <div class="text-muted small">The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.</div>
+    </div>
+
+    <!-- Sources 1 to 10 -->
+    <div class="list-group list-group-flush border-top">
+        {% for s in criteria.top_sources|slice:":10" %}
+        <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-0 border-bottom">
+            <div class="d-flex align-items-center flex-grow-1">
+                <!-- Colored Number Badge -->
+                <span class="turnitin-source-badge" style="background-color: {{ s.color }};">
+                    {{ s.index }}
+                </span>
+
+                <!-- Category Pill Tag -->
+                <span class="source-cat-pill {% if s.category == 'Internet' %}internet{% elif s.category == 'Publication' %}publication{% else %}submitted{% endif %} me-3">
+                    {{ s.category }}
+                </span>
+
+                <!-- Title / URL -->
+                <div class="text-truncate" style="max-width: 540px;">
+                    <span class="fw-bold text-dark">{{ s.title }}</span>
+                </div>
+            </div>
+
+            <!-- Percentage -->
+            <div class="text-end ms-3">
+                <span class="fw-bold fs-6 text-dark">{{ s.percent }}</span>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="turnitin-advisory-box">
-                <p>Our system's algorithms look deeply at a document for any inconsistencies that would set it apart from a normal submission. If we notice something strange, we flag it for you to review.</p>
-                <p class="mb-0">A flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review.</p>
-            </div>
-        </div>
+        {% endfor %}
     </div>
 
     <!-- Footer -->
@@ -575,7 +634,7 @@
         <div class="turnitin-brand-mark">
             <span class="turnitin-brand-dot"></span>
             <span class="turnitin-brand-text">turnitin</span>
-            <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+            <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
         <div class="turnitin-header-meta-id">
             Submission ID &nbsp;{{ criteria.submission_id }}
@@ -584,7 +643,68 @@
 </div>
 
 <!-- =========================================================================
-     PAGE 3+: INTEGRITY SUBMISSION (Document text with left-margin numbered badges)
+     PAGE 4: INTEGRITY OVERVIEW (PART 3 - Top Sources Continuation 11+) [Image 2]
+     ========================================================================= -->
+<div class="turnitin-sheet" id="section-page4">
+    <!-- Header -->
+    <div class="turnitin-sheet-header">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 4 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+
+    <div class="list-group list-group-flush border-top">
+        {% for s in criteria.top_sources|slice:"10:" %}
+        <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-0 border-bottom">
+            <div class="d-flex align-items-center flex-grow-1">
+                <!-- Colored Number Badge -->
+                <span class="turnitin-source-badge" style="background-color: {{ s.color }};">
+                    {{ s.index }}
+                </span>
+
+                <!-- Category Pill Tag -->
+                <span class="source-cat-pill {% if s.category == 'Internet' %}internet{% elif s.category == 'Publication' %}publication{% else %}submitted{% endif %} me-3">
+                    {{ s.category }}
+                </span>
+
+                <!-- Title / URL -->
+                <div class="text-truncate" style="max-width: 540px;">
+                    <span class="fw-bold text-dark">{{ s.title }}</span>
+                </div>
+            </div>
+
+            <!-- Percentage -->
+            <div class="text-end ms-3">
+                <span class="fw-bold fs-6 text-dark">{{ s.percent }}</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="py-4 text-center text-muted">
+            All matching top sources displayed on Page 3.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Footer -->
+    <div class="turnitin-sheet-footer">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 4 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     PAGE 5+: INTEGRITY SUBMISSION (Document text with left-margin numbered badges)
      ========================================================================= -->
 <div class="turnitin-sheet" id="section-submission">
     <!-- Header -->
@@ -592,7 +712,7 @@
         <div class="turnitin-brand-mark">
             <span class="turnitin-brand-dot"></span>
             <span class="turnitin-brand-text">turnitin</span>
-            <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Submission</span>
+            <span class="turnitin-header-section-title">Page 5 of {{ criteria.total_pages|default:25 }} - Integrity Submission</span>
         </div>
         <div class="turnitin-header-meta-id">
             Submission ID &nbsp;{{ criteria.submission_id }}
@@ -635,78 +755,7 @@
         <div class="turnitin-brand-mark">
             <span class="turnitin-brand-dot"></span>
             <span class="turnitin-brand-text">turnitin</span>
-            <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Submission</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ criteria.submission_id }}
-        </div>
-    </div>
-</div>
-
-<!-- =========================================================================
-     PAGE 4+: TOP SOURCES DETAILED BREAKDOWN (Matching Images 3 & 4)
-     ========================================================================= -->
-<div class="turnitin-sheet" id="section-sources">
-    <!-- Header -->
-    <div class="turnitin-sheet-header">
-        <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
-            <span class="turnitin-brand-text">turnitin</span>
-            <span class="turnitin-header-section-title">Page 4 of {{ criteria.total_pages|default:25 }} - Top Sources Breakdown</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ criteria.submission_id }}
-        </div>
-    </div>
-
-    <div class="mb-4">
-        <h5 class="fw-bold mb-1 text-dark"><i class="bi bi-list-ol me-2 text-primary"></i>Top Sources</h5>
-        <small class="text-muted">The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.</small>
-    </div>
-
-    <div class="list-group list-group-flush border-top">
-        {% for s in criteria.top_sources %}
-        <div class="list-group-item d-flex align-items-center justify-content-between py-3 px-0 border-bottom">
-            <div class="d-flex align-items-center flex-grow-1">
-                <!-- Colored Circle Number Badge -->
-                <span class="turnitin-source-badge" style="background-color: {{ s.color }};">
-                    {{ s.index }}
-                </span>
-
-                <!-- Category Pill Tag -->
-                <span class="source-cat-pill {% if s.category == 'Internet' %}internet{% elif s.category == 'Publication' %}publication{% else %}submitted{% endif %} me-3">
-                    {{ s.category }}
-                </span>
-
-                <!-- Title / URL -->
-                <div class="text-truncate" style="max-width: 580px;">
-                    <span class="fw-bold text-dark">{{ s.title }}</span>
-                    {% if s.url %}
-                        <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer" class="ms-2 small text-muted text-decoration-none">
-                            <i class="bi bi-box-arrow-up-right"></i>
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Percentage on the right -->
-            <div class="text-end ms-3">
-                <span class="fw-bold fs-6 text-dark">{{ s.percent }}</span>
-            </div>
-        </div>
-        {% empty %}
-        <div class="py-4 text-center text-muted">
-            No matching sources found.
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- Footer -->
-    <div class="turnitin-sheet-footer">
-        <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
-            <span class="turnitin-brand-text">turnitin</span>
-            <span class="turnitin-header-section-title">Page 4 of {{ criteria.total_pages|default:25 }} - Top Sources Breakdown</span>
+            <span class="turnitin-header-section-title">Page 5 of {{ criteria.total_pages|default:25 }} - Integrity Submission</span>
         </div>
         <div class="turnitin-header-meta-id">
             Submission ID &nbsp;{{ criteria.submission_id }}
@@ -722,8 +771,9 @@ function showReportSection(sectionId, btn) {
     const sections = {
         'cover': document.getElementById('section-cover'),
         'overview': document.getElementById('section-overview'),
+        'page3': document.getElementById('section-page3'),
+        'page4': document.getElementById('section-page4'),
         'submission': document.getElementById('section-submission'),
-        'sources': document.getElementById('section-sources'),
     };
 
     if (sectionId === 'all') {
@@ -745,3 +795,4 @@ function showReportSection(sectionId, btn) {
 }
 </script>
 {% endblock %}
+
