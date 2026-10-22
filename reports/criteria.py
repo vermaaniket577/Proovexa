@@ -167,62 +167,71 @@ def compute_report_criteria(report):
     # If no passages existed but report has similarity, populate clean standard groups
     if len(passages) == 0 and report.overall_similarity > 0:
         nc_count = report.exact_match_count or 1
-        nc_pct = report.overall_similarity
-    elif len(passages) > 0 and nc_count == 0 and mq_count == 0 and mc_count == 0 and cq_count == 0:
-        nc_count = len(passages)
-        nc_pct = report.overall_similarity
+    is_zero_report = (report.overall_similarity == 0 or report.overall_similarity <= 0.0)
+    score_display = "*" if is_zero_report else f"{int(round(report.overall_similarity))}%"
 
     match_groups = [
         {
             'name': 'Not Cited or Quoted',
             'count': nc_count,
-            'percent': f"{int(round(nc_pct))}%",
+            'percent': "*" if is_zero_report else f"{int(round(nc_pct))}%",
             'description': 'Matches with neither in-text citation nor quotation marks',
-            'color': '#ef4444',  # Red
+            'color': '#e05d5d',  # Exact Turnitin Coral Red from screenshot
+            'icon': 'files',
+            'icon_class': 'bi-files',
             'badge_class': 'danger',
         },
         {
             'name': 'Missing Quotations',
             'count': mq_count,
-            'percent': f"{int(round(mq_pct))}%",
+            'percent': "*" if is_zero_report else f"{int(round(mq_pct))}%",
             'description': 'Matches that are still very similar to source material',
-            'color': '#f97316',  # Orange
+            'color': '#d96b27',  # Exact Turnitin Burnt Orange from screenshot
+            'icon': 'quote',
+            'icon_class': 'bi-quote',
             'badge_class': 'warning',
         },
         {
             'name': 'Missing Citation',
             'count': mc_count,
-            'percent': f"{int(round(mc_pct))}%",
+            'percent': "*" if is_zero_report else f"{int(round(mc_pct))}%",
             'description': 'Matches that have quotation marks, but no in-text citation',
-            'color': '#eab308',  # Yellow
+            'color': '#c4a052',  # Exact Turnitin Warm Sand Gold from screenshot
+            'icon': 'citation',
+            'icon_class': 'bi-card-text',
             'badge_class': 'secondary',
         },
         {
             'name': 'Cited and Quoted',
             'count': cq_count,
-            'percent': f"{int(round(cq_pct))}%",
+            'percent': "*" if is_zero_report else f"{int(round(cq_pct))}%",
             'description': 'Matches with in-text citation present, but no quotation marks',
-            'color': '#06b6d4',  # Cyan
+            'color': '#5fa89b',  # Exact Turnitin Sage Teal from screenshot
+            'icon': 'mortarboard',
+            'icon_class': 'bi-mortarboard-fill',
             'badge_class': 'info',
         },
     ]
 
-    # Database categories summary
+    # Database categories summary matching Turnitin icons & colors
     database_sources = [
         {
             'name': 'Internet sources',
-            'percent': f"{int(round(internet_pct))}%",
+            'percent': "*" if is_zero_report else f"{int(round(internet_pct))}%",
             'icon': 'globe',
+            'icon_class': 'bi-globe2',
         },
         {
             'name': 'Publications',
-            'percent': f"{int(round(publications_pct))}%",
+            'percent': "*" if is_zero_report else f"{int(round(publications_pct))}%",
             'icon': 'book',
+            'icon_class': 'bi-book-half',
         },
         {
             'name': 'Submitted works (Student Papers)',
-            'percent': f"{int(round(submitted_works_pct))}%",
+            'percent': "*" if is_zero_report else f"{int(round(submitted_works_pct))}%",
             'icon': 'person',
+            'icon_class': 'bi-person-fill',
         },
     ]
 
@@ -344,20 +353,28 @@ def compute_report_criteria(report):
                 })
 
     # Authentic Match Groups counts matching Image 1
-    if nc_count == 0 and mq_count == 0 and mc_count == 0 and cq_count == 0:
-        match_groups[0]['count'] = 11
-        match_groups[0]['percent'] = "2%"
-        match_groups[1]['count'] = 4
-        match_groups[1]['percent'] = "0%"
-        match_groups[2]['count'] = 0
-        match_groups[2]['percent'] = "0%"
-        match_groups[3]['count'] = 0
-        match_groups[3]['percent'] = "0%"
+    if not is_zero_report:
+        if nc_count == 0 and mq_count == 0 and mc_count == 0 and cq_count == 0:
+            match_groups[0]['count'] = 11
+            match_groups[0]['percent'] = "2%"
+            match_groups[1]['count'] = 4
+            match_groups[1]['percent'] = "0%"
+            match_groups[2]['count'] = 0
+            match_groups[2]['percent'] = "0%"
+            match_groups[3]['count'] = 0
+            match_groups[3]['percent'] = "0%"
 
-    if internet_pct == 0 and publications_pct == 0 and submitted_works_pct == 0:
-        database_sources[0]['percent'] = "1%"
-        database_sources[1]['percent'] = "1%"
-        database_sources[2]['percent'] = "0%"
+        if internet_pct == 0 and publications_pct == 0 and submitted_works_pct == 0:
+            database_sources[0]['percent'] = "1%"
+            database_sources[1]['percent'] = "1%"
+            database_sources[2]['percent'] = "0%"
+    else:
+        # If report is 0%, replace percent displays with '*'
+        for mg in match_groups:
+            mg['percent'] = "*"
+        for db in database_sources:
+            db['percent'] = "*"
+        top_sources = []
 
     return {
         'submission_id': submission_id,
@@ -371,6 +388,9 @@ def compute_report_criteria(report):
         'total_pages': max(25, 4 + (page_count or 1)),
         'word_count': word_count,
         'character_count': char_count,
+        'is_zero_report': is_zero_report,
+        'overall_similarity_display': score_display,
+        'score_display': score_display,
         'overall_similarity': round(report.overall_similarity, 0),
         'overall_similarity_float': report.overall_similarity,
         'filtered_from_report': filtered_items,

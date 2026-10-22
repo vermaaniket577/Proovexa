@@ -44,7 +44,7 @@
                     <td><small>{{ r.document.uploaded_by.get_full_name|default:r.document.uploaded_by.username }}</small></td>
                     <td>
                         <span class="similarity-badge {% if r.overall_similarity < 15 %}low{% elif r.overall_similarity < 25 %}moderate{% elif r.overall_similarity < 50 %}high{% else %}very-high{% endif %}">
-                            {{ r.overall_similarity|floatformat:1 }}%
+                            {{ r.similarity_display }}
                         </span>
                     </td>
                     <td><small class="text-muted">{{ r.matched_words }} / {{ r.total_words }}</small></td>

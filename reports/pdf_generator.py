@@ -20,7 +20,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
-from reportlab.graphics.shapes import Drawing, Rect, String
+from reportlab.graphics.shapes import Drawing, Rect, String, Circle, Line, Polygon, Ellipse
 
 from .criteria import compute_report_criteria
 
@@ -154,6 +154,56 @@ def _build_source_table_row(s):
     )
 
     return [badge_d, pill_d, title_p, pct_p]
+
+
+def _build_match_group_icon(mg):
+    """Draws a crisp 15x15 vector circle with authentic Turnitin white icon inside."""
+    d = Drawing(15, 15)
+    bg_color = colors.HexColor(mg['color'])
+    d.add(Circle(7.5, 7.5, 7.5, fillColor=bg_color, strokeColor=None))
+
+    icon_type = mg.get('icon', 'files')
+    if icon_type == 'files':
+        # Overlapping document sheets (Not Cited or Quoted)
+        d.add(Rect(3.8, 4.8, 5, 6.5, rx=0.5, ry=0.5, fillColor=colors.white, strokeColor=None))
+        d.add(Rect(6.2, 3.2, 5, 6.5, rx=0.5, ry=0.5, fillColor=colors.white, strokeColor=bg_color, strokeWidth=0.4))
+    elif icon_type == 'quote':
+        # Quotation marks (Missing Quotations)
+        d.add(String(7.5, 3.8, '\u201c \u201d', fontName='Helvetica-Bold', fontSize=8, fillColor=colors.white, textAnchor='middle'))
+    elif icon_type == 'citation':
+        # Horizontal paragraph / citation lines (Missing Citation)
+        d.add(Line(4.2, 9.2, 10.8, 9.2, strokeColor=colors.white, strokeWidth=1.0))
+        d.add(Line(4.2, 7.2, 10.8, 7.2, strokeColor=colors.white, strokeWidth=1.0))
+        d.add(Line(4.2, 5.2, 8.8, 5.2, strokeColor=colors.white, strokeWidth=1.0))
+    elif icon_type == 'mortarboard':
+        # Graduation mortarboard cap (Cited and Quoted)
+        d.add(Polygon([7.5, 10.8, 11.8, 8.5, 7.5, 6.2, 3.2, 8.5], fillColor=colors.white, strokeColor=None))
+        d.add(Rect(5.2, 4.2, 4.6, 2.3, rx=0.4, ry=0.4, fillColor=colors.white, strokeColor=None))
+
+    return d
+
+
+def _build_database_source_icon(db):
+    """Draws a clean vector icon for database categories (Internet, Publications, Submitted works)."""
+    d = Drawing(12, 12)
+    icon_type = db.get('icon', 'globe')
+    slate = colors.HexColor('#64748b')
+
+    if icon_type == 'globe':
+        # Globe icon
+        d.add(Circle(6, 6, 4.8, fillColor=None, strokeColor=slate, strokeWidth=0.7))
+        d.add(Line(1.2, 6, 10.8, 6, strokeColor=slate, strokeWidth=0.7))
+        d.add(Ellipse(6, 6, 2.4, 4.8, fillColor=None, strokeColor=slate, strokeWidth=0.7))
+    elif icon_type == 'book':
+        # Open book icon
+        d.add(Rect(1.5, 2.2, 4.0, 7.2, rx=0.5, ry=0.5, fillColor=None, strokeColor=slate, strokeWidth=0.7))
+        d.add(Rect(6.5, 2.2, 4.0, 7.2, rx=0.5, ry=0.5, fillColor=None, strokeColor=slate, strokeWidth=0.7))
+    elif icon_type == 'person':
+        # Student silhouette icon
+        d.add(Circle(6, 8.2, 2.0, fillColor=slate, strokeColor=None))
+        d.add(Polygon([2.5, 2.2, 9.5, 2.2, 8.6, 5.2, 3.4, 5.2], fillColor=slate, strokeColor=None))
+
+    return d
 
 
 def generate_pdf_report(report):
@@ -319,7 +369,7 @@ def generate_pdf_report(report):
     story.append(SetSection("Integrity Overview"))
 
     # 1. Overall Similarity Header
-    score_display_str = f"{int(criteria['overall_similarity'])}%  Overall Similarity"
+    score_display_str = f"{criteria.get('overall_similarity_display', str(int(criteria['overall_similarity'])) + '%')}  Overall Similarity"
     story.append(Paragraph(score_display_str, overview_score_style))
     story.append(Paragraph(
         "The combined total of all matches, including overlapping sources, for each database.",
@@ -385,17 +435,7 @@ def generate_pdf_report(report):
     # Top Section: Match Groups (Left) & Top Sources Summary (Right)
     mg_left_rows = [[Paragraph("<b>Match Groups</b>", h2_style)]]
     for mg in criteria['match_groups']:
-        badge_circle = Table([[str(mg['count'])]], colWidths=[14], rowHeights=[14])
-        badge_circle.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(mg['color'])),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 7),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ]))
+        icon_circle = _build_match_group_icon(mg)
 
         title_p = Paragraph(
             f"<b>{mg['count']} {mg['name']} &nbsp;{mg['percent']}</b>",
@@ -406,7 +446,7 @@ def generate_pdf_report(report):
             ParagraphStyle('MgDesc', fontName='Helvetica', fontSize=6.5, leading=8.5, textColor=colors.HexColor('#64748b'))
         )
 
-        row_content = Table([[badge_circle, [title_p, desc_p]]], colWidths=[18, 226])
+        row_content = Table([[icon_circle, [title_p, desc_p]]], colWidths=[18, 226])
         row_content.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -427,11 +467,18 @@ def generate_pdf_report(report):
 
     ts_right_rows = [[Paragraph("<b>Top Sources</b>", h2_style)]]
     for db in criteria['database_sources']:
-        db_p = Paragraph(
-            f"<b>{db['percent']}</b> &nbsp;&nbsp;&nbsp; {db['name']}",
-            ParagraphStyle('DbText', fontName='Helvetica', fontSize=8, leading=14, textColor=colors.HexColor('#1e293b'))
-        )
-        ts_right_rows.append([db_p])
+        pct_p = Paragraph(f"<b>{db['percent']}</b>", ParagraphStyle('DbPct', fontName='Helvetica-Bold', fontSize=8, textColor=colors.HexColor('#0f172a')))
+        icon_d = _build_database_source_icon(db)
+        name_p = Paragraph(db['name'], ParagraphStyle('DbName', fontName='Helvetica', fontSize=8, leading=10, textColor=colors.HexColor('#1e293b')))
+        row_t = Table([[pct_p, icon_d, name_p]], colWidths=[24, 16, 160])
+        row_t.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        ts_right_rows.append([row_t])
 
     ts_table = Table(ts_right_rows, colWidths=[210])
     ts_table.setStyle(TableStyle([

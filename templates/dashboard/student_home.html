@@ -191,7 +191,7 @@
                             </td>
                             <td>
                                 <span class="similarity-badge {% if report.overall_similarity < 15 %}low{% elif report.overall_similarity < 30 %}moderate{% elif report.overall_similarity < 50 %}high{% else %}very-high{% endif %}">
-                                    {{ report.overall_similarity|floatformat:1 }}%
+                                    {{ report.similarity_display }}
                                 </span>
                             </td>
                             <td>{{ report.source_count }} source{{ report.source_count|pluralize }}</td>

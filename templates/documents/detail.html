@@ -174,7 +174,7 @@
                 <a href="{% url 'reports:detail' r.id %}" class="list-group-item list-group-item-action p-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="similarity-badge {% if r.overall_similarity < 15 %}low{% elif r.overall_similarity < 30 %}moderate{% elif r.overall_similarity < 50 %}high{% else %}very-high{% endif %}">
-                            {{ r.overall_similarity|floatformat:1 }}%
+                            {{ r.similarity_display }}
                         </span>
                         <small class="text-muted">{{ r.created_at|date:"M d, H:i" }}</small>
                     </div>

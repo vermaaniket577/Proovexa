@@ -81,6 +81,20 @@ class SimilarityReport(models.Model):
         else:
             return 'danger'   # Red - high similarity
 
+    @property
+    def similarity_display(self):
+        """Return formatted similarity string; displays '*' if 0% as per Turnitin specification."""
+        if self.overall_similarity == 0 or self.overall_similarity <= 0.0:
+            return '*'
+        return f"{self.overall_similarity:.1f}%"
+
+    @property
+    def similarity_int_display(self):
+        """Return integer formatted similarity string; displays '*' if 0%."""
+        if self.overall_similarity == 0 or self.overall_similarity <= 0.0:
+            return '*'
+        return f"{int(round(self.overall_similarity))}%"
+
 
 class MatchedPassage(models.Model):
     """Individual matched passage between submitted document and a source."""

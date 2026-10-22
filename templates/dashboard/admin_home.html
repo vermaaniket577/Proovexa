@@ -220,7 +220,7 @@
                             <td>{{ report.document.uploaded_by.get_full_name|default:report.document.uploaded_by.username }}</td>
                             <td>
                                 <span class="similarity-badge {% if report.overall_similarity < 15 %}low{% elif report.overall_similarity < 30 %}moderate{% elif report.overall_similarity < 50 %}high{% else %}very-high{% endif %}">
-                                    {{ report.overall_similarity|floatformat:1 }}%
+                                    {{ report.similarity_display }}
                                 </span>
                             </td>
                             <td>
