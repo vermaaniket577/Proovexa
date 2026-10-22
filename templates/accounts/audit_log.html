@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}System Audit Logs{% endblock %}
+{% block page_title %}Security & Audit Logs{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <select name="action" class="form-select">
+                    <option value="">All Audit Actions</option>
+                    {% for key, label in actions %}
+                    <option value="{{ key }}" {% if action_filter == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i>Filter</button>
+            </div>
+            <div class="col-md-2">
+                {% if action_filter %}
+                <a href="{% url 'accounts:audit_log' %}" class="btn btn-outline-secondary w-100">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Target Resource</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td><small class="text-muted">{{ log.timestamp|date:"Y-m-d H:i:s" }}</small></td>
+                    <td>
+                        {% if log.user %}
+                            <span class="fw-semibold">{{ log.user.username }}</span>
+                        {% else %}
+                            <span class="text-muted italic">System / Anonymous</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary-subtle text-secondary">{{ log.get_action_display }}</span>
+                    </td>
+                    <td>
+                        {% if log.resource_type %}
+                            <small class="text-dark">{{ log.resource_type }} #{{ log.resource_id|truncatechars:10 }}</small>
+                        {% else %}
+                            <span class="text-muted small">-</span>
+                        {% endif %}
+                    </td>
+                    <td><small class="font-monospace text-muted">{{ log.ip_address|default:"-" }}</small></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">
+                        No audit events recorded.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if logs.has_other_pages %}
+    <div class="card-footer d-flex justify-content-between align-items-center bg-white">
+        <span class="small text-muted">Page {{ logs.number }} of {{ logs.paginator.num_pages }}</span>
+        <ul class="pagination pagination-sm mb-0">
+            {% if logs.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ logs.previous_page_number }}&action={{ action_filter }}">Previous</a></li>
+            {% endif %}
+            {% for num in logs.paginator.page_range %}
+                {% if logs.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > logs.number|add:'-3' and num < logs.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}&action={{ action_filter }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+            {% if logs.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ logs.next_page_number }}&action={{ action_filter }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

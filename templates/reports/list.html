@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Similarity Reports{% endblock %}
+{% block page_title %}Similarity Reports Repository{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-1 fw-bold">Similarity Reports Index</h5>
+            <p class="text-muted small mb-0">Browse through all executed plagiarism and text similarity scans.</p>
+        </div>
+        <div>
+            <a href="{% url 'documents:upload' %}" class="btn btn-primary">
+                <i class="bi bi-cloud-arrow-up me-1"></i> New Document Scan
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Document</th>
+                    <th>Author</th>
+                    <th>Similarity Index</th>
+                    <th>Matched Words</th>
+                    <th>Sources</th>
+                    <th>Date Generated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reports %}
+                <tr>
+                    <td>
+                        <a href="{% url 'reports:detail' r.id %}" class="fw-semibold text-decoration-none text-dark">
+                            {{ r.document.title }}
+                        </a>
+                        <div class="text-muted small">{{ r.document.original_filename }} &bull; {{ r.document.word_count }} words</div>
+                    </td>
+                    <td><small>{{ r.document.uploaded_by.get_full_name|default:r.document.uploaded_by.username }}</small></td>
+                    <td>
+                        <span class="similarity-badge {% if r.overall_similarity < 15 %}low{% elif r.overall_similarity < 25 %}moderate{% elif r.overall_similarity < 50 %}high{% else %}very-high{% endif %}">
+                            {{ r.overall_similarity|floatformat:1 }}%
+                        </span>
+                    </td>
+                    <td><small class="text-muted">{{ r.matched_words }} / {{ r.total_words }}</small></td>
+                    <td><span class="badge bg-light text-dark border">{{ r.source_count }}</span></td>
+                    <td><small class="text-muted">{{ r.created_at|date:"M d, Y H:i" }}</small></td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'reports:detail' r.id %}" class="btn btn-outline-primary" title="Interactive View">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            <a href="{% url 'reports:download_pdf' r.id %}" class="btn btn-outline-secondary" title="PDF Report">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </a>
+                            <a href="{% url 'reports:download_docx' r.id %}" class="btn btn-outline-secondary" title="Word Report">
+                                <i class="bi bi-file-earmark-word"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-file-earmark-bar-graph fs-2 d-block mb-2 text-muted"></i>
+                        No similarity reports found. Upload and scan a document to generate reports.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if reports.has_other_pages %}
+    <div class="card-footer d-flex justify-content-between align-items-center bg-white">
+        <span class="small text-muted">Showing page {{ reports.number }} of {{ reports.paginator.num_pages }}</span>
+        <ul class="pagination pagination-sm mb-0">
+            {% if reports.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ reports.previous_page_number }}">Previous</a></li>
+            {% endif %}
+            {% for num in reports.paginator.page_range %}
+                {% if reports.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > reports.number|add:'-3' and num < reports.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+            {% if reports.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ reports.next_page_number }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

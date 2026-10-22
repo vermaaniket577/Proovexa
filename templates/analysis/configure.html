@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Configure Analysis - {{ document.title }}{% endblock %}
+{% block page_title %}Configure Similarity Analysis{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header fw-bold">
+                <i class="bi bi-file-earmark-text me-2 text-primary"></i>Target Document
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="file-type-badge {{ document.file_type }} me-3" style="width: 48px; height: 48px; font-size: 0.9rem;">
+                        {{ document.file_type|upper }}
+                    </span>
+                    <div>
+                        <h5 class="fw-bold mb-1">{{ document.title }}</h5>
+                        <p class="text-muted small mb-0">
+                            {{ document.page_count }} pages &bull; {{ document.word_count }} words &bull; Uploaded {{ document.uploaded_at|date:"M d, Y H:i" }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'analysis:start' document.id %}" id="analysis-form">
+            {% csrf_token %}
+
+            <div class="card mb-4">
+                <div class="card-header fw-bold">
+                    <i class="bi bi-sliders me-2 text-primary"></i>Analysis & Exclusion Settings
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted small mb-4">
+                        Configure which elements should be filtered out to avoid false positives during similarity matching.
+                    </p>
+
+                    <!-- Exclusion Options -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 h-100">
+                                <input class="form-check-input" type="checkbox" id="exclude_bibliography" name="exclude_bibliography" checked>
+                                <label class="form-check-label fw-semibold ms-2" for="exclude_bibliography">
+                                    Exclude Bibliography & References
+                                </label>
+                                <div class="text-muted small ms-2 mt-1">
+                                    Automatically detects and excludes Works Cited, References, and Bibliography sections.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 h-100">
+                                <input class="form-check-input" type="checkbox" id="exclude_quotations" name="exclude_quotations" checked>
+                                <label class="form-check-label fw-semibold ms-2" for="exclude_quotations">
+                                    Exclude Direct Quotations
+                                </label>
+                                <div class="text-muted small ms-2 mt-1">
+                                    Ignores text enclosed in straight/curly quotation marks (&ldquo;...&rdquo; / &lsquo;...&rsquo;).
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 h-100">
+                                <input class="form-check-input" type="checkbox" id="exclude_citations" name="exclude_citations" checked>
+                                <label class="form-check-label fw-semibold ms-2" for="exclude_citations">
+                                    Exclude In-Text Citations
+                                </label>
+                                <div class="text-muted small ms-2 mt-1">
+                                    Ignores APA/MLA/Harvard in-text parenthetical citations (e.g., (Smith, 2020)).
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 h-100">
+                                <input class="form-check-input" type="checkbox" id="exclude_self_match" name="exclude_self_match" checked>
+                                <label class="form-check-label fw-semibold ms-2" for="exclude_self_match">
+                                    Exclude Self-Matches
+                                </label>
+                                <div class="text-muted small ms-2 mt-1">
+                                    Does not flag previous submissions by the same author as plagiarism matches.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Match Threshold Slider -->
+                    <div class="mb-4">
+                        <label for="min_match_words" class="form-label fw-semibold d-flex justify-content-between">
+                            <span>Minimum Matching Word Count Threshold</span>
+                            <span class="badge bg-primary" id="min-words-badge">5 words</span>
+                        </label>
+                        <input type="range" class="form-range" id="min_match_words" name="min_match_words" min="3" max="25" step="1" value="5" oninput="document.getElementById('min-words-badge').textContent = this.value + ' words';">
+                        <div class="form-text small">
+                            Matches shorter than this number of consecutive words will be disregarded to eliminate common phrases and idioms.
+                        </div>
+                    </div>
+
+                    <!-- Custom Common Phrases -->
+                    <div class="mb-3">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="exclude_common_phrases" name="exclude_common_phrases">
+                            <label class="form-check-label fw-semibold" for="exclude_common_phrases">
+                                Filter Custom Academic Common Phrases
+                            </label>
+                        </div>
+                        <textarea class="form-control" id="common_phrases" name="common_phrases" rows="3" placeholder="Enter phrases to ignore, one per line (e.g. 'in this study we demonstrate', 'as shown in table 1')"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Section -->
+            <div class="card mb-4 border-primary">
+                <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-1 text-primary">Ready to scan?</h6>
+                        <small class="text-muted">Multi-method analysis: exact matching, 5-gram token overlapping, and cosine TF-IDF.</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'documents:detail' document.id %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold" id="start-scan-btn">
+                            <i class="bi bi-shield-check me-2"></i> Start Scan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

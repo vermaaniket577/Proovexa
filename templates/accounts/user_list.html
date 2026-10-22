@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Search by name, username, or email..." value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="role" class="form-select">
+                    <option value="">All Roles</option>
+                    <option value="student" {% if role_filter == 'student' %}selected{% endif %}>Student</option>
+                    <option value="teacher" {% if role_filter == 'teacher' %}selected{% endif %}>Teacher / Instructor</option>
+                    <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Administrator</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i>Filter</button>
+            </div>
+            <div class="col-md-2 text-end">
+                {% if search or role_filter %}
+                <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary w-100">Reset</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Institution / Dept</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="user-avatar me-2" style="width: 34px; height: 34px; font-size: 0.9rem; border-radius: 50%; background: var(--primary-light); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600;">
+                                {{ u.first_name|first|default:u.username|first|upper }}
+                            </div>
+                            <div>
+                                <div class="fw-semibold text-dark">{{ u.get_full_name|default:u.username }}</div>
+                                <div class="text-muted small">@{{ u.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><small>{{ u.email }}</small></td>
+                    <td>
+                        {% if u.role == 'admin' %}
+                            <span class="badge bg-danger-subtle text-danger">Admin</span>
+                        {% elif u.role == 'teacher' %}
+                            <span class="badge bg-success-subtle text-success">Teacher</span>
+                        {% else %}
+                            <span class="badge bg-primary-subtle text-primary">Student</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ u.institution.name|default:"-" }} {% if u.department %}({{ u.department }}){% endif %}</small>
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td><small class="text-muted">{{ u.date_joined|date:"M d, Y" }}</small></td>
+                    <td>
+                        <a href="{% url 'accounts:user_edit' u.id %}" class="btn btn-sm btn-outline-primary" title="Edit User">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                        No users matching criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if users.has_other_pages %}
+    <div class="card-footer d-flex justify-content-between align-items-center bg-white">
+        <span class="small text-muted">Page {{ users.number }} of {{ users.paginator.num_pages }}</span>
+        <ul class="pagination pagination-sm mb-0">
+            {% if users.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ users.previous_page_number }}&role={{ role_filter }}&search={{ search }}">Previous</a></li>
+            {% endif %}
+            {% for num in users.paginator.page_range %}
+                {% if users.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > users.number|add:'-3' and num < users.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}&role={{ role_filter }}&search={{ search }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+            {% if users.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ users.next_page_number }}&role={{ role_filter }}&search={{ search }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

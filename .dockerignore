@@ -1,0 +1,31 @@
+# Git
+.git
+.gitignore
+
+# Python virtual environment & cache
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local databases and SQLite
+*.sqlite3
+db.sqlite3
+
+# Local user uploads and static collection
+media/
+secure_uploads/
+staticfiles/
+
+# IDE & Editor artifacts
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local

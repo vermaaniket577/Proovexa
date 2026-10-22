@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Document{% endblock %}
+{% block page_title %}Upload Document for Plagiarism Check{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <i class="bi bi-cloud-arrow-up me-2 text-primary"></i>Document Submission Form
+            </div>
+            <div class="card-body p-4">
+                <form method="post" action="{% url 'documents:upload' %}" enctype="multipart/form-data" id="upload-form">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger py-2 small mb-3">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Drag and Drop Area -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Select or Drop Document File</label>
+                        <div class="upload-zone" id="upload-zone">
+                            <div class="upload-icon">
+                                <i class="bi bi-cloud-arrow-up"></i>
+                            </div>
+                            <div class="upload-title">Drag & drop your file here, or click to browse</div>
+                            <div class="upload-subtitle">Supported formats: PDF, DOCX, TXT, PPTX &bull; Maximum file size: 25 MB</div>
+                        </div>
+                        <div class="d-none">
+                            {{ form.file }}
+                        </div>
+                        {% if form.file.errors %}
+                            <div class="text-danger small mt-2">{{ form.file.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Supported Badges -->
+                    <div class="d-flex gap-2 mb-4">
+                        <span class="file-type-badge pdf">PDF</span>
+                        <span class="file-type-badge docx">DOCX</span>
+                        <span class="file-type-badge txt">TXT</span>
+                        <span class="file-type-badge pptx">PPTX</span>
+                        <span class="text-muted small ms-auto align-self-center">Up to 500 pages &bull; 100k words</span>
+                    </div>
+
+                    <!-- Title -->
+                    <div class="mb-3">
+                        <label for="doc-title" class="form-label fw-semibold">Document Title</label>
+                        {{ form.title }}
+                        <div class="form-text">Give your document a descriptive academic title.</div>
+                        {% if form.title.errors %}
+                            <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Assignment (if present) -->
+                    {% if form.assignment %}
+                    <div class="mb-3">
+                        <label for="doc-assignment" class="form-label fw-semibold">Course Assignment (Optional)</label>
+                        {{ form.assignment }}
+                        <div class="form-text">Associate this check with an instructor-created assignment.</div>
+                        {% if form.assignment.errors %}
+                            <div class="text-danger small mt-1">{{ form.assignment.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Reference Repository Option (for Teachers/Admins) -->
+                    {% if form.is_reference %}
+                    <div class="mb-4">
+                        <div class="form-check form-switch p-3 bg-light rounded-3">
+                            {{ form.is_reference }}
+                            <label class="form-check-label fw-semibold ms-2" for="doc-is-reference">
+                                Add to Institutional Reference Index
+                            </label>
+                            <div class="small text-muted ms-2 mt-1">
+                                Check this to make this document an authoritative reference source against which future student papers are matched.
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between align-items-center pt-2">
+                        <a href="{% url 'documents:list' %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold" id="submit-upload-btn">
+                            <i class="bi bi-arrow-right-circle me-1"></i> Upload & Extract Text
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

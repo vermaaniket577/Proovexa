@@ -1,0 +1,747 @@
+{% extends 'base.html' %}
+
+{% block title %}Similarity Report: {{ report.document.title }}{% endblock %}
+{% block page_title %}Turnitin-Style Academic Similarity Report{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ==========================================================================
+   Turnitin Authentic Sheet Design System
+   Matches Turnitin Report Specifications & Uploaded Screenshots
+   ========================================================================== */
+
+/* Authentic Turnitin Document Paper Sheet */
+.turnitin-sheet {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.07);
+    max-width: 860px;
+    margin: 0 auto 36px auto;
+    padding: 44px 54px 40px 54px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #0f172a;
+    position: relative;
+    transition: box-shadow 0.2s ease;
+}
+.turnitin-sheet:hover {
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+}
+
+/* Running Header & Footer */
+.turnitin-sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.76rem;
+    color: #64748b;
+    margin-bottom: 30px;
+    padding-bottom: 2px;
+}
+.turnitin-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+.turnitin-brand-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #0284c7;
+    border-radius: 50%;
+    display: inline-block;
+}
+.turnitin-brand-text {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: #0284c7;
+    letter-spacing: -0.02em;
+}
+.turnitin-header-section-title {
+    color: #64748b;
+    font-size: 0.76rem;
+    margin-left: 14px;
+    font-weight: 400;
+}
+.turnitin-header-meta-id {
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 400;
+}
+
+.turnitin-sheet-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.76rem;
+    color: #64748b;
+    margin-top: 44px;
+    padding-top: 14px;
+    border-top: 1px solid #f1f5f9;
+}
+
+/* Cover Page Elements */
+.cover-author-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+}
+.cover-doc-filename {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 6px;
+}
+.cover-inst-line {
+    font-size: 0.92rem;
+    color: #475569;
+    margin-bottom: 28px;
+}
+.details-summary-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px 24px;
+}
+.details-stat-line {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+.details-stat-line:last-child {
+    margin-bottom: 0;
+}
+
+/* Integrity Overview (Matching User's Uploaded Screenshot) */
+.turnitin-overview-score-line {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 2px;
+}
+.turnitin-score-num {
+    font-size: 2.3rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    margin-right: 12px;
+}
+.turnitin-score-title {
+    font-size: 2.3rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+}
+.turnitin-score-subtext {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin-bottom: 24px;
+}
+
+.turnitin-section-header {
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 10px;
+}
+
+/* Filtered Items List */
+.turnitin-filtered-list {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+}
+.turnitin-filtered-list li {
+    font-size: 0.82rem;
+    color: #1e293b;
+    line-height: 1.7;
+    display: flex;
+    align-items: center;
+}
+.filtered-arrow {
+    font-size: 0.62rem;
+    color: #0f172a;
+    margin-right: 8px;
+}
+
+/* Divider Line */
+.turnitin-sheet-divider {
+    border: 0;
+    border-top: 1px solid #e2e8f0;
+    margin: 24px 0 20px 0;
+    opacity: 1;
+}
+
+/* Match Groups */
+.mg-circle-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 0.65rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.mg-item-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+.mg-item-pct {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-left: 6px;
+}
+.mg-item-desc {
+    font-size: 0.74rem;
+    color: #64748b;
+    line-height: 1.35;
+    margin-top: 1px;
+}
+
+/* Top Sources Database Breakdown */
+.turnitin-top-source-row {
+    display: flex;
+    align-items: center;
+    font-size: 0.83rem;
+    line-height: 1.9;
+}
+.ts-pct {
+    width: 32px;
+    font-weight: 700;
+    color: #0f172a;
+    text-align: left;
+}
+.ts-icon {
+    width: 22px;
+    text-align: center;
+    color: #64748b;
+    margin-right: 8px;
+}
+.ts-name {
+    color: #334155;
+    font-weight: 500;
+    font-size: 0.82rem;
+}
+
+/* Integrity Flags & Advisory Box */
+.integrity-flag-count {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 2px;
+}
+.integrity-flag-desc {
+    font-size: 0.77rem;
+    color: #64748b;
+}
+.turnitin-advisory-box {
+    background-color: #dbeafe; /* Turnitin signature soft pastel blue */
+    border-radius: 14px;
+    padding: 18px 22px;
+    color: #0369a1;
+    font-size: 0.74rem;
+    line-height: 1.45;
+}
+.turnitin-advisory-box p {
+    margin-bottom: 8px;
+    color: #0369a1;
+}
+.turnitin-advisory-box p:last-child {
+    margin-bottom: 0;
+}
+
+/* Submission Document Formatting */
+.submission-doc-content {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: #111827;
+}
+.margin-badge-indicator {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-right: 12px;
+}
+.highlighted-match {
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+.highlighted-match:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 0 4px rgba(0,0,0,0.2);
+}
+
+/* Ranked Top Sources Badges */
+.turnitin-source-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+.source-cat-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    display: inline-block;
+}
+.source-cat-pill.internet {
+    background: #fce4ec;
+    color: #be185d;
+}
+.source-cat-pill.publication {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+.source-cat-pill.submitted {
+    background: #f1f5f9;
+    color: #334155;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Top Action Toolbar -->
+<div class="card mb-4" style="overflow: visible !important; position: relative; z-index: 1050;">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3" style="overflow: visible !important;">
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-primary px-3 py-2 fw-bold text-uppercase"><i class="bi bi-shield-check me-1"></i>turnitin report</span>
+            <div>
+                <h4 class="mb-0 fw-bold">{{ report.document.title }}</h4>
+                <small class="text-muted">Submission ID: <strong>{{ criteria.submission_id }}</strong> &bull; Generated on {{ criteria.download_date }}</small>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Direct PDF Download Button -->
+            <a href="{% url 'reports:download_pdf' report.id %}" class="btn btn-danger fw-semibold px-3 py-2 shadow-sm" id="btn-download-pdf">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF Report
+            </a>
+
+            <!-- AI Writing Detection Report -->
+            <a href="{% url 'reports:ai_report' report.document.id %}" class="btn btn-info text-white fw-semibold px-3 py-2 shadow-sm" id="btn-ai-report">
+                <i class="bi bi-robot me-1"></i> AI Writing Report
+            </a>
+
+            <!-- Direct Word DOCX Download Button -->
+            <a href="{% url 'reports:download_docx' report.id %}" class="btn btn-primary fw-semibold px-3 py-2 shadow-sm" id="btn-download-docx">
+                <i class="bi bi-file-earmark-word-fill me-1"></i> Word (.docx)
+            </a>
+
+            <!-- Direct JSON Export Button -->
+            <a href="{% url 'reports:download_json' report.id %}" class="btn btn-outline-secondary fw-semibold px-3 py-2 shadow-sm" id="btn-download-json">
+                <i class="bi bi-filetype-json me-1"></i> JSON
+            </a>
+
+            <!-- Back to Document -->
+            <a href="{% url 'documents:detail' report.document.id %}" class="btn btn-outline-dark fw-semibold px-3 py-2" id="btn-view-doc">
+                <i class="bi bi-file-text me-1"></i> Document
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Turnitin Page View Switcher -->
+<div class="d-flex justify-content-center mb-4">
+    <div class="btn-group shadow-sm p-1 bg-white border rounded-pill" role="group">
+        <button type="button" class="btn btn-sm btn-outline-primary active rounded-pill px-3" onclick="showReportSection('all', this)">
+            <i class="bi bi-grid-fill me-1"></i> Full Report Flow
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showReportSection('overview', this)">
+            <i class="bi bi-bar-chart-fill me-1"></i> Integrity Overview (Page 2)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showReportSection('cover', this)">
+            <i class="bi bi-file-earmark-lock-fill me-1"></i> Cover Page (Page 1)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showReportSection('submission', this)">
+            <i class="bi bi-file-text-fill me-1"></i> Integrity Submission
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showReportSection('sources', this)">
+            <i class="bi bi-list-ol me-1"></i> Top Sources
+        </button>
+    </div>
+</div>
+
+<!-- =========================================================================
+     PAGE 1: COVER PAGE (Matching Image 1)
+     ========================================================================= -->
+<div class="turnitin-sheet" id="section-cover">
+    <!-- Header -->
+    <div class="turnitin-sheet-header">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 1 of {{ criteria.total_pages|default:25 }} - Cover Page</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+
+    <!-- Title Block -->
+    <div class="pt-5 pb-3">
+        <div class="cover-author-title">{{ criteria.author_name }}</div>
+        <div class="cover-doc-filename">{{ criteria.file_name }}</div>
+        <div class="cover-inst-line">
+            <i class="bi bi-mortarboard-fill me-1 text-primary"></i> {{ criteria.institution_name }}
+        </div>
+    </div>
+
+    <div class="turnitin-sheet-divider"></div>
+
+    <div class="row align-items-center my-3">
+        <div class="col-md-7">
+            <h6 class="fw-bold text-dark mb-3">Document Details</h6>
+            <div class="row g-2 small">
+                <div class="col-sm-4 text-muted">Submission ID</div>
+                <div class="col-sm-8 fw-semibold font-monospace">{{ criteria.submission_id }}</div>
+
+                <div class="col-sm-4 text-muted">Submission Date</div>
+                <div class="col-sm-8 fw-semibold">{{ criteria.submission_date }}</div>
+
+                <div class="col-sm-4 text-muted">Download Date</div>
+                <div class="col-sm-8 fw-semibold">{{ criteria.download_date }}</div>
+
+                <div class="col-sm-4 text-muted">File Name</div>
+                <div class="col-sm-8 fw-semibold">{{ criteria.file_name }}</div>
+
+                <div class="col-sm-4 text-muted">File Size</div>
+                <div class="col-sm-8 fw-semibold">{{ criteria.file_size_display }}</div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="details-summary-box text-center text-md-start">
+                <div class="details-stat-line"><i class="bi bi-file-earmark me-2 text-primary"></i>{{ criteria.page_count }} Pages</div>
+                <div class="details-stat-line"><i class="bi bi-fonts me-2 text-primary"></i>{{ criteria.word_count }} Words</div>
+                <div class="details-stat-line"><i class="bi bi-keyboard me-2 text-primary"></i>{{ criteria.character_count }} Characters</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="turnitin-sheet-footer">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 1 of {{ criteria.total_pages|default:25 }} - Cover Page</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     PAGE 2: INTEGRITY OVERVIEW (Exact Visual Replica of Uploaded Screenshot)
+     ========================================================================= -->
+<div class="turnitin-sheet" id="section-overview">
+    <!-- Header -->
+    <div class="turnitin-sheet-header">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+
+    <!-- Overall Similarity Headline -->
+    <div class="turnitin-overview-score-line">
+        <span class="turnitin-score-num">{{ criteria.overall_similarity|floatformat:0 }}%</span>
+        <span class="turnitin-score-title">Overall Similarity</span>
+    </div>
+    <div class="turnitin-score-subtext">The combined total of all matches, including overlapping sources, for each database.</div>
+
+    <!-- Filtered from the Report -->
+    <div class="mb-3">
+        <div class="turnitin-section-header">Filtered from the Report</div>
+        <ul class="turnitin-filtered-list">
+            {% for item in criteria.filtered_from_report %}
+            <li><span class="filtered-arrow">&#9656;</span> {{ item }}</li>
+            {% empty %}
+            <li><span class="filtered-arrow">&#9656;</span> Bibliography</li>
+            <li><span class="filtered-arrow">&#9656;</span> Quoted Text</li>
+            <li><span class="filtered-arrow">&#9656;</span> Cited Text</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="turnitin-sheet-divider"></div>
+
+    <!-- Match Groups (Left) & Top Sources (Right) -->
+    <div class="row g-4 mb-2">
+        <!-- Match Groups -->
+        <div class="col-md-7">
+            <div class="turnitin-section-header mb-3">Match Groups</div>
+            <div class="d-flex flex-column gap-3">
+                {% for mg in criteria.match_groups %}
+                <div class="d-flex align-items-start">
+                    <span class="mg-circle-icon me-3" style="background-color: {{ mg.color }};">
+                        {% if forloop.counter == 1 %}
+                            <i class="bi bi-file-text-fill"></i>
+                        {% elif forloop.counter == 2 %}
+                            <i class="bi bi-quote"></i>
+                        {% elif forloop.counter == 3 %}
+                            <i class="bi bi-card-text"></i>
+                        {% else %}
+                            <i class="bi bi-shield-fill-check"></i>
+                        {% endif %}
+                    </span>
+                    <div>
+                        <div>
+                            <span class="mg-item-title">{{ mg.count }} {{ mg.name }}</span>
+                            <span class="mg-item-pct">{{ mg.percent }}</span>
+                        </div>
+                        <div class="mg-item-desc">
+                            {{ mg.description }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Top Sources Database Categories -->
+        <div class="col-md-5">
+            <div class="turnitin-section-header mb-3">Top Sources</div>
+            <div class="d-flex flex-column gap-2 pt-1">
+                {% for db in criteria.database_sources %}
+                <div class="turnitin-top-source-row">
+                    <span class="ts-pct">{{ db.percent }}</span>
+                    <span class="ts-icon">
+                        {% if 'Internet' in db.name %}
+                            <i class="bi bi-globe2 fs-6"></i>
+                        {% elif 'Publications' in db.name %}
+                            <i class="bi bi-book-half fs-6"></i>
+                        {% else %}
+                            <i class="bi bi-person-fill fs-6"></i>
+                        {% endif %}
+                    </span>
+                    <span class="ts-name">{{ db.name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="turnitin-sheet-divider"></div>
+
+    <!-- Integrity Flags (Left) & Soft Blue Advisory Notice (Right) -->
+    <div class="row g-4 align-items-center">
+        <div class="col-md-6">
+            <div class="turnitin-section-header mb-2">Integrity Flags</div>
+            <div class="integrity-flag-count">{{ criteria.flags_count }} Integrity Flags for Review</div>
+            <div class="integrity-flag-desc">
+                {% if criteria.flags_count == 0 %}
+                    No suspicious text manipulations found.
+                {% else %}
+                    Suspicious text manipulations detected.
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="turnitin-advisory-box">
+                <p>Our system's algorithms look deeply at a document for any inconsistencies that would set it apart from a normal submission. If we notice something strange, we flag it for you to review.</p>
+                <p class="mb-0">A flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="turnitin-sheet-footer">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     PAGE 3+: INTEGRITY SUBMISSION (Document text with left-margin numbered badges)
+     ========================================================================= -->
+<div class="turnitin-sheet" id="section-submission">
+    <!-- Header -->
+    <div class="turnitin-sheet-header">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Submission</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+
+    <div class="submission-doc-content">
+        <h4 class="fw-bold mb-4 pb-2 border-bottom">{{ report.document.title }}</h4>
+
+        {% for passage in passages %}
+        <div class="d-flex align-items-start mb-3" id="doc-passage-{{ passage.id }}">
+            <!-- Left Margin Badge -->
+            <div class="pt-1">
+                <span class="margin-badge-indicator" style="background-color: {% cycle '#e91e63' '#1976d2' '#2e7d32' '#7b1fa2' '#c2185b' '#0288d1' '#00897b' %};">
+                    {{ passage.source_index|default:1 }}
+                </span>
+            </div>
+
+            <!-- Paragraph content with highlight -->
+            <div class="flex-grow-1">
+                <div class="highlighted-match" style="background-color: {% cycle '#fce4ec' '#e3f2fd' '#e8f5e9' '#f3e5f5' '#fce4ec' '#e1f5fe' '#e0f2f1' %};">
+                    &ldquo;{{ passage.submitted_text }}&rdquo;
+                </div>
+                <div class="mt-1 d-flex gap-2 text-muted" style="font-family: sans-serif; font-size: 0.75rem;">
+                    <span><i class="bi bi-journal-text me-1"></i>Source: <strong>{{ passage.source.title|default:"Reference Database" }}</strong></span>
+                    &bull;
+                    <span>Page {{ passage.submitted_page }}, Para {{ passage.submitted_paragraph }}</span>
+                    &bull;
+                    <span>{{ passage.word_count }} words</span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">No text matches were identified in this document.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Footer -->
+    <div class="turnitin-sheet-footer">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Submission</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     PAGE 4+: TOP SOURCES DETAILED BREAKDOWN (Matching Images 3 & 4)
+     ========================================================================= -->
+<div class="turnitin-sheet" id="section-sources">
+    <!-- Header -->
+    <div class="turnitin-sheet-header">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 4 of {{ criteria.total_pages|default:25 }} - Top Sources Breakdown</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <h5 class="fw-bold mb-1 text-dark"><i class="bi bi-list-ol me-2 text-primary"></i>Top Sources</h5>
+        <small class="text-muted">The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.</small>
+    </div>
+
+    <div class="list-group list-group-flush border-top">
+        {% for s in criteria.top_sources %}
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3 px-0 border-bottom">
+            <div class="d-flex align-items-center flex-grow-1">
+                <!-- Colored Circle Number Badge -->
+                <span class="turnitin-source-badge" style="background-color: {{ s.color }};">
+                    {{ s.index }}
+                </span>
+
+                <!-- Category Pill Tag -->
+                <span class="source-cat-pill {% if s.category == 'Internet' %}internet{% elif s.category == 'Publication' %}publication{% else %}submitted{% endif %} me-3">
+                    {{ s.category }}
+                </span>
+
+                <!-- Title / URL -->
+                <div class="text-truncate" style="max-width: 580px;">
+                    <span class="fw-bold text-dark">{{ s.title }}</span>
+                    {% if s.url %}
+                        <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer" class="ms-2 small text-muted text-decoration-none">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Percentage on the right -->
+            <div class="text-end ms-3">
+                <span class="fw-bold fs-6 text-dark">{{ s.percent }}</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="py-4 text-center text-muted">
+            No matching sources found.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Footer -->
+    <div class="turnitin-sheet-footer">
+        <div class="turnitin-brand-mark">
+            <span class="turnitin-brand-dot"></span>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 4 of {{ criteria.total_pages|default:25 }} - Top Sources Breakdown</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+</div>
+
+<script>
+function showReportSection(sectionId, btn) {
+    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const sections = {
+        'cover': document.getElementById('section-cover'),
+        'overview': document.getElementById('section-overview'),
+        'submission': document.getElementById('section-submission'),
+        'sources': document.getElementById('section-sources'),
+    };
+
+    if (sectionId === 'all') {
+        Object.values(sections).forEach(el => {
+            if (el) el.style.display = 'block';
+        });
+    } else {
+        Object.entries(sections).forEach(([key, el]) => {
+            if (el) {
+                if (key === sectionId) {
+                    el.style.display = 'block';
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    el.style.display = 'none';
+                }
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

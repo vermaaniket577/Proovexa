@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile{% endblock %}
+{% block page_title %}Account Profile{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card text-center p-4">
+            <div class="user-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center;">
+                {{ user.first_name|first|default:user.username|first|upper }}
+            </div>
+            <h4 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h4>
+            <p class="text-muted small mb-2">{{ user.email }}</p>
+            <div>
+                <span class="badge bg-primary-subtle text-primary text-uppercase px-3 py-1">{{ user.get_role_display }}</span>
+            </div>
+            <hr class="my-4">
+            <div class="text-start small">
+                <div class="mb-2"><strong>Username:</strong> <span class="text-muted">{{ user.username }}</span></div>
+                <div class="mb-2"><strong>Institution:</strong> <span class="text-muted">{{ user.institution.name|default:"Independent" }}</span></div>
+                <div class="mb-2"><strong>Joined:</strong> <span class="text-muted">{{ user.date_joined|date:"M d, Y" }}</span></div>
+                <div><strong>Last Activity:</strong> <span class="text-muted">{{ user.last_activity|date:"M d, Y H:i"|default:"Just now" }}</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <i class="bi bi-person-gear me-2 text-primary"></i>Update Profile Details
+            </div>
+            <div class="card-body p-4">
+                <form method="post" action="{% url 'accounts:profile' %}">
+                    {% csrf_token %}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">First Name</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}<div class="text-danger small">{{ form.first_name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Last Name</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}<div class="text-danger small">{{ form.last_name.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Email Address</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Phone</label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}<div class="text-danger small">{{ form.phone.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Department / Faculty</label>
+                        {{ form.department }}
+                        {% if form.department.errors %}<div class="text-danger small">{{ form.department.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold">Bio / Academic Interest</label>
+                        {{ form.bio }}
+                        {% if form.bio.errors %}<div class="text-danger small">{{ form.bio.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                        <i class="bi bi-check-lg me-1"></i>Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

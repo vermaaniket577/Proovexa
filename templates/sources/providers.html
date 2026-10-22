@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Source Providers{% endblock %}
+{% block page_title %}Reference Source Repositories & APIs{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header fw-bold">
+                <i class="bi bi-database me-2 text-primary"></i>Source Provider Connections
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">
+                    ScholarGuard checks uploaded manuscripts across multiple internal repositories and legal public academic open-access discovery APIs. Turnitin proprietary databases are not accessed; only legally permissible sources are integrated.
+                </p>
+
+                <div class="row g-3">
+                    {% for p in providers %}
+                    <div class="col-md-6">
+                        <div class="card h-100 border {% if p.is_available %}border-success-subtle{% else %}border-secondary-subtle{% endif %}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="fw-bold mb-0 text-dark">{{ p.name }}</h5>
+                                    {% if p.is_available %}
+                                        <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Active / Available</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-clock me-1"></i>Planned API Connector</span>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    <span class="badge bg-light text-muted border text-uppercase">{{ p.source_type }}</span>
+                                </div>
+                                <p class="text-muted small mb-0">
+                                    {% if p.name == 'Local Documents' %}
+                                        Compares against all active student submissions, archived drafts, and institutional papers uploaded to this platform.
+                                    {% elif p.name == 'Institutional Collection' %}
+                                        Compares against private departmental repositories, faculty reference libraries, and institutional publications.
+                                    {% elif p.name == 'Crossref' %}
+                                        API gateway to millions of open metadata records, DOIs, abstracts, and scholarly journal publications.
+                                    {% elif p.name == 'CORE' %}
+                                        Aggregated open-access research papers from global institutional and subject repositories.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

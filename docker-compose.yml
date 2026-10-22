@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: plagiarism_db
+      MYSQL_USER: turnitin_user
+      MYSQL_PASSWORD: turnitin_password
+      MYSQL_ROOT_PASSWORD: root_master_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    restart: always
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=prod-secret-change-to-a-very-long-random-string-64-chars
+      - ALLOWED_HOSTS=localhost,127.0.0.1,web
+      - CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
+      - DATABASE_URL=mysql://turnitin_user:turnitin_password@db:3306/plagiarism_db
+      - MAX_UPLOAD_SIZE_MB=25
+      - PROCESSING_TIMEOUT_SECONDS=300
+    volumes:
+      - media_data:/app/media
+      - uploads_data:/app/secure_uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+  media_data:
+  uploads_data:

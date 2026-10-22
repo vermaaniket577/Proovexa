@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Writing Report: {{ ai_report.document.title }}{% endblock %}
+{% block page_title %}AI Writing Detection Report{% endblock %}
+
+{% block extra_css %}
+<style>
+.ai-score-circle {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0284c7, #38bdf8);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+}
+.ai-score-circle.low {
+    background: linear-gradient(135deg, #10b981, #34d399);
+}
+.ai-score-circle.moderate {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+}
+.ai-score-circle.high {
+    background: linear-gradient(135deg, #ef4444, #f87171);
+}
+.ai-highlighted-text {
+    background-color: #cffafe;
+    color: #0c4a6e;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+.ai-margin-badge {
+    background-color: #0284c7;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Top Action Bar -->
+<div class="card mb-4" style="overflow: visible !important;">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-info text-white px-3 py-2 fw-bold text-uppercase"><i class="bi bi-robot me-1"></i>AI Writing Report</span>
+            <div>
+                <h4 class="mb-0 fw-bold">{{ ai_report.document.title }}</h4>
+                <small class="text-muted">Author: <strong>{{ ai_report.document.uploaded_by.get_full_name|default:ai_report.document.uploaded_by.username }}</strong> &bull; Scanned {{ ai_report.created_at|date:"M d, Y H:i" }}</small>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <!-- Download AI PDF Report Button -->
+            <a href="{% url 'reports:download_ai_pdf' ai_report.id %}" class="btn btn-primary fw-semibold px-3 py-2 shadow-sm" id="btn-download-ai-pdf">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download AI PDF Report
+            </a>
+
+            <!-- Return to Similarity Report -->
+            {% if similarity_report %}
+            <a href="{% url 'reports:detail' similarity_report.id %}" class="btn btn-outline-secondary fw-semibold px-3 py-2">
+                <i class="bi bi-shield-check me-1"></i> Similarity Report
+            </a>
+            {% endif %}
+
+            <!-- View Document -->
+            <a href="{% url 'documents:detail' ai_report.document.id %}" class="btn btn-outline-dark fw-semibold px-3 py-2">
+                <i class="bi bi-file-text me-1"></i> Document
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Score Overview Row -->
+<div class="row g-4 mb-4">
+    <!-- Circle Score Gauge -->
+    <div class="col-md-4 col-lg-3">
+        <div class="card h-100 text-center d-flex flex-column justify-content-center p-4">
+            <div class="ai-score-circle mx-auto mb-3 {% if ai_report.overall_ai_score < 20 %}low{% elif ai_report.overall_ai_score < 50 %}moderate{% else %}high{% endif %}">
+                <span class="fs-2 fw-bold lh-1">{{ ai_report.overall_ai_score|floatformat:0 }}%</span>
+                <span style="font-size: 0.68rem; font-weight: 700; opacity: 0.9; text-transform: uppercase;">AI Generated</span>
+            </div>
+            <div class="fw-bold text-dark">
+                {% if ai_report.overall_ai_score < 20 %}
+                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>Human Authored</span>
+                {% elif ai_report.overall_ai_score < 50 %}
+                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Partial AI Writing</span>
+                {% else %}
+                    <span class="text-danger"><i class="bi bi-robot me-1"></i>Likely AI Generated</span>
+                {% endif %}
+            </div>
+            <div class="text-muted small mt-1">
+                {{ ai_report.ai_sentence_count }} of {{ ai_report.total_sentences }} sentences flagged
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagnostics Grid -->
+    <div class="col-md-8 col-lg-9">
+        <div class="card h-100">
+            <div class="card-header fw-bold bg-white">
+                <i class="bi bi-cpu me-2 text-primary"></i>Linguistic Diagnostics & Detection Indicators
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="p-3 bg-light rounded text-center">
+                            <span class="text-muted small d-block">AI Sentences</span>
+                            <span class="fs-4 fw-bold text-info">{{ ai_report.ai_sentence_count }}</span>
+                            <span class="text-muted small d-block">Flagged</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="p-3 bg-light rounded text-center">
+                            <span class="text-muted small d-block">Human Sentences</span>
+                            <span class="fs-4 fw-bold text-success">{{ ai_report.human_sentence_count }}</span>
+                            <span class="text-muted small d-block">Organic</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="p-3 bg-light rounded text-center">
+                            <span class="text-muted small d-block">Sentence Burstiness</span>
+                            <span class="fs-4 fw-bold text-dark">{{ ai_report.burstiness_score }}</span>
+                            <span class="text-muted small d-block">Variance</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="p-3 bg-light rounded text-center">
+                            <span class="text-muted small d-block">Lexical Perplexity</span>
+                            <span class="fs-4 fw-bold text-dark">{{ ai_report.perplexity_score }}</span>
+                            <span class="text-muted small d-block">Predictability</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Academic Advisory Callout -->
+                <div class="p-3 bg-info-subtle border border-info rounded-3">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-info-circle-fill text-info fs-5 me-2 mt-1"></i>
+                        <p class="small text-info-emphasis mb-0">
+                            <strong>Academic Integrity Advisory:</strong> Our AI detection model evaluates perplexity, burstiness, and syntactic uniformity. AI writing detection provides an indicator of text probability, not definitive proof of academic dishonesty. Instructors should evaluate results in context.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Sentence Viewer -->
+<div class="card">
+    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-text-paragraph me-2 text-primary"></i>Sentence-by-Sentence AI Analysis</h5>
+            <small class="text-muted">Sentences highlighted in cyan reflect linguistic traits characteristic of generative models</small>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary active" onclick="filterSentences('all', this)">All ({{ ai_report.total_sentences }})</button>
+            <button type="button" class="btn btn-outline-info" onclick="filterSentences('ai', this)">AI Flagged ({{ ai_report.ai_sentence_count }})</button>
+            <button type="button" class="btn btn-outline-success" onclick="filterSentences('human', this)">Human ({{ ai_report.human_sentence_count }})</button>
+        </div>
+    </div>
+    <div class="card-body p-4 bg-light">
+        <div class="p-4 bg-white border rounded shadow-sm" style="font-family: 'Times New Roman', Times, serif; font-size: 1.05rem; line-height: 1.9;" id="sentence-container">
+            {% for s in ai_report.sentences_data %}
+            <div class="mb-3 sentence-block {% if s.is_ai %}is-ai-sentence{% else %}is-human-sentence{% endif %}" id="sent-{{ s.index }}">
+                <div class="d-flex align-items-start">
+                    {% if s.is_ai %}
+                        <span class="ai-margin-badge mt-1">[AI]</span>
+                        <div class="flex-grow-1">
+                            <span class="ai-highlighted-text">&ldquo;{{ s.sentence }}&rdquo;</span>
+                            <div class="text-muted small mt-1 font-sans" style="font-family: sans-serif; font-size: 0.75rem;">
+                                Confidence: <strong>{{ s.confidence|floatformat:0 }}%</strong>
+                                {% if s.markers %} &bull; Indicators: {{ s.markers|join:", " }}{% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <span class="text-muted small me-3" style="font-family: sans-serif; font-size: 0.75rem;">#{{ s.index }}</span>
+                        <div class="flex-grow-1 text-dark">
+                            {{ s.sentence }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">No sentence-level data extracted.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterSentences(type, btn) {
+    document.querySelectorAll('.btn-group button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const all = document.querySelectorAll('.sentence-block');
+    all.forEach(el => {
+        if (type === 'all') {
+            el.style.display = 'block';
+        } else if (type === 'ai') {
+            el.style.display = el.classList.contains('is-ai-sentence') ? 'block' : 'none';
+        } else if (type === 'human') {
+            el.style.display = el.classList.contains('is-human-sentence') ? 'block' : 'none';
+        }
+    });
+}
+</script>
+{% endblock %}
