@@ -63,10 +63,84 @@ def report_detail_view(request, report_id):
     from .criteria import compute_report_criteria
     criteria = compute_report_criteria(report)
 
+    # Prepare document paragraphs with inline color-coded highlights matching Top Sources
+    import html
+
+    TURNITIN_PALETTE = [
+        ('#e91e63', '#fce4ec', '#f48fb1'),  # 1: Magenta / Pink
+        ('#1976d2', '#e3f2fd', '#90caf9'),  # 2: Blue
+        ('#2e7d32', '#e8f5e9', '#a5d6a7'),  # 3: Green
+        ('#7b1fa2', '#f3e5f5', '#ce93d8'),  # 4: Purple
+        ('#c2185b', '#fce4ec', '#f48fb1'),  # 5: Rose
+        ('#0288d1', '#e1f5fe', '#81d4fa'),  # 6: Sky Blue
+        ('#00897b', '#e0f2f1', '#80cbc4'),  # 7: Teal
+        ('#5e35b1', '#ede7f6', '#b39ddb'),  # 8: Deep Purple
+        ('#d81b60', '#fce4ec', '#f48fb1'),  # 9: Magenta
+        ('#0d47a1', '#e8eaf6', '#9fa8da'),  # 10: Dark Blue
+        ('#ec407a', '#f8bbd0', '#f48fb1'),  # 11: Soft Pink
+        ('#1565c0', '#bbdefb', '#90caf9'),  # 12: Royal Blue
+        ('#00695c', '#b2dfdb', '#80cbc4'),  # 13: Pine
+    ]
+
+    extracted_texts = report.document.extracted_texts.all().order_by('page_number', 'paragraph_number')
+    paragraphs_data = []
+
+    for et in extracted_texts:
+        raw_content = et.content
+        escaped_html = html.escape(raw_content)
+
+        # Check which matched passages belong to this paragraph
+        para_matches = [
+            p for p in passages 
+            if p.submitted_text and p.submitted_text.strip() and (
+                p.submitted_text.strip() in raw_content or 
+                (p.submitted_paragraph == et.paragraph_number and p.submitted_page == et.page_number)
+            )
+        ]
+
+        top_badge = None
+        top_color = None
+
+        if para_matches:
+            sorted_matches = sorted(para_matches, key=lambda m: len(m.submitted_text), reverse=True)
+            top_m = sorted_matches[0]
+            top_badge = top_m.source_index or 1
+            top_color, _, _ = TURNITIN_PALETTE[(top_badge - 1) % len(TURNITIN_PALETTE)]
+
+            for m in sorted_matches:
+                m_idx = m.source_index or 1
+                solid_col, pastel_bg, border_col = TURNITIN_PALETTE[(m_idx - 1) % len(TURNITIN_PALETTE)]
+                m_text = m.submitted_text.strip()
+                m_escaped = html.escape(m_text)
+                src_title = html.escape(m.source.title if m.source else "Reference Database")
+
+                replacement = (
+                    f'<mark class="turnitin-highlight source-match-{m_idx}" '
+                    f'data-source-index="{m_idx}" data-source-title="{src_title}" '
+                    f'style="background-color: {pastel_bg}; border-bottom: 2px solid {solid_col}; color: #0f172a; padding: 2px 4px; border-radius: 3px; position: relative; cursor: pointer;" '
+                    f'title="Source [{m_idx}]: {src_title}">'
+                    f'<span class="badge text-white me-1 align-text-top" style="background-color: {solid_col}; font-size: 0.72rem; padding: 2px 5px; border-radius: 3px;">{m_idx}</span>'
+                    f'{m_escaped}'
+                    f'</mark>'
+                )
+
+                if m_escaped in escaped_html:
+                    escaped_html = escaped_html.replace(m_escaped, replacement, 1)
+
+        paragraphs_data.append({
+            'page_number': et.page_number,
+            'paragraph_number': et.paragraph_number,
+            'html': escaped_html,
+            'top_badge': top_badge,
+            'top_color': top_color,
+            'has_match': bool(para_matches),
+        })
+
     return render(request, 'reports/detail.html', {
         'report': report,
         'criteria': criteria,
         'passages': passages,
+        'paragraphs_data': paragraphs_data,
         'excluded_passages': excluded_passages,
         'source_groups': source_groups,
     })
