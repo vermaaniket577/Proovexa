@@ -8,6 +8,7 @@ Implements the exact layout and criteria from Turnitin academic similarity repor
 - Pages 5+: Integrity Submission (Document text with left-margin numbered source badges and pastel highlights)
 """
 import io
+import os
 import re
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
@@ -19,9 +20,32 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Rect, String, Circle, Line, Polygon, Ellipse
 
 from .criteria import compute_report_criteria
+
+
+def _register_turnitin_fonts():
+    """Register Arial TrueType fonts from system if available, falling back to Helvetica."""
+    windir = os.environ.get('WINDIR', 'C:\\Windows')
+    font_map = {
+        'Arial': os.path.join(windir, 'Fonts', 'arial.ttf'),
+        'Arial-Bold': os.path.join(windir, 'Fonts', 'arialbd.ttf'),
+        'Arial-Italic': os.path.join(windir, 'Fonts', 'ariali.ttf'),
+        'Arial-BoldItalic': os.path.join(windir, 'Fonts', 'arialbi.ttf'),
+    }
+    for name, path in font_map.items():
+        if os.path.exists(path) and name not in pdfmetrics.getRegisteredFontNames():
+            try:
+                pdfmetrics.registerFont(TTFont(name, path))
+            except Exception:
+                pass
+
+    if 'Arial' in pdfmetrics.getRegisteredFontNames() and 'Arial-Bold' in pdfmetrics.getRegisteredFontNames():
+        return 'Arial', 'Arial-Bold', 'Arial-Italic'
+    return 'Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique'
 
 
 # Palette for source numbering and highlights (Turnitin signature colors)
@@ -130,16 +154,17 @@ class TurnitinReportCanvas(canvas.Canvas):
         sub_str = f"Submission ID  {self.submission_id}"
 
         def draw_brand_decor(y_base):
+            f_reg, f_bold, _ = _register_turnitin_fonts()
             # Turnitin icon at left margin x = 36 pt
             _draw_turnitin_logo_canvas(self, 36.0, y_base - 2.0)
 
             # "turnitin" wordmark in dark slate/petrol teal #012e38
-            self.setFont('Helvetica-Bold', 8.5)
+            self.setFont(f_bold, 8.5)
             self.setFillColor(colors.HexColor('#012e38'))
             self.drawString(50.0, y_base + 1.0, "turnitin")
 
             # Page and Section info at x = 107 pt (6.0 pt, #191919)
-            self.setFont('Helvetica', 6.0)
+            self.setFont(f_reg, 6.0)
             self.setFillColor(colors.HexColor('#191919'))
             self.drawString(107.0, y_base + 1.5, f"Page {page_num} of {total_pages} - {section}")
 
@@ -161,17 +186,18 @@ def _build_source_table_rows(s):
        Line 2: Title/URL (left) and Percentage (right)
        Total width: 540 pt (colWidths: 490, 50)
     """
+    f_reg, f_bold, _ = _register_turnitin_fonts()
     # 1. Colored number badge (oval pill)
     badge_d = Drawing(16, 11)
     badge_d.add(Rect(0, 0, 16, 11, rx=5.5, ry=5.5, fillColor=colors.HexColor(s['color']), strokeColor=None))
-    badge_d.add(String(8, 2.8, str(s['index']), fontName='Helvetica-Bold', fontSize=7.0, fillColor=colors.white, textAnchor='middle'))
+    badge_d.add(String(8, 2.8, str(s['index']), fontName=f_bold, fontSize=7.0, fillColor=colors.white, textAnchor='middle'))
 
     # 2. Category pill tag (matching source's pastel tone)
     pill_bg = colors.HexColor(s.get('pill_bg', '#fce4ec'))
     pill_text = colors.HexColor(s.get('pill_text', '#be185d'))
     pill_d = Drawing(52, 11)
     pill_d.add(Rect(0, 0, 52, 11, rx=5.5, ry=5.5, fillColor=pill_bg, strokeColor=None))
-    pill_d.add(String(26, 2.8, s['category'], fontName='Helvetica-Bold', fontSize=7.0, fillColor=pill_text, textAnchor='middle'))
+    pill_d.add(String(26, 2.8, s['category'], fontName=f_bold, fontSize=7.0, fillColor=pill_text, textAnchor='middle'))
 
     # Top line container table: Badge and Pill side by side
     top_table = Table([[badge_d, pill_d]], colWidths=[20, 60])
@@ -186,13 +212,13 @@ def _build_source_table_rows(s):
     # Title / Domain (Line 2 Left: width 490 pt)
     title_p = Paragraph(
         f"<b>{s['title']}</b>",
-        ParagraphStyle('SrcTitle', fontName='Helvetica-Bold', fontSize=8.0, leading=10.5, textColor=colors.HexColor('#191919'))
+        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=8.0, leading=10.5, textColor=colors.HexColor('#191919'))
     )
 
     # Percentage (Line 2 Right: width 50 pt)
     pct_p = Paragraph(
         f"<b>{s['percent']}</b>",
-        ParagraphStyle('SrcPct', fontName='Helvetica-Bold', fontSize=8.0, leading=10.5, alignment=TA_RIGHT, textColor=colors.HexColor('#191919'))
+        ParagraphStyle('SrcPct', fontName=f_bold, fontSize=8.0, leading=10.5, alignment=TA_RIGHT, textColor=colors.HexColor('#191919'))
     )
 
     return [
@@ -254,6 +280,13 @@ def _build_database_source_icon(db):
     return d
 
 
+def _build_arrow_bullet():
+    """Draws a crisp 8x8 right-pointing vector triangle for filtered items."""
+    d = Drawing(8, 8)
+    d.add(Polygon([1.5, 6.5, 6.0, 4.0, 1.5, 1.5], fillColor=colors.HexColor('#191919'), strokeColor=None))
+    return d
+
+
 def generate_pdf_report(report):
     """
     Generate the Turnitin-styled similarity report with:
@@ -277,71 +310,75 @@ def generate_pdf_report(report):
     )
 
     styles = getSampleStyleSheet()
+    f_reg, f_bold, f_italic = _register_turnitin_fonts()
 
-    # Exact Typography styles from Turnitin samples
+    # Exact Typography styles from Turnitin samples (Inter/Arial)
+    # 2% Overall Similarity: Inter or Arial, Bold/Semibold, ~22–23 px (17.0 pt)
+    # Filtered from the Report: Inter or Arial, Semibold, ~14 px (10.5 pt)
+    # Description and list items: Inter or Arial, Regular, ~10–11 px (7.8–8.0 pt)
     cover_author_style = ParagraphStyle(
         'CoverAuthor', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=20.0, leading=24.0,
+        fontName=f_bold, fontSize=20.0, leading=24.0,
         textColor=colors.HexColor('#191919'), spaceAfter=8
     )
 
     cover_title_style = ParagraphStyle(
         'CoverTitle', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=17.0, leading=21.0,
+        fontName=f_bold, fontSize=17.0, leading=21.0,
         textColor=colors.HexColor('#191919'), spaceAfter=10
     )
 
     cover_inst_style = ParagraphStyle(
         'CoverInst', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=8.0, leading=12.0,
+        fontName=f_reg, fontSize=8.0, leading=12.0,
         textColor=colors.HexColor('#636363'), spaceAfter=16
     )
 
     h2_style = ParagraphStyle(
         'H2Style', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=10.0, leading=14.0,
+        fontName=f_bold, fontSize=10.5, leading=14.0,
         textColor=colors.HexColor('#191919'), spaceBefore=0, spaceAfter=6
     )
 
     detail_label = ParagraphStyle(
         'DetailLabel', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=7.0, leading=9.5,
+        fontName=f_reg, fontSize=7.8, leading=10.0,
         textColor=colors.HexColor('#636363')
     )
 
     detail_val = ParagraphStyle(
         'DetailVal', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=7.0, leading=9.5,
+        fontName=f_bold, fontSize=7.8, leading=10.0,
         textColor=colors.HexColor('#191919')
     )
 
     stat_box_text = ParagraphStyle(
         'StatBoxText', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=7.0, leading=16.0,
+        fontName=f_bold, fontSize=7.8, leading=16.0,
         textColor=colors.HexColor('#191919')
     )
 
     overview_score_style = ParagraphStyle(
         'OverviewScore', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=17.0, leading=22.0,
+        fontName=f_bold, fontSize=17.0, leading=22.0,
         textColor=colors.HexColor('#191919'), spaceAfter=4
     )
 
     overview_sub_style = ParagraphStyle(
         'OverviewSub', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=7.0, leading=10.0,
+        fontName=f_reg, fontSize=7.8, leading=10.5,
         textColor=colors.HexColor('#636363'), spaceAfter=12
     )
 
     filtered_hdr_style = ParagraphStyle(
         'FilteredHdr', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=10.0, leading=14.0,
+        fontName=f_bold, fontSize=10.5, leading=14.0,
         textColor=colors.HexColor('#191919'), spaceAfter=4
     )
 
     filtered_item_style = ParagraphStyle(
         'FilteredItem', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=7.0, leading=11.0,
+        fontName=f_reg, fontSize=7.8, leading=11.5,
         textColor=colors.HexColor('#191919')
     )
 
@@ -441,7 +478,17 @@ def generate_pdf_report(report):
     # 2. Filtered from the Report
     story.append(Paragraph("<b>Filtered from the Report</b>", filtered_hdr_style))
     for item in criteria['filtered_from_report']:
-        story.append(Paragraph(f'<font size="6.0" color="#191919">&#9656;</font>&nbsp; {item}', filtered_item_style))
+        bullet_d = _build_arrow_bullet()
+        item_p = Paragraph(item, filtered_item_style)
+        item_t = Table([[bullet_d, item_p]], colWidths=[10, 530])
+        item_t.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+        ]))
+        story.append(item_t)
 
     story.append(Spacer(1, 10))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=12))
@@ -453,11 +500,11 @@ def generate_pdf_report(report):
             icon_circle = _build_match_group_icon(mg)
             title_p = Paragraph(
                 f"<b>{mg['count']} {mg['name']}</b> &nbsp;{mg['percent']}",
-                ParagraphStyle('MgTitle', fontName='Helvetica-Bold', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#191919'))
+                ParagraphStyle('MgTitle', fontName=f_bold, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919'))
             )
             desc_p = Paragraph(
                 mg['description'],
-                ParagraphStyle('MgDesc', fontName='Helvetica', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#636363'))
+                ParagraphStyle('MgDesc', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363'))
             )
             row_content = Table([[icon_circle, [title_p, desc_p]]], colWidths=[18, 248])
             row_content.setStyle(TableStyle([
@@ -482,9 +529,9 @@ def generate_pdf_report(report):
     def _create_top_sources_db_table():
         ts_right_rows = [[Paragraph("<b>Top Sources</b>", h2_style)]]
         for db in criteria['database_sources']:
-            pct_p = Paragraph(f"<b>{db['percent']}</b>", ParagraphStyle('DbPct', fontName='Helvetica-Bold', fontSize=7.0, textColor=colors.HexColor('#191919')))
+            pct_p = Paragraph(f"<b>{db['percent']}</b>", ParagraphStyle('DbPct', fontName=f_bold, fontSize=7.8, textColor=colors.HexColor('#191919')))
             icon_d = _build_database_source_icon(db)
-            name_p = Paragraph(db['name'], ParagraphStyle('DbName', fontName='Helvetica', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#191919')))
+            name_p = Paragraph(db['name'], ParagraphStyle('DbName', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919')))
             row_t = Table([[pct_p, icon_d, name_p]], colWidths=[24, 16, 226])
             row_t.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -521,8 +568,8 @@ def generate_pdf_report(report):
     # 4. Integrity Flags (Left 270 pt) & Advisory Callout Box (Right 270 pt)
     flags_left_rows = [
         [Paragraph("<b>Integrity Flags</b>", h2_style)],
-        [Paragraph(f"<b>{criteria['flags_count']} Integrity Flags for Review</b>", ParagraphStyle('FlagHdr', fontName='Helvetica-Bold', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#191919')))],
-        [Paragraph("No suspicious text manipulations found." if criteria['flags_count'] == 0 else "Anomalies detected in submission text.", ParagraphStyle('FlagSub', fontName='Helvetica', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#636363')))],
+        [Paragraph(f"<b>{criteria['flags_count']} Integrity Flags for Review</b>", ParagraphStyle('FlagHdr', fontName=f_bold, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919')))],
+        [Paragraph("No suspicious text manipulations found." if criteria['flags_count'] == 0 else "Anomalies detected in submission text.", ParagraphStyle('FlagSub', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363')))],
     ]
     flags_left_table = Table(flags_left_rows, colWidths=[270])
     flags_left_table.setStyle(TableStyle([
@@ -538,7 +585,7 @@ def generate_pdf_report(report):
         "would set it apart from a normal submission. If we notice something strange, we flag it for you to review.<br/><br/>"
         "A Flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review."
     )
-    advisory_p = Paragraph(advisory_text, ParagraphStyle('AdvText', fontName='Helvetica', fontSize=6.0, leading=8.5, textColor=colors.HexColor('#2c2c2c')))
+    advisory_p = Paragraph(advisory_text, ParagraphStyle('AdvText', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#2c2c2c')))
     advisory_box = Table([[advisory_p]], colWidths=[260])
     advisory_box.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#dbeafe')),
@@ -698,7 +745,7 @@ def generate_pdf_report(report):
 
                 badge_d = Drawing(16, 16)
                 badge_d.add(Circle(8, 8, 7, fillColor=colors.HexColor(badge_color_hex), strokeColor=None))
-                badge_d.add(String(8, 5.2, str(top_badge_idx), fontName='Helvetica-Bold', fontSize=7.0, fillColor=colors.white, textAnchor='middle'))
+                badge_d.add(String(8, 5.2, str(top_badge_idx), fontName=f_bold, fontSize=7.0, fillColor=colors.white, textAnchor='middle'))
 
                 text_para = Paragraph(highlighted_content, doc_para_style)
 

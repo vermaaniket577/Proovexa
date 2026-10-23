@@ -6,6 +6,7 @@ Implements the exact layout and criteria from Turnitin AI reports:
 - Pages 3+: AI Writing Submission (Document text with cyan highlights on AI sentences)
 """
 import io
+import os
 import re
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
@@ -17,7 +18,30 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Rect, String, Circle, Line, Polygon, Ellipse
+
+
+def _register_turnitin_fonts():
+    """Register Arial TrueType fonts from system if available, falling back to Helvetica."""
+    windir = os.environ.get('WINDIR', 'C:\\Windows')
+    font_map = {
+        'Arial': os.path.join(windir, 'Fonts', 'arial.ttf'),
+        'Arial-Bold': os.path.join(windir, 'Fonts', 'arialbd.ttf'),
+        'Arial-Italic': os.path.join(windir, 'Fonts', 'ariali.ttf'),
+        'Arial-BoldItalic': os.path.join(windir, 'Fonts', 'arialbi.ttf'),
+    }
+    for name, path in font_map.items():
+        if os.path.exists(path) and name not in pdfmetrics.getRegisteredFontNames():
+            try:
+                pdfmetrics.registerFont(TTFont(name, path))
+            except Exception:
+                pass
+
+    if 'Arial' in pdfmetrics.getRegisteredFontNames() and 'Arial-Bold' in pdfmetrics.getRegisteredFontNames():
+        return 'Arial', 'Arial-Bold', 'Arial-Italic'
+    return 'Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique'
 
 
 class SetSection(Flowable):
@@ -105,16 +129,17 @@ class AICanvas(canvas.Canvas):
         sub_str = f"Submission ID  {self.submission_id}"
 
         def draw_brand_decor(y_base):
+            f_reg, f_bold, _ = _register_turnitin_fonts()
             # Turnitin icon at left margin x = 36 pt
             _draw_turnitin_logo_canvas(self, 36.0, y_base - 2.0)
 
             # "turnitin" wordmark in dark slate/petrol teal #012e38
-            self.setFont('Helvetica-Bold', 8.5)
+            self.setFont(f_bold, 8.5)
             self.setFillColor(colors.HexColor('#012e38'))
             self.drawString(50.0, y_base + 1.0, "turnitin")
 
             # Page and Section info at x = 107 pt (6.0 pt, #191919)
-            self.setFont('Helvetica', 6.0)
+            self.setFont(f_reg, 6.0)
             self.setFillColor(colors.HexColor('#191919'))
             self.drawString(107.0, y_base + 1.5, f"Page {page_num} of {total_pages} - {section}")
 
@@ -168,47 +193,51 @@ def generate_ai_pdf_report(ai_report):
     )
 
     styles = getSampleStyleSheet()
+    f_reg, f_bold, f_italic = _register_turnitin_fonts()
 
-    # Exact Typography styles from Turnitin samples
+    # Exact Typography styles from Turnitin samples (Inter/Arial)
+    # 0% detected as AI: Inter or Arial, Bold/Semibold, ~22–23 px (17.0 pt)
+    # Caution/Disclaimer headers: Inter or Arial, Semibold, ~14 px (10.5 pt)
+    # Description and body items: Inter or Arial, Regular, ~10–11 px (7.8–8.0 pt)
     cover_author_style = ParagraphStyle(
         'AICoverAuthor', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=20.0, leading=24.0,
+        fontName=f_bold, fontSize=20.0, leading=24.0,
         textColor=colors.HexColor('#191919'), spaceAfter=8
     )
 
     cover_title_style = ParagraphStyle(
         'AICoverTitle', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=17.0, leading=21.0,
+        fontName=f_bold, fontSize=17.0, leading=21.0,
         textColor=colors.HexColor('#191919'), spaceAfter=10
     )
 
     cover_inst_style = ParagraphStyle(
         'AICoverInst', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=8.0, leading=12.0,
+        fontName=f_reg, fontSize=8.0, leading=12.0,
         textColor=colors.HexColor('#636363'), spaceAfter=16
     )
 
     h2_style = ParagraphStyle(
         'AIH2', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=10.0, leading=14.0,
+        fontName=f_bold, fontSize=10.5, leading=14.0,
         textColor=colors.HexColor('#191919'), spaceBefore=0, spaceAfter=6
     )
 
     detail_label = ParagraphStyle(
         'AIDetailLabel', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=7.0, leading=9.5,
+        fontName=f_reg, fontSize=7.8, leading=10.0,
         textColor=colors.HexColor('#636363')
     )
 
     detail_val = ParagraphStyle(
         'AIDetailVal', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=7.0, leading=9.5,
+        fontName=f_bold, fontSize=7.8, leading=10.0,
         textColor=colors.HexColor('#191919')
     )
 
     stat_box_text = ParagraphStyle(
         'AIStatBoxText', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=7.0, leading=16.0,
+        fontName=f_bold, fontSize=7.8, leading=16.0,
         textColor=colors.HexColor('#191919')
     )
 
@@ -301,12 +330,12 @@ def generate_ai_pdf_report(ai_report):
     # Top Section: Left Score + Subtext (270 pt), Right Caution Box (270 pt)
     score_heading_style = ParagraphStyle(
         'AIScoreHeading', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=17.0, leading=22.0,
+        fontName=f_bold, fontSize=17.0, leading=22.0,
         textColor=colors.HexColor('#191919'), spaceAfter=6
     )
     score_desc_style = ParagraphStyle(
         'AIScoreDesc', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=7.0, leading=10.0,
+        fontName=f_reg, fontSize=7.8, leading=10.5,
         textColor=colors.HexColor('#191919')
     )
 
@@ -329,12 +358,12 @@ def generate_ai_pdf_report(ai_report):
 
     caution_title_style = ParagraphStyle(
         'AICautionTitle', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=6.0, leading=8.5,
+        fontName=f_bold, fontSize=10.5, leading=14.0,
         textColor=colors.HexColor('#2d2d2d'), spaceAfter=4
     )
     caution_body_style = ParagraphStyle(
         'AICautionBody', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=6.0, leading=8.5,
+        fontName=f_reg, fontSize=7.8, leading=10.5,
         textColor=colors.HexColor('#2d2d2d')
     )
 
@@ -380,11 +409,11 @@ def generate_ai_pdf_report(ai_report):
 
     ai_grp_title = Paragraph(
         f"<b>{ai_report.ai_sentence_count} AI-generated &nbsp;{score_display}</b>",
-        ParagraphStyle('AIGrpTitle', fontName='Helvetica-Bold', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#191919'))
+        ParagraphStyle('AIGrpTitle', fontName=f_bold, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919'))
     )
     ai_grp_desc = Paragraph(
         "Likely generated or likely generated and revised by AI.",
-        ParagraphStyle('AIGrpDesc', fontName='Helvetica', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#636363'))
+        ParagraphStyle('AIGrpDesc', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363'))
     )
 
     ai_grp_table = Table([[ai_icon, [ai_grp_title, ai_grp_desc]]], colWidths=[20, 520])
@@ -403,12 +432,12 @@ def generate_ai_pdf_report(ai_report):
     # Bottom Section: Disclaimer
     disclaimer_title_style = ParagraphStyle(
         'AIDisclaimerTitle', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=6.0, leading=8.5,
-        textColor=colors.HexColor('#636363'), spaceAfter=4
+        fontName=f_bold, fontSize=10.5, leading=14.0,
+        textColor=colors.HexColor('#191919'), spaceAfter=4
     )
     disclaimer_body_style = ParagraphStyle(
         'AIDisclaimerBody', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=6.0, leading=8.5,
+        fontName=f_reg, fontSize=7.8, leading=10.5,
         textColor=colors.HexColor('#636363')
     )
 
