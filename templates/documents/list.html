@@ -56,6 +56,18 @@
                         {% if doc.is_reference %}
                             <span class="badge bg-info-subtle text-info ms-1">Reference</span>
                         {% endif %}
+                        <div class="mt-1 d-flex flex-wrap gap-1">
+                            {% if doc.latest_similarity_report %}
+                                <a href="{% url 'reports:detail' doc.latest_similarity_report.id %}" class="badge bg-primary-subtle text-primary border text-decoration-none" title="Similarity Report: {{ doc.latest_similarity_report.similarity_display }}">
+                                    <i class="bi bi-shield-check me-1"></i>{{ doc.latest_similarity_report.similarity_display }}
+                                </a>
+                            {% endif %}
+                            {% if doc.latest_ai_report %}
+                                <a href="{% url 'reports:ai_report' doc.id %}" class="badge bg-info-subtle text-info border text-decoration-none" title="AI Writing: {{ doc.latest_ai_report.overall_ai_score|floatformat:0 }}%">
+                                    <i class="bi bi-robot me-1"></i>{{ doc.latest_ai_report.overall_ai_score|floatformat:0 }}% AI
+                                </a>
+                            {% endif %}
+                        </div>
                     </td>
                     <td><small>{{ doc.uploaded_by.get_full_name|default:doc.uploaded_by.username }}</small></td>
                     <td>
@@ -79,11 +91,35 @@
                             <a href="{% url 'documents:detail' doc.id %}" class="btn btn-outline-primary" title="Details">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            {% if doc.status == 'extracted' or doc.status == 'completed' %}
-                            <a href="{% url 'analysis:start' doc.id %}" class="btn btn-outline-success" title="Run Similarity Check">
-                                <i class="bi bi-play-circle"></i> Scan
+                            <a href="{% url 'analysis:quick_scan' doc.id %}?type=both&next={{ request.get_full_path }}" class="btn btn-primary fw-semibold" title="1-Click Generate Both Similarity & AI Reports">
+                                <i class="bi bi-lightning-charge-fill text-warning"></i> 1-Click Scan
                             </a>
-                            {% endif %}
+                            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="visually-hidden">Toggle Dropdown</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <li>
+                                    <a class="dropdown-item py-2" href="{% url 'analysis:quick_scan' doc.id %}?type=both&next={{ request.get_full_path }}">
+                                        <i class="bi bi-lightning-charge text-warning me-2"></i><strong>1-Click Both Reports</strong>
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'analysis:quick_scan' doc.id %}?type=similarity&next={{ request.get_full_path }}">
+                                        <i class="bi bi-shield-check text-primary me-2"></i>Similarity Report Only
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'analysis:quick_scan' doc.id %}?type=ai&next={{ request.get_full_path }}">
+                                        <i class="bi bi-robot text-info me-2"></i>AI Writing Report Only
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'analysis:start' doc.id %}">
+                                        <i class="bi bi-sliders text-secondary me-2"></i>Custom Exclusions Form...
+                                    </a>
+                                </li>
+                            </ul>
                             <a href="{% url 'documents:download' doc.id %}" class="btn btn-outline-secondary" title="Download Original">
                                 <i class="bi bi-download"></i>
                             </a>

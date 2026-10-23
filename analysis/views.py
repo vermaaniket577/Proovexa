@@ -97,6 +97,63 @@ def analysis_status_view(request, doc_id):
 
 
 @login_required
+def quick_scan_view(request, doc_id):
+    """
+    1-Click report generation for a document.
+    Generates both similarity and AI reports (or one of them if specified).
+    """
+    from .services import generate_both_reports, generate_similarity_report, generate_ai_report
+
+    document = get_object_or_404(Document, id=doc_id, is_deleted=False)
+
+    # Authorization
+    if document.uploaded_by != request.user and not request.user.is_admin and not request.user.is_teacher:
+        return HttpResponseForbidden("You don't have permission to scan this document.")
+
+    scan_type = request.GET.get('type') or request.POST.get('type') or 'both'
+    next_url = request.GET.get('next') or request.POST.get('next')
+
+    try:
+        if scan_type == 'similarity':
+            sim_report = generate_similarity_report(document, user=request.user)
+            messages.success(
+                request,
+                f"1-Click Similarity Scan complete for '{document.title}'! Score: {sim_report.similarity_display}"
+            )
+            if next_url:
+                return redirect(next_url)
+            return redirect('reports:detail', report_id=sim_report.id)
+
+        elif scan_type == 'ai':
+            ai_report = generate_ai_report(document, user=request.user)
+            messages.success(
+                request,
+                f"1-Click AI Detection Scan complete for '{document.title}'! Score: {ai_report.overall_ai_score:.0f}% AI"
+            )
+            if next_url:
+                return redirect(next_url)
+            return redirect('reports:ai_report', doc_id=document.id)
+
+        else:
+            # Both reports in 1 click!
+            sim_report, ai_report = generate_both_reports(document, user=request.user)
+            messages.success(
+                request,
+                f"1-Click Scan complete for '{document.title}'! "
+                f"Similarity: {sim_report.similarity_display} &bull; AI Content: {ai_report.overall_ai_score:.0f}%"
+            )
+            if next_url:
+                return redirect(next_url)
+            return redirect('reports:detail', report_id=sim_report.id)
+
+    except Exception as e:
+        messages.error(request, f"Report generation failed: {str(e)}")
+        if next_url:
+            return redirect(next_url)
+        return redirect('documents:detail', doc_id=doc_id)
+
+
+@login_required
 @role_required(['admin'])
 def exclusion_rules_view(request):
     """Admin: manage exclusion rules."""

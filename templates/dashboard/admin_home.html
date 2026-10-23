@@ -51,6 +51,7 @@
                             <th>Document</th>
                             <th>Uploader</th>
                             <th>Status</th>
+                            <th>Reports & 1-Click Scan</th>
                             <th>Pages / Words</th>
                             <th>Uploaded</th>
                             <th>Action</th>
@@ -81,6 +82,48 @@
                                 {% else %}
                                     <span class="badge bg-warning-subtle text-warning">{{ doc.get_status_display }}</span>
                                 {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap align-items-center gap-1">
+                                    {% if doc.latest_similarity_report %}
+                                        <a href="{% url 'reports:detail' doc.latest_similarity_report.id %}" class="badge bg-primary-subtle text-primary border text-decoration-none" title="Similarity: {{ doc.latest_similarity_report.similarity_display }}">
+                                            <i class="bi bi-shield-check me-1"></i>{{ doc.latest_similarity_report.similarity_display }}
+                                        </a>
+                                    {% endif %}
+                                    {% if doc.latest_ai_report %}
+                                        <a href="{% url 'reports:ai_report' doc.id %}" class="badge bg-info-subtle text-info border text-decoration-none" title="AI Writing: {{ doc.latest_ai_report.overall_ai_score|floatformat:0 }}%">
+                                            <i class="bi bi-robot me-1"></i>{{ doc.latest_ai_report.overall_ai_score|floatformat:0 }}% AI
+                                        </a>
+                                    {% endif %}
+
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'analysis:quick_scan' doc.id %}?type=both&next={{ request.get_full_path }}" class="btn btn-sm {% if doc.has_both_reports %}btn-outline-primary{% else %}btn-primary fw-semibold{% endif %}" title="1-Click Generate Both Similarity & AI Reports">
+                                            <i class="bi bi-lightning-charge-fill {% if not doc.has_both_reports %}text-warning{% endif %}"></i>
+                                            {% if doc.has_both_reports %}Re-scan{% else %}1-Click Scan{% endif %}
+                                        </a>
+                                        <button type="button" class="btn btn-sm {% if doc.has_both_reports %}btn-outline-primary{% else %}btn-primary{% endif %} dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <span class="visually-hidden">Toggle Dropdown</span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                            <li>
+                                                <a class="dropdown-item py-2" href="{% url 'analysis:quick_scan' doc.id %}?type=both&next={{ request.get_full_path }}">
+                                                    <i class="bi bi-lightning-charge text-warning me-2"></i><strong>1-Click Both Reports</strong>
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'analysis:quick_scan' doc.id %}?type=similarity&next={{ request.get_full_path }}">
+                                                    <i class="bi bi-shield-check text-primary me-2"></i>Similarity Report Only
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'analysis:quick_scan' doc.id %}?type=ai&next={{ request.get_full_path }}">
+                                                    <i class="bi bi-robot text-info me-2"></i>AI Writing Report Only
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 <small class="text-muted">{{ doc.page_count }}p &bull; {{ doc.word_count }}w</small>
@@ -129,7 +172,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">
+                            <td colspan="7" class="text-center py-4 text-muted">
                                 <i class="bi bi-file-earmark-x fs-3 d-block mb-2"></i>
                                 No documents submitted yet.
                             </td>
@@ -172,6 +215,9 @@
             <div class="card-body d-grid gap-2">
                 <a href="{% url 'documents:upload' %}" class="btn btn-primary">
                     <i class="bi bi-cloud-arrow-up me-2"></i>Scan New Document
+                </a>
+                <a href="{% url 'admin:documents_document_changelist' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-shield-lock me-2"></i>Django Admin 1-Click Scan Panel
                 </a>
                 <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary">
                     <i class="bi bi-people me-2"></i>Manage Users

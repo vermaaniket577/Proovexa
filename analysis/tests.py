@@ -389,3 +389,100 @@ class PlagiarismPlatformTestCase(TestCase):
         self.assertEqual(res_pdf['Content-Type'], 'application/pdf')
         self.assertGreater(len(res_pdf.content), 1000)
 
+    def test_one_click_services_and_quick_scan_view(self):
+        """Test unified 1-click generation services and view."""
+        from analysis.services import generate_both_reports
+
+        doc = Document.objects.create(
+            title="1-Click Test Document",
+            original_filename="one_click.txt",
+            file_type=Document.FileType.TXT,
+            file_size=1024,
+            file_hash="hash_one_click_123",
+            mime_type="text/plain",
+            uploaded_by=self.student,
+            assignment=self.assignment,
+            status=Document.Status.EXTRACTED,
+            word_count=50,
+            page_count=1
+        )
+        ExtractedText.objects.create(
+            document=doc,
+            page_number=1,
+            paragraph_number=1,
+            content=(
+                "Furthermore, it is crucial to note that distributed computing systems rely on messaging protocols "
+                "across independent nodes. In addition, the intricate dance of algorithms plays a vital role."
+            ),
+            word_count=30,
+            char_start=0,
+            char_end=150,
+        )
+
+        # 1. Test service directly
+        sim_report, ai_report = generate_both_reports(doc, user=self.admin)
+        self.assertIsNotNone(sim_report)
+        self.assertIsNotNone(ai_report)
+        self.assertEqual(sim_report.status, SimilarityReport.Status.COMPLETED)
+        self.assertEqual(ai_report.status, AIReport.Status.COMPLETED)
+
+        # 2. Test Document properties
+        self.assertIsNotNone(doc.latest_similarity_report)
+        self.assertIsNotNone(doc.latest_ai_report)
+        self.assertTrue(doc.has_both_reports)
+
+        # 3. Test quick_scan_view
+        client = Client()
+        client.login(username="admin_user", password="admin_password")
+
+        # 1-click scan both
+        res = client.get(reverse('analysis:quick_scan', args=[doc.id]) + '?type=both')
+        self.assertEqual(res.status_code, 302)
+
+        # 1-click scan with custom next
+        res_next = client.get(
+            reverse('analysis:quick_scan', args=[doc.id]) + f'?type=both&next={reverse("documents:list")}'
+        )
+        self.assertEqual(res_next.status_code, 302)
+        self.assertEqual(res_next.url, reverse("documents:list"))
+
+    def test_admin_panel_one_click_endpoints(self):
+        """Test Django Admin 1-click generation URLs and actions."""
+        doc = Document.objects.create(
+            title="Admin 1-Click Document",
+            original_filename="admin_doc.txt",
+            file_type=Document.FileType.TXT,
+            file_size=1024,
+            file_hash="hash_admin_123",
+            mime_type="text/plain",
+            uploaded_by=self.student,
+            assignment=self.assignment,
+            status=Document.Status.EXTRACTED,
+            word_count=40,
+            page_count=1
+        )
+        ExtractedText.objects.create(
+            document=doc,
+            page_number=1,
+            paragraph_number=1,
+            content=(
+                "Distributed systems rely on messaging protocols across independent nodes. "
+                "A comprehensive understanding is of paramount importance."
+            ),
+            word_count=20,
+            char_start=0,
+            char_end=100,
+        )
+
+        client = Client()
+        client.login(username="admin_user", password="admin_password")
+
+        # Test admin 1-click URL
+        res = client.get(reverse('admin:documents_document_generate_both', args=[doc.id]))
+        self.assertEqual(res.status_code, 302)
+
+        # Test admin changelist view contains 1-click buttons
+        changelist_res = client.get(reverse('admin:documents_document_changelist'))
+        self.assertEqual(changelist_res.status_code, 200)
+        self.assertContains(changelist_res, "1-Click Both Reports")
+

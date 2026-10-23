@@ -93,6 +93,21 @@ class Document(models.Model):
             size /= 1024
         return f"{size:.1f} TB"
 
+    @property
+    def latest_similarity_report(self):
+        """Return the most recent completed similarity report."""
+        return self.similarity_reports.filter(status='completed').order_by('-created_at').first()
+
+    @property
+    def latest_ai_report(self):
+        """Return the most recent completed AI detection report."""
+        return self.ai_reports.filter(status='completed').order_by('-created_at').first()
+
+    @property
+    def has_both_reports(self):
+        """Check if both similarity and AI reports have been generated."""
+        return bool(self.latest_similarity_report and self.latest_ai_report)
+
 
 class ExtractedText(models.Model):
     """Extracted text content from a document, organized by page/section."""
