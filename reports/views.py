@@ -140,6 +140,17 @@ def report_detail_view(request, report_id):
             'has_match': bool(para_matches),
         })
 
+    # Fetch or generate AI report for this document for seamless 1-click toggling
+    from analysis.models import AIReport
+    ai_report = AIReport.objects.filter(document=report.document, status=AIReport.Status.COMPLETED).order_by('-created_at').first()
+    if not ai_report:
+        from analysis.engine import AIDetectionEngine
+        engine = AIDetectionEngine()
+        ai_report = engine.analyze_document(report.document, user=request.user)
+
+    overall_ai_display = f"{int(ai_report.overall_ai_score)}%" if ai_report else "0%"
+    ai_total_pages = (report.document.page_count or 1) + 2
+
     return render(request, 'reports/detail.html', {
         'report': report,
         'criteria': criteria,
@@ -147,6 +158,9 @@ def report_detail_view(request, report_id):
         'paragraphs_data': paragraphs_data,
         'excluded_passages': excluded_passages,
         'source_groups': source_groups,
+        'ai_report': ai_report,
+        'overall_ai_display': overall_ai_display,
+        'ai_total_pages': ai_total_pages,
     })
 
 

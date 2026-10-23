@@ -368,6 +368,103 @@ mark.turnitin-highlight:hover {
 .source-row-clickable:hover {
     background-color: #f8fafc !important;
 }
+
+/* AI Writing Detection Styles */
+.ai-overview-score-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+.ai-score-num {
+    font-size: 2.35rem;
+    font-weight: 800;
+    color: #000000;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+.ai-score-title {
+    font-size: 2.15rem;
+    font-weight: 700;
+    color: #000000;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+.ai-score-subtext {
+    font-size: 0.95rem;
+    color: #0f172a;
+    line-height: 1.45;
+}
+.turnitin-ai-caution-box {
+    background-color: #dbeafe;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+    padding: 16px 20px;
+    height: 100%;
+}
+.ai-caution-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 6px;
+}
+.ai-caution-body {
+    font-size: 0.825rem;
+    color: #1e293b;
+    line-height: 1.5;
+}
+.ai-disclaimer-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 4px;
+}
+.ai-disclaimer-text {
+    font-size: 0.825rem;
+    color: #1e293b;
+    line-height: 1.5;
+}
+.ai-submission-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+.ai-submission-subtitle {
+    font-size: 0.825rem;
+    color: #64748b;
+    margin-bottom: 24px;
+}
+.ai-passage-paragraph {
+    font-family: "Georgia", "Times New Roman", Times, serif;
+    font-size: 1rem;
+    line-height: 1.85;
+    color: #1e293b;
+    margin-bottom: 20px;
+    position: relative;
+    padding-left: 36px;
+}
+.ai-margin-badge {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    background-color: #0284c7;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 3px;
+    line-height: 1;
+}
+.ai-highlight-cyan {
+    background-color: #cffafe;
+    color: #083344;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+}
 </style>
 {% endblock %}
 
@@ -376,22 +473,29 @@ mark.turnitin-highlight:hover {
 <div class="card mb-4" style="overflow: visible !important; position: relative; z-index: 1050;">
     <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3" style="overflow: visible !important;">
         <div class="d-flex align-items-center gap-3">
-            <span class="badge bg-primary px-3 py-2 fw-bold text-uppercase"><i class="bi bi-shield-check me-1"></i>turnitin report</span>
+            <span class="badge bg-primary px-3 py-2 fw-bold text-uppercase" id="badge-report-mode">
+                <i class="bi bi-shield-check me-1"></i>turnitin report
+            </span>
             <div>
                 <h4 class="mb-0 fw-bold">{{ report.document.title }}</h4>
-                <small class="text-muted">Submission ID: <strong>{{ criteria.submission_id }}</strong> &bull; Generated on {{ criteria.download_date }}</small>
+                <small class="text-muted">Submission ID: <strong id="header-submission-id">{{ criteria.submission_id }}</strong> &bull; Generated on {{ criteria.download_date }}</small>
             </div>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
-            <!-- Direct PDF Download Button -->
+            <!-- Dynamic Download PDF Button: downloads current active report -->
             <a href="{% url 'reports:download_pdf' report.id %}" class="btn btn-danger fw-semibold px-3 py-2 shadow-sm" id="btn-download-pdf">
-                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF Report
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> <span id="btn-download-pdf-label">Download PDF Report</span>
             </a>
 
-            <!-- AI Writing Detection Report -->
-            <a href="{% url 'reports:ai_report' report.document.id %}" class="btn btn-info text-white fw-semibold px-3 py-2 shadow-sm" id="btn-ai-report">
-                <i class="bi bi-robot me-1"></i> AI Writing Report
-            </a>
+            <!-- 1-Click Toggle: Plagiarism vs AI Report -->
+            <div class="btn-group shadow-sm" role="group" aria-label="Report View Selector">
+                <button type="button" class="btn btn-primary active fw-semibold px-3 py-2" id="btn-tab-plag" onclick="switchMainReport('plag')">
+                    <i class="bi bi-shield-check me-1"></i> Plagiarism Report <span class="badge bg-white text-primary ms-1 fw-bold">{{ report.overall_similarity|floatformat:0 }}%</span>
+                </button>
+                <button type="button" class="btn btn-outline-info fw-semibold px-3 py-2" id="btn-tab-ai" onclick="switchMainReport('ai')">
+                    <i class="bi bi-robot me-1"></i> AI Writing Report <span class="badge bg-info text-white ms-1 fw-bold">{{ overall_ai_display }}</span>
+                </button>
+            </div>
 
             <!-- Direct Word DOCX Download Button -->
             <a href="{% url 'reports:download_docx' report.id %}" class="btn btn-primary fw-semibold px-3 py-2 shadow-sm" id="btn-download-docx">
@@ -411,8 +515,8 @@ mark.turnitin-highlight:hover {
     </div>
 </div>
 
-<!-- Turnitin Page View Switcher -->
-<div class="d-flex justify-content-center mb-4">
+<!-- Plagiarism Page View Switcher -->
+<div class="d-flex justify-content-center mb-4" id="switcher-plag-pages">
     <div class="btn-group shadow-sm p-1 bg-white border rounded-pill flex-wrap" role="group">
         <button type="button" class="btn btn-sm btn-outline-primary active rounded-pill px-3 m-1" onclick="showReportSection('all', this)">
             <i class="bi bi-grid-fill me-1"></i> Full Report Flow
@@ -434,6 +538,27 @@ mark.turnitin-highlight:hover {
         </button>
     </div>
 </div>
+
+<!-- AI Page View Switcher -->
+<div class="d-flex justify-content-center mb-4" id="switcher-ai-pages" style="display: none;">
+    <div class="btn-group shadow-sm p-1 bg-white border rounded-pill flex-wrap" role="group">
+        <button type="button" class="btn btn-sm btn-outline-info active rounded-pill px-3 m-1" onclick="showAiSection('all', this)">
+            <i class="bi bi-grid-fill me-1"></i> Full AI Flow
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 m-1" onclick="showAiSection('cover', this)">
+            <i class="bi bi-file-earmark-lock-fill me-1"></i> Page 1: Cover Page
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 m-1" onclick="showAiSection('overview', this)">
+            <i class="bi bi-robot me-1"></i> Page 2: AI Writing Overview
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 m-1" onclick="showAiSection('submission', this)">
+            <i class="bi bi-file-text-fill me-1"></i> Page 3+: AI Submission
+        </button>
+    </div>
+</div>
+
+<!-- Container for Similarity Report -->
+<div id="similarity-report-container" style="display: block;">
 
 <!-- =========================================================================
      PAGE 1: COVER PAGE (Matching Image 1)
@@ -848,12 +973,313 @@ mark.turnitin-highlight:hover {
             Submission ID &nbsp;{{ criteria.submission_id }}
         </div>
     </div>
+    </div>
 </div>
+</div> <!-- End similarity-report-container -->
+
+<!-- =========================================================================
+     CONTAINER FOR AI WRITING DETECTION REPORT
+     ========================================================================= -->
+<div id="ai-report-container" style="display: none;">
+    <!-- =========================================================================
+         PAGE 1: AI WRITING COVER PAGE
+         ========================================================================= -->
+    <div class="turnitin-sheet" id="section-ai-cover">
+        <!-- Header -->
+        <div class="turnitin-sheet-header">
+            <div class="turnitin-brand-mark">
+                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="turnitin-brand-text">turnitin</span>
+                <span class="turnitin-header-section-title">Page 1 of {{ ai_total_pages }} - AI Writing Cover Page</span>
+            </div>
+            <div class="turnitin-header-meta-id">
+                Submission ID &nbsp;{{ criteria.submission_id }}
+            </div>
+        </div>
+
+        <!-- Title Block -->
+        <div class="pt-5 pb-3">
+            <div class="cover-author-title">{{ criteria.author_name }}</div>
+            <div class="cover-doc-filename">{{ report.document.original_filename }}</div>
+            <div class="cover-inst-line">
+                <i class="bi bi-mortarboard-fill me-1 text-primary"></i> {{ criteria.institution_name }}
+            </div>
+        </div>
+
+        <div class="turnitin-sheet-divider"></div>
+
+        <div class="row align-items-center my-3">
+            <div class="col-md-7">
+                <h6 class="fw-bold text-dark mb-3">Document Details</h6>
+                <div class="row g-2 small">
+                    <div class="col-sm-4 text-muted">Submission Date</div>
+                    <div class="col-sm-8 fw-semibold">{{ criteria.submission_date }}</div>
+
+                    <div class="col-sm-4 text-muted">Download Date</div>
+                    <div class="col-sm-8 fw-semibold">{{ criteria.download_date }}</div>
+
+                    <div class="col-sm-4 text-muted">File Name</div>
+                    <div class="col-sm-8 fw-semibold">{{ report.document.original_filename }}</div>
+
+                    <div class="col-sm-4 text-muted">File Size</div>
+                    <div class="col-sm-8 fw-semibold">{{ criteria.file_size_display }}</div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="details-summary-box text-start px-4 py-3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px;">
+                    <div class="fw-bold text-dark small mb-2">{{ criteria.page_count }} Pages</div>
+                    <div class="fw-bold text-dark small mb-2">{{ criteria.word_count }} Words</div>
+                    <div class="fw-bold text-dark small">{{ criteria.character_count }} Characters</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="turnitin-sheet-footer">
+            <div class="turnitin-brand-mark">
+                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="turnitin-brand-text">turnitin</span>
+                <span class="turnitin-header-section-title">Page 1 of {{ ai_total_pages }} - AI Writing Cover Page</span>
+            </div>
+            <div class="turnitin-header-meta-id">
+                Submission ID &nbsp;{{ criteria.submission_id }}
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         PAGE 2: AI WRITING OVERVIEW
+         ========================================================================= -->
+    <div class="turnitin-sheet" id="section-ai-overview">
+        <!-- Header -->
+        <div class="turnitin-sheet-header">
+            <div class="turnitin-brand-mark">
+                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="turnitin-brand-text">turnitin</span>
+                <span class="turnitin-header-section-title">Page 2 of {{ ai_total_pages }} - AI Writing Overview</span>
+            </div>
+            <div class="turnitin-header-meta-id">
+                Submission ID &nbsp;{{ criteria.submission_id }}
+            </div>
+        </div>
+
+        <div class="row g-4 align-items-stretch pt-2 pb-2">
+            <!-- Left Score -->
+            <div class="col-md-7">
+                <div class="ai-overview-score-line">
+                    <span class="ai-score-num">{{ overall_ai_display }}</span>
+                    <span class="ai-score-title">detected as AI</span>
+                </div>
+                <div class="ai-score-subtext">
+                    The percentage indicates the combined amount of likely AI-generated text as well as likely AI-generated text that was also likely revised by AI.
+                </div>
+            </div>
+            <!-- Right Caution Box -->
+            <div class="col-md-5">
+                <div class="turnitin-ai-caution-box">
+                    <div class="ai-caution-title">Caution: Review required.</div>
+                    <div class="ai-caution-body">
+                        It is essential to understand the limitations of AI detection before making decisions about a student's work. We encourage you to learn more about Turnitin's AI detection capabilities before using the tool.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="turnitin-sheet-divider my-3"></div>
+
+        <!-- Middle Row: AI-generated group row -->
+        <div class="d-flex align-items-center gap-3 py-2">
+            <div class="d-flex align-items-center justify-content-center rounded" style="width: 20px; height: 20px; background-color: #0084ff; color: #fff;">
+                <i class="bi bi-robot" style="font-size: 11px;"></i>
+            </div>
+            <div>
+                <div class="fw-bold text-dark small">{% if ai_report %}{{ ai_report.ai_sentence_count }}{% else %}0{% endif %} AI-generated &nbsp;{{ overall_ai_display }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">Likely generated or likely generated and revised by AI.</div>
+            </div>
+        </div>
+
+        <div class="turnitin-sheet-divider my-3"></div>
+
+        <!-- Disclaimer -->
+        <div class="pt-1 pb-4">
+            <div class="ai-disclaimer-title">Disclaimer</div>
+            <div class="ai-disclaimer-text">
+                Our AI writing assessment is designed to help educators identify text that might be prepared by a generative AI tool. Our AI writing assessment may not always be accurate (it may misidentify writing that is likely human generated as AI generated and likely AI generated as human generated) so it should not be used as the sole basis for adverse actions against a student. It takes further scrutiny and human judgment in conjunction with an organization's application of its specific academic policies to determine whether any academic misconduct has occurred.
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="turnitin-sheet-footer">
+            <div class="turnitin-brand-mark">
+                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="turnitin-brand-text">turnitin</span>
+                <span class="turnitin-header-section-title">Page 2 of {{ ai_total_pages }} - AI Writing Overview</span>
+            </div>
+            <div class="turnitin-header-meta-id">
+                Submission ID &nbsp;{{ criteria.submission_id }}
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         PAGE 3+: AI HIGHLIGHTED SUBMISSION
+         ========================================================================= -->
+    <div class="turnitin-sheet" id="section-ai-submission">
+        <!-- Header -->
+        <div class="turnitin-sheet-header">
+            <div class="turnitin-brand-mark">
+                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="turnitin-brand-text">turnitin</span>
+                <span class="turnitin-header-section-title">Page 3 of {{ ai_total_pages }} - AI Writing Submission</span>
+            </div>
+            <div class="turnitin-header-meta-id">
+                Submission ID &nbsp;{{ criteria.submission_id }}
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <div class="ai-submission-title">{{ report.document.title }}</div>
+            <div class="ai-submission-subtitle">Sentences highlighted in cyan reflect linguistic traits characteristic of generative models</div>
+        </div>
+
+        <div id="ai-sentence-container">
+            {% if ai_report and ai_report.sentences_data %}
+                {% for s in ai_report.sentences_data %}
+                <div class="sentence-item mb-3 {% if s.is_ai %}is-ai{% else %}is-human{% endif %}" id="ai-sent-{{ s.index }}">
+                    <div class="ai-passage-paragraph">
+                        {% if s.is_ai %}
+                            <span class="ai-margin-badge">[AI]</span>
+                            <span class="ai-highlight-cyan" title="Confidence: {{ s.confidence|floatformat:0 }}%">{{ s.sentence }}</span>
+                        {% else %}
+                            <span>{{ s.sentence }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                {% for p in paragraphs_data %}
+                <div class="ai-passage-paragraph">
+                    {{ p.html|striptags }}
+                </div>
+                {% empty %}
+                <p class="text-muted">No text extracted for submission.</p>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="turnitin-sheet-footer">
+            <div class="turnitin-brand-mark">
+                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="turnitin-brand-text">turnitin</span>
+                <span class="turnitin-header-section-title">Page 3 of {{ ai_total_pages }} - AI Writing Submission</span>
+            </div>
+            <div class="turnitin-header-meta-id">
+                Submission ID &nbsp;{{ criteria.submission_id }}
+            </div>
+        </div>
+    </div>
+</div> <!-- End ai-report-container -->
 
 <script>
+let currentReportMode = 'plag';
+
+function switchMainReport(mode) {
+    currentReportMode = mode;
+    const btnPlag = document.getElementById('btn-tab-plag');
+    const btnAi = document.getElementById('btn-tab-ai');
+    const badgeMode = document.getElementById('badge-report-mode');
+    const btnDownload = document.getElementById('btn-download-pdf');
+    const btnDownloadLabel = document.getElementById('btn-download-pdf-label');
+    const simContainer = document.getElementById('similarity-report-container');
+    const aiContainer = document.getElementById('ai-report-container');
+    const switcherPlag = document.getElementById('switcher-plag-pages');
+    const switcherAi = document.getElementById('switcher-ai-pages');
+
+    if (mode === 'ai') {
+        // Activate AI Report tab
+        if (btnAi) {
+            btnAi.classList.remove('btn-outline-info');
+            btnAi.classList.add('btn-info', 'text-white', 'active');
+        }
+        if (btnPlag) {
+            btnPlag.classList.remove('btn-primary', 'active');
+            btnPlag.classList.add('btn-outline-primary');
+        }
+        if (badgeMode) {
+            badgeMode.className = 'badge bg-info text-white px-3 py-2 fw-bold text-uppercase';
+            badgeMode.innerHTML = '<i class="bi bi-robot me-1"></i>AI WRITING REPORT';
+        }
+        if (btnDownload) {
+            {% if ai_report %}
+            btnDownload.href = "{% url 'reports:download_ai_pdf' ai_report.id %}";
+            {% else %}
+            btnDownload.href = "#";
+            {% endif %}
+        }
+        if (btnDownloadLabel) {
+            btnDownloadLabel.innerText = "Download AI PDF Report";
+        }
+        if (simContainer) simContainer.style.display = 'none';
+        if (aiContainer) aiContainer.style.display = 'block';
+        if (switcherPlag) switcherPlag.style.display = 'none';
+        if (switcherAi) switcherAi.style.display = 'flex';
+        history.replaceState(null, null, '#ai');
+    } else {
+        // Activate Plagiarism Report tab
+        if (btnPlag) {
+            btnPlag.classList.remove('btn-outline-primary');
+            btnPlag.classList.add('btn-primary', 'active');
+        }
+        if (btnAi) {
+            btnAi.classList.remove('btn-info', 'text-white', 'active');
+            btnAi.classList.add('btn-outline-info');
+        }
+        if (badgeMode) {
+            badgeMode.className = 'badge bg-primary px-3 py-2 fw-bold text-uppercase';
+            badgeMode.innerHTML = '<i class="bi bi-shield-check me-1"></i>TURNITIN REPORT';
+        }
+        if (btnDownload) {
+            btnDownload.href = "{% url 'reports:download_pdf' report.id %}";
+        }
+        if (btnDownloadLabel) {
+            btnDownloadLabel.innerText = "Download PDF Report";
+        }
+        if (simContainer) simContainer.style.display = 'block';
+        if (aiContainer) aiContainer.style.display = 'none';
+        if (switcherPlag) switcherPlag.style.display = 'flex';
+        if (switcherAi) switcherAi.style.display = 'none';
+        history.replaceState(null, null, '#plag');
+    }
+}
+
 function showReportSection(sectionId, btn) {
-    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    document.querySelectorAll('#switcher-plag-pages .btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
 
     const sections = {
         'cover': document.getElementById('section-cover'),
@@ -861,6 +1287,34 @@ function showReportSection(sectionId, btn) {
         'page3': document.getElementById('section-page3'),
         'page4': document.getElementById('section-page4'),
         'submission': document.getElementById('section-submission'),
+    };
+
+    if (sectionId === 'all') {
+        Object.values(sections).forEach(el => {
+            if (el) el.style.display = 'block';
+        });
+    } else {
+        Object.entries(sections).forEach(([key, el]) => {
+            if (el) {
+                if (key === sectionId) {
+                    el.style.display = 'block';
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    el.style.display = 'none';
+                }
+            }
+        });
+    }
+}
+
+function showAiSection(sectionId, btn) {
+    document.querySelectorAll('#switcher-ai-pages .btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const sections = {
+        'cover': document.getElementById('section-ai-cover'),
+        'overview': document.getElementById('section-ai-overview'),
+        'submission': document.getElementById('section-ai-submission'),
     };
 
     if (sectionId === 'all') {
@@ -896,6 +1350,15 @@ function jumpToSource(sourceIndex) {
         });
     }
 }
+
+// Auto-switch to AI if URL contains #ai or ?tab=ai
+document.addEventListener('DOMContentLoaded', function() {
+    const hash = window.location.hash.toLowerCase();
+    const urlParams = new URLSearchParams(window.location.search);
+    if (hash === '#ai' || urlParams.get('tab') === 'ai') {
+        switchMainReport('ai');
+    }
+});
 </script>
 {% endblock %}
 
