@@ -153,29 +153,35 @@ class TurnitinReportCanvas(canvas.Canvas):
 
         sub_str = f"Submission ID  {self.submission_id}"
 
-        def draw_brand_decor(y_base):
+        # Resolve logo image path (official Turnitin logo mark + wordmark with TM)
+        logo_path = os.path.join(os.path.dirname(__file__), 'turnitin_header_logo.png')
+        if not os.path.exists(logo_path):
+            logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'images', 'turnitin_header_logo.png')
+
+        def draw_brand_decor(y_base, y_img):
             f_reg, f_bold, _ = _register_turnitin_fonts()
-            # Turnitin icon at left margin x = 36 pt
-            _draw_turnitin_logo_canvas(self, 36.0, y_base - 2.0)
+            # Turnitin logo mark + wordmark (exact 55.0 pt x 16.48 pt at x = 36.0 pt)
+            if os.path.exists(logo_path):
+                self.drawImage(logo_path, 36.0, y_img, width=55.0, height=16.48, mask='auto')
+            else:
+                _draw_turnitin_logo_canvas(self, 36.0, y_base - 2.0)
+                self.setFont(f_bold, 8.5)
+                self.setFillColor(colors.HexColor('#012e38'))
+                self.drawString(50.0, y_base + 1.0, "turnitin")
 
-            # "turnitin" wordmark in dark slate/petrol teal #012e38
-            self.setFont(f_bold, 8.5)
-            self.setFillColor(colors.HexColor('#012e38'))
-            self.drawString(50.0, y_base + 1.0, "turnitin")
-
-            # Page and Section info at x = 107 pt (6.0 pt, #191919)
+            # Page and Section info at x = 107.0 pt (6.0 pt, #191919)
             self.setFont(f_reg, 6.0)
             self.setFillColor(colors.HexColor('#191919'))
-            self.drawString(107.0, y_base + 1.5, f"Page {page_num} of {total_pages} - {section}")
+            self.drawString(107.0, y_base, f"Page {page_num} of {total_pages} - {section}")
 
-            # Submission ID right-aligned at right margin x = 576 pt (6.0 pt, #191919)
-            self.drawRightString(576.0, y_base + 1.5, sub_str)
+            # Submission ID right-aligned at right margin x = 576.0 pt (6.0 pt, #191919)
+            self.drawRightString(576.0, y_base, sub_str)
 
-        # Header (Top): baseline y = 756.5 pt
-        draw_brand_decor(756.5)
+        # Header (Top): baseline y = 756.5 pt, logo y = 751.52 pt
+        draw_brand_decor(756.5, 751.52)
 
-        # Footer (Bottom): baseline y = 32.5 pt
-        draw_brand_decor(32.5)
+        # Footer (Bottom): baseline y = 32.5 pt, logo y = 27.52 pt
+        draw_brand_decor(32.5, 27.52)
 
         self.restoreState()
 

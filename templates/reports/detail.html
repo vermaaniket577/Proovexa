@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Similarity Report: {{ report.document.title }}{% endblock %}
 {% block page_title %}Turnitin-Style Academic Similarity Report{% endblock %}
@@ -42,17 +43,21 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.8125rem;
-    color: #475569;
+    font-family: 'Inter', Arial, sans-serif;
     margin-bottom: 24px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 4px;
+    border-bottom: none;
 }
 .turnitin-brand-mark {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 16px;
     text-decoration: none;
+}
+.turnitin-header-logo-img {
+    height: 16.5px;
+    width: auto;
+    display: block;
 }
 .turnitin-header-logo-icon {
     width: 14px;
@@ -67,25 +72,28 @@
     margin-right: 14px;
 }
 .turnitin-header-section-title {
-    color: #475569;
-    font-size: 0.8125rem;
+    font-family: 'Inter', Arial, sans-serif;
+    color: #191919;
+    font-size: 10px;
     font-weight: 400;
+    line-height: 1;
 }
 .turnitin-header-meta-id {
-    color: #475569;
-    font-size: 0.8125rem;
+    font-family: 'Inter', Arial, sans-serif;
+    color: #191919;
+    font-size: 10px;
     font-weight: 400;
+    line-height: 1;
 }
 
 .turnitin-sheet-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.8125rem;
-    color: #475569;
+    font-family: 'Inter', Arial, sans-serif;
     margin-top: 36px;
     padding-top: 14px;
-    border-top: 1px solid #f1f5f9;
+    border-top: none;
 }
 
 /* Cover Page Elements */
@@ -600,12 +608,7 @@ mark.turnitin-highlight:hover {
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
+            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 1 of {{ criteria.total_pages|default:25 }} - Cover Page</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -656,12 +659,7 @@ mark.turnitin-highlight:hover {
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
+            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 1 of {{ criteria.total_pages|default:25 }} - Cover Page</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -677,12 +675,7 @@ mark.turnitin-highlight:hover {
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
+            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -737,12 +730,7 @@ mark.turnitin-highlight:hover {
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
+            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -758,12 +746,7 @@ mark.turnitin-highlight:hover {
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
+            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -865,12 +848,7 @@ mark.turnitin-highlight:hover {
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
+            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -886,12 +864,7 @@ mark.turnitin-highlight:hover {
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
+            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 4 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -933,12 +906,7 @@ mark.turnitin-highlight:hover {
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
+            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 4 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -954,12 +922,7 @@ mark.turnitin-highlight:hover {
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
+            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 5 of {{ criteria.total_pages|default:25 }} - Integrity Submission</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -994,12 +957,7 @@ mark.turnitin-highlight:hover {
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
+            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 5 of {{ criteria.total_pages|default:25 }} - Integrity Submission</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -1021,12 +979,7 @@ mark.turnitin-highlight:hover {
         <!-- Header -->
         <div class="turnitin-sheet-header">
             <div class="turnitin-brand-mark">
-                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="turnitin-brand-text">turnitin</span>
+                <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
                 <span class="turnitin-header-section-title">Page 1 of {{ ai_total_pages }} - AI Writing Cover Page</span>
             </div>
             <div class="turnitin-header-meta-id">
@@ -1074,12 +1027,7 @@ mark.turnitin-highlight:hover {
         <!-- Footer -->
         <div class="turnitin-sheet-footer">
             <div class="turnitin-brand-mark">
-                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="turnitin-brand-text">turnitin</span>
+                <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
                 <span class="turnitin-header-section-title">Page 1 of {{ ai_total_pages }} - AI Writing Cover Page</span>
             </div>
             <div class="turnitin-header-meta-id">
@@ -1095,12 +1043,7 @@ mark.turnitin-highlight:hover {
         <!-- Header -->
         <div class="turnitin-sheet-header">
             <div class="turnitin-brand-mark">
-                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="turnitin-brand-text">turnitin</span>
+                <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
                 <span class="turnitin-header-section-title">Page 2 of {{ ai_total_pages }} - AI Writing Overview</span>
             </div>
             <div class="turnitin-header-meta-id">
@@ -1156,12 +1099,7 @@ mark.turnitin-highlight:hover {
         <!-- Footer -->
         <div class="turnitin-sheet-footer">
             <div class="turnitin-brand-mark">
-                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="turnitin-brand-text">turnitin</span>
+                <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
                 <span class="turnitin-header-section-title">Page 2 of {{ ai_total_pages }} - AI Writing Overview</span>
             </div>
             <div class="turnitin-header-meta-id">
@@ -1177,12 +1115,7 @@ mark.turnitin-highlight:hover {
         <!-- Header -->
         <div class="turnitin-sheet-header">
             <div class="turnitin-brand-mark">
-                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="turnitin-brand-text">turnitin</span>
+                <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
                 <span class="turnitin-header-section-title">Page 3 of {{ ai_total_pages }} - AI Writing Submission</span>
             </div>
             <div class="turnitin-header-meta-id">
@@ -1223,12 +1156,7 @@ mark.turnitin-highlight:hover {
         <!-- Footer -->
         <div class="turnitin-sheet-footer">
             <div class="turnitin-brand-mark">
-                <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                    <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="turnitin-brand-text">turnitin</span>
+                <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
                 <span class="turnitin-header-section-title">Page 3 of {{ ai_total_pages }} - AI Writing Submission</span>
             </div>
             <div class="turnitin-header-meta-id">
