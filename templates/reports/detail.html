@@ -555,8 +555,66 @@ mark.turnitin-highlight:hover {
 
     <div class="turnitin-sheet-divider"></div>
 
-    <!-- Match Groups (Left) & Top Sources Database Breakdown (Right) -->
-    <div class="row g-4 mb-3">
+    <!-- Integrity Flags (Left) & Soft Blue Advisory Notice (Right) on Page 2 -->
+    <div class="row g-4 align-items-center">
+        <div class="col-md-6">
+            <div class="turnitin-section-header mb-2">Integrity Flags</div>
+            <div class="integrity-flag-count">{{ criteria.flags_count }} Integrity Flags for Review</div>
+            <div class="integrity-flag-desc">
+                {% if criteria.flags_count == 0 %}
+                    No suspicious text manipulations found.
+                {% else %}
+                    Suspicious text manipulations detected.
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="turnitin-advisory-box">
+                <p>Our system's algorithms look deeply at a document for any inconsistencies that would set it apart from a normal submission. If we notice something strange, we flag it for you to review.</p>
+                <p class="mb-0">A flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="turnitin-sheet-footer">
+        <div class="turnitin-brand-mark">
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     PAGE 3: INTEGRITY OVERVIEW (PART 2 - Match Groups & Top Sources 1-10) [Image 1]
+     ========================================================================= -->
+<div class="turnitin-sheet" id="section-page3">
+    <!-- Header -->
+    <div class="turnitin-sheet-header">
+        <div class="turnitin-brand-mark">
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="turnitin-brand-text">turnitin</span>
+            <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+
+    <!-- Match Groups (Left) & Top Sources Database Breakdown (Right) on Page 3 -->
+    <div class="row g-4 mb-2">
         <!-- Match Groups -->
         <div class="col-md-7">
             <div class="turnitin-section-header mb-3">Match Groups</div>
@@ -609,65 +667,7 @@ mark.turnitin-highlight:hover {
         </div>
     </div>
 
-    <div class="turnitin-sheet-divider"></div>
-
-    <!-- Integrity Flags (Left) & Soft Blue Advisory Notice (Right) -->
-    <div class="row g-4 align-items-center">
-        <div class="col-md-6">
-            <div class="turnitin-section-header mb-2">Integrity Flags</div>
-            <div class="integrity-flag-count">{{ criteria.flags_count }} Integrity Flags for Review</div>
-            <div class="integrity-flag-desc">
-                {% if criteria.flags_count == 0 %}
-                    No suspicious text manipulations found.
-                {% else %}
-                    Suspicious text manipulations detected.
-                {% endif %}
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="turnitin-advisory-box">
-                <p>Our system's algorithms look deeply at a document for any inconsistencies that would set it apart from a normal submission. If we notice something strange, we flag it for you to review.</p>
-                <p class="mb-0">A flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="turnitin-sheet-footer">
-        <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
-            <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ criteria.submission_id }}
-        </div>
-    </div>
-</div>
-
-<!-- =========================================================================
-     PAGE 3: INTEGRITY OVERVIEW (PART 2 - Top Sources 1-10) [Image 1]
-     ========================================================================= -->
-<div class="turnitin-sheet" id="section-page3">
-    <!-- Header -->
-    <div class="turnitin-sheet-header">
-        <div class="turnitin-brand-mark">
-            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="turnitin-brand-text">turnitin</span>
-            <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ criteria.submission_id }}
-        </div>
-    </div>
+    <div class="turnitin-sheet-divider my-2"></div>
 
     <!-- Top Sources Title & Subtitle -->
     <div class="mb-2">
@@ -743,13 +743,6 @@ mark.turnitin-highlight:hover {
         </div>
     </div>
 
-    <!-- Top Sources Title & Subtitle -->
-    <div class="mb-2">
-        <div class="turnitin-section-header mb-1">Top Sources</div>
-        <div class="text-muted small">The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.</div>
-    </div>
-
-    <div class="turnitin-sheet-divider my-2"></div>
 
     <div class="list-group list-group-flush">
         {% for s in criteria.top_sources|slice:"10:" %}

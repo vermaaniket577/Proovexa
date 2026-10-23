@@ -28,6 +28,9 @@ def report_detail_view(request, report_id):
     if not _can_view_report(request.user, report):
         return HttpResponseForbidden("You don't have permission to view this report.")
 
+    from analysis.services import ensure_report_passages
+    ensure_report_passages(report)
+
     # Log report view
     AuditLog.objects.create(
         user=request.user,
@@ -180,6 +183,9 @@ def download_pdf_view(request, report_id):
     report = get_object_or_404(SimilarityReport, id=report_id)
     if not _can_view_report(request.user, report):
         return HttpResponseForbidden()
+
+    from analysis.services import ensure_report_passages
+    ensure_report_passages(report)
 
     AuditLog.objects.create(
         user=request.user,

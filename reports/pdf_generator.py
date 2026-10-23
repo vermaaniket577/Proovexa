@@ -415,10 +415,58 @@ def generate_pdf_report(report):
     for item in criteria['filtered_from_report']:
         story.append(Paragraph(f'<font size="6.5">&#9656;</font>&nbsp; {item}', filtered_item_style))
 
-    story.append(Spacer(1, 8))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=12))
+    story.append(Spacer(1, 12))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=14))
 
-    # 3. Two Columns: Match Groups (Left) & Top Sources Database Breakdown (Right)
+    # 3. Integrity Flags (Left) & Advisory Callout Box (Right) on Page 2
+    flags_left_rows = [
+        [Paragraph("<b>Integrity Flags</b>", h2_style)],
+        [Paragraph(f"<b>{criteria['flags_count']} Integrity Flags for Review</b>", ParagraphStyle('FlagHdr', fontName='Helvetica-Bold', fontSize=8.5, leading=11, textColor=colors.HexColor('#0f172a')))],
+        [Paragraph("No suspicious text manipulations found." if criteria['flags_count'] == 0 else "Anomalies detected in submission text.", ParagraphStyle('FlagSub', fontName='Helvetica', fontSize=7.5, leading=10, textColor=colors.HexColor('#64748b')))],
+    ]
+    flags_left_table = Table(flags_left_rows, colWidths=[220])
+    flags_left_table.setStyle(TableStyle([
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    advisory_text = (
+        "Our system's algorithms look deeply at a document for any inconsistencies that "
+        "would set it apart from a normal submission. If we notice something strange, we flag it for you to review.<br/><br/>"
+        "A flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review."
+    )
+    advisory_p = Paragraph(advisory_text, ParagraphStyle('AdvText', fontName='Helvetica', fontSize=7, leading=9.5, textColor=colors.HexColor('#0369a1')))
+    advisory_box = Table([[advisory_p]], colWidths=[240])
+    advisory_box.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#dbeafe')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#bae6fd')),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    flags_split_table = Table([[flags_left_table, advisory_box]], colWidths=[230, 244])
+    flags_split_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    story.append(flags_split_table)
+
+    # =========================================================================
+    # PAGE 3: INTEGRITY OVERVIEW (PART 2 - Match Groups, Database Summary & Sources 1-10) [Image 1]
+    # =========================================================================
+    story.append(PageBreak())
+    story.append(SetSection("Integrity Overview"))
+
+    # Top of Page 3: Two Columns: Match Groups (Left) & Top Sources Database Breakdown (Right)
     mg_left_rows = [[Paragraph("<b>Match Groups</b>", h2_style)]]
     for mg in criteria['match_groups']:
         icon_circle = _build_match_group_icon(mg)
@@ -485,65 +533,17 @@ def generate_pdf_report(report):
     ]))
     story.append(split_mg_ts_table)
 
-    story.append(Spacer(1, 10))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=12))
+    story.append(Spacer(1, 8))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=8))
 
-    # 4. Integrity Flags (Left) & Advisory Callout Box (Right)
-    flags_left_rows = [
-        [Paragraph("<b>Integrity Flags</b>", h2_style)],
-        [Paragraph(f"<b>{criteria['flags_count']} Integrity Flags for Review</b>", ParagraphStyle('FlagHdr', fontName='Helvetica-Bold', fontSize=8.5, leading=11, textColor=colors.HexColor('#0f172a')))],
-        [Paragraph("No suspicious text manipulations found." if criteria['flags_count'] == 0 else "Anomalies detected in submission text.", ParagraphStyle('FlagSub', fontName='Helvetica', fontSize=7.5, leading=10, textColor=colors.HexColor('#64748b')))],
-    ]
-    flags_left_table = Table(flags_left_rows, colWidths=[220])
-    flags_left_table.setStyle(TableStyle([
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    advisory_text = (
-        "Our system's algorithms look deeply at a document for any inconsistencies that "
-        "would set it apart from a normal submission. If we notice something strange, we flag it for you to review.<br/><br/>"
-        "A flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review."
-    )
-    advisory_p = Paragraph(advisory_text, ParagraphStyle('AdvText', fontName='Helvetica', fontSize=7, leading=9.5, textColor=colors.HexColor('#0369a1')))
-    advisory_box = Table([[advisory_p]], colWidths=[240])
-    advisory_box.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#dbeafe')),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#bae6fd')),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('LEFTPADDING', (0, 0), (-1, -1), 10),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    flags_split_table = Table([[flags_left_table, advisory_box]], colWidths=[230, 244])
-    flags_split_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    story.append(flags_split_table)
-
-    # =========================================================================
-    # PAGE 3: INTEGRITY OVERVIEW (PART 2 - Top Sources 1-10) [Image 1]
-    # =========================================================================
-    story.append(PageBreak())
-    story.append(SetSection("Integrity Overview"))
-
-    # Top Sources Section Title & Subtitle (Image 1)
+    # Middle of Page 3: Top Sources Section Title & Subtitle (Image 1)
     story.append(Paragraph("<b>Top Sources</b>", h2_style))
     story.append(Paragraph(
         "The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.",
         overview_sub_style
     ))
     story.append(Spacer(1, 4))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=8))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=6))
 
     # Sources 1 to 10 on Page 3
     all_sources = criteria['top_sources']
@@ -556,8 +556,8 @@ def generate_pdf_report(report):
         p3_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.HexColor('#f1f5f9')),
-            ('TOPPADDING', (0, 0), (-1, -1), 4.5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4.5),
+            ('TOPPADDING', (0, 0), (-1, -1), 3.5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3.5),
             ('LEFTPADDING', (0, 0), (-1, -1), 1),
             ('RIGHTPADDING', (0, 0), (-1, -1), 1),
         ]))
