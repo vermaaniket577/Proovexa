@@ -157,33 +157,49 @@ class TurnitinReportCanvas(canvas.Canvas):
         self.restoreState()
 
 
-def _build_source_table_row(s):
-    """Constructs a single source row matching Turnitin Top Sources list with exact pill colors and vector ovals."""
+def _build_source_table_rows(s):
+    """Constructs a 2-line source row matching Turnitin Top Sources list:
+       Line 1: [Badge] [Category Pill]
+       Line 2: Title/URL (left) and Percentage (right)
+    """
     # 1. Colored number badge (oval pill)
-    badge_d = Drawing(22, 14)
-    badge_d.add(Rect(0, 0, 22, 14, rx=7, ry=7, fillColor=colors.HexColor(s['color']), strokeColor=None))
-    badge_d.add(String(11, 3.5, str(s['index']), fontName='Helvetica-Bold', fontSize=7.5, fillColor=colors.white, textAnchor='middle'))
+    badge_d = Drawing(20, 13)
+    badge_d.add(Rect(0, 0, 20, 13, rx=6.5, ry=6.5, fillColor=colors.HexColor(s['color']), strokeColor=None))
+    badge_d.add(String(10, 3.2, str(s['index']), fontName='Helvetica-Bold', fontSize=7.5, fillColor=colors.white, textAnchor='middle'))
 
     # 2. Category pill tag (matching source's pastel tone)
     pill_bg = colors.HexColor(s.get('pill_bg', '#fce4ec'))
     pill_text = colors.HexColor(s.get('pill_text', '#be185d'))
-    pill_d = Drawing(62, 14)
-    pill_d.add(Rect(0, 0, 62, 14, rx=7, ry=7, fillColor=pill_bg, strokeColor=None))
-    pill_d.add(String(31, 3.5, s['category'], fontName='Helvetica-Bold', fontSize=7, fillColor=pill_text, textAnchor='middle'))
+    pill_d = Drawing(58, 13)
+    pill_d.add(Rect(0, 0, 58, 13, rx=6.5, ry=6.5, fillColor=pill_bg, strokeColor=None))
+    pill_d.add(String(29, 3.2, s['category'], fontName='Helvetica-Bold', fontSize=7, fillColor=pill_text, textAnchor='middle'))
 
-    # 3. Title / Domain
+    # Top line container table: Badge and Pill side by side
+    top_table = Table([[badge_d, pill_d]], colWidths=[24, 65])
+    top_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
+
+    # Title / Domain (Line 2 Left)
     title_p = Paragraph(
         f"<b>{s['title']}</b>",
-        ParagraphStyle('SrcTitle', fontName='Helvetica', fontSize=8, leading=10.5, textColor=colors.HexColor('#0f172a'))
+        ParagraphStyle('SrcTitle', fontName='Helvetica-Bold', fontSize=8.5, leading=11, textColor=colors.HexColor('#000000'))
     )
 
-    # 4. Percentage
+    # Percentage (Line 2 Right)
     pct_p = Paragraph(
         f"<b>{s['percent']}</b>",
-        ParagraphStyle('SrcPct', fontName='Helvetica-Bold', fontSize=8.5, alignment=TA_RIGHT, textColor=colors.HexColor('#0f172a'))
+        ParagraphStyle('SrcPct', fontName='Helvetica-Bold', fontSize=8.5, leading=11, alignment=TA_RIGHT, textColor=colors.HexColor('#000000'))
     )
 
-    return [badge_d, pill_d, title_p, pct_p]
+    return [
+        [top_table, ""],
+        [title_p, pct_p]
+    ]
 
 
 def _build_match_group_icon(mg):
@@ -551,16 +567,25 @@ def generate_pdf_report(report):
     page4_sources = all_sources[10:]
 
     if page3_sources:
-        p3_rows = [_build_source_table_row(s) for s in page3_sources]
-        p3_table = Table(p3_rows, colWidths=[24, 66, 330, 40])
-        p3_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.HexColor('#f1f5f9')),
-            ('TOPPADDING', (0, 0), (-1, -1), 3.5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3.5),
-            ('LEFTPADDING', (0, 0), (-1, -1), 1),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 1),
-        ]))
+        p3_table_data = []
+        for s in page3_sources:
+            p3_table_data.extend(_build_source_table_rows(s))
+
+        p3_table = Table(p3_table_data, colWidths=[420, 44])
+        p3_style = [
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ]
+        for i in range(len(page3_sources)):
+            p3_style.extend([
+                ('TOPPADDING', (0, 2 * i), (-1, 2 * i), 2),
+                ('BOTTOMPADDING', (0, 2 * i), (-1, 2 * i), 0),
+                ('TOPPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 1),
+                ('BOTTOMPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 3),
+                ('LINEBELOW', (0, 2 * i + 1), (-1, 2 * i + 1), 0.5, colors.HexColor('#e2e8f0')),
+            ])
+        p3_table.setStyle(TableStyle(p3_style))
         story.append(p3_table)
 
     # =========================================================================
@@ -570,16 +595,25 @@ def generate_pdf_report(report):
     story.append(SetSection("Integrity Overview"))
 
     if page4_sources:
-        p4_rows = [_build_source_table_row(s) for s in page4_sources]
-        p4_table = Table(p4_rows, colWidths=[24, 66, 330, 40])
-        p4_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.HexColor('#f1f5f9')),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ('LEFTPADDING', (0, 0), (-1, -1), 1),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 1),
-        ]))
+        p4_table_data = []
+        for s in page4_sources:
+            p4_table_data.extend(_build_source_table_rows(s))
+
+        p4_table = Table(p4_table_data, colWidths=[420, 44])
+        p4_style = [
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ]
+        for i in range(len(page4_sources)):
+            p4_style.extend([
+                ('TOPPADDING', (0, 2 * i), (-1, 2 * i), 3),
+                ('BOTTOMPADDING', (0, 2 * i), (-1, 2 * i), 0),
+                ('TOPPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 1),
+                ('BOTTOMPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 3),
+                ('LINEBELOW', (0, 2 * i + 1), (-1, 2 * i + 1), 0.5, colors.HexColor('#e2e8f0')),
+            ])
+        p4_table.setStyle(TableStyle(p4_style))
         story.append(p4_table)
     else:
         story.append(Spacer(1, 10))

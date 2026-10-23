@@ -680,27 +680,25 @@ mark.turnitin-highlight:hover {
     <!-- Sources 1 to 10 -->
     <div class="list-group list-group-flush">
         {% for s in criteria.top_sources|slice:":10" %}
-        <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-0 border-bottom source-row-clickable" onclick="jumpToSource({{ s.index }})" title="Click to view Source [{{ s.index }}] highlight in text">
-            <div class="d-flex align-items-center flex-grow-1">
-                <!-- Colored Number Badge -->
+        <div class="list-group-item py-2 px-0 border-bottom source-row-clickable" onclick="jumpToSource({{ s.index }})" title="Click to view Source [{{ s.index }}] highlight in text">
+            <!-- Line 1: Badge + Category Pill -->
+            <div class="d-flex align-items-center mb-1">
                 <span class="turnitin-source-badge" style="background-color: {{ s.color }};">
                     {{ s.index }}
                 </span>
-
-                <!-- Category Pill Tag -->
-                <span class="source-cat-pill me-3" style="background-color: {{ s.pill_bg }}; color: {{ s.pill_text }};">
+                <span class="source-cat-pill" style="background-color: {{ s.pill_bg }}; color: {{ s.pill_text }};">
                     {{ s.category }}
                 </span>
-
-                <!-- Title / URL -->
-                <div class="text-truncate" style="max-width: 540px;">
-                    <span class="fw-bold text-dark">{{ s.title }}</span>
-                </div>
             </div>
 
-            <!-- Percentage -->
-            <div class="text-end ms-3">
-                <span class="fw-bold fs-6 text-dark">{{ s.percent }}</span>
+            <!-- Line 2: Title / Domain & Percentage -->
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="fw-bold text-dark text-truncate pe-3" style="font-size: 0.885rem; max-width: 580px;">
+                    {{ s.title }}
+                </div>
+                <div class="fw-bold text-dark text-end flex-shrink-0" style="font-size: 0.885rem;">
+                    {{ s.percent }}
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -746,27 +744,25 @@ mark.turnitin-highlight:hover {
 
     <div class="list-group list-group-flush">
         {% for s in criteria.top_sources|slice:"10:" %}
-        <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-0 border-bottom source-row-clickable" onclick="jumpToSource({{ s.index }})" title="Click to view Source [{{ s.index }}] highlight in text">
-            <div class="d-flex align-items-center flex-grow-1">
-                <!-- Colored Number Badge -->
+        <div class="list-group-item py-2 px-0 border-bottom source-row-clickable" onclick="jumpToSource({{ s.index }})" title="Click to view Source [{{ s.index }}] highlight in text">
+            <!-- Line 1: Badge + Category Pill -->
+            <div class="d-flex align-items-center mb-1">
                 <span class="turnitin-source-badge" style="background-color: {{ s.color }};">
                     {{ s.index }}
                 </span>
-
-                <!-- Category Pill Tag -->
-                <span class="source-cat-pill me-3" style="background-color: {{ s.pill_bg }}; color: {{ s.pill_text }};">
+                <span class="source-cat-pill" style="background-color: {{ s.pill_bg }}; color: {{ s.pill_text }};">
                     {{ s.category }}
                 </span>
-
-                <!-- Title / URL -->
-                <div class="text-truncate" style="max-width: 540px;">
-                    <span class="fw-bold text-dark">{{ s.title }}</span>
-                </div>
             </div>
 
-            <!-- Percentage -->
-            <div class="text-end ms-3">
-                <span class="fw-bold fs-6 text-dark">{{ s.percent }}</span>
+            <!-- Line 2: Title / Domain & Percentage -->
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="fw-bold text-dark text-truncate pe-3" style="font-size: 0.885rem; max-width: 580px;">
+                    {{ s.title }}
+                </div>
+                <div class="fw-bold text-dark text-end flex-shrink-0" style="font-size: 0.885rem;">
+                    {{ s.percent }}
+                </div>
             </div>
         </div>
         {% empty %}
