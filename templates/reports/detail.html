@@ -38,34 +38,42 @@
     margin-bottom: 30px;
     padding-bottom: 2px;
 }
+.turnitin-sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8125rem;
+    color: #475569;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
 .turnitin-brand-mark {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     text-decoration: none;
 }
-.turnitin-brand-dot {
-    width: 8px;
-    height: 8px;
-    background-color: #0284c7;
-    border-radius: 50%;
-    display: inline-block;
+.turnitin-header-logo-icon {
+    width: 14px;
+    height: 18px;
+    flex-shrink: 0;
 }
 .turnitin-brand-text {
     font-weight: 800;
     font-size: 0.95rem;
-    color: #0284c7;
-    letter-spacing: -0.02em;
+    color: #012e38;
+    letter-spacing: -0.01em;
+    margin-right: 14px;
 }
 .turnitin-header-section-title {
-    color: #64748b;
-    font-size: 0.76rem;
-    margin-left: 14px;
+    color: #475569;
+    font-size: 0.8125rem;
     font-weight: 400;
 }
 .turnitin-header-meta-id {
-    color: #64748b;
-    font-size: 0.76rem;
+    color: #475569;
+    font-size: 0.8125rem;
     font-weight: 400;
 }
 
@@ -73,9 +81,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.76rem;
-    color: #64748b;
-    margin-top: 44px;
+    font-size: 0.8125rem;
+    color: #475569;
+    margin-top: 36px;
     padding-top: 14px;
     border-top: 1px solid #f1f5f9;
 }
@@ -115,36 +123,40 @@
     margin-bottom: 0;
 }
 
-/* Integrity Overview (Matching User's Uploaded Screenshot) */
+/* Integrity Overview (Matching Exact Screenshot Fonts and Sizes) */
 .turnitin-overview-score-line {
     display: flex;
     align-items: baseline;
+    gap: 12px;
     margin-bottom: 2px;
 }
 .turnitin-score-num {
-    font-size: 2.3rem;
+    font-size: 2.25rem;
     font-weight: 800;
     color: #0f172a;
     letter-spacing: -0.02em;
-    margin-right: 12px;
+    line-height: 1.1;
 }
 .turnitin-score-title {
-    font-size: 2.3rem;
-    font-weight: 800;
+    font-size: 1.95rem;
+    font-weight: 700;
     color: #0f172a;
     letter-spacing: -0.02em;
+    line-height: 1.1;
 }
 .turnitin-score-subtext {
-    font-size: 0.82rem;
+    font-size: 0.8125rem;
     color: #64748b;
-    margin-bottom: 24px;
+    line-height: 1.4;
+    margin-bottom: 22px;
 }
 
 .turnitin-section-header {
-    font-size: 0.96rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #0f172a;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
 }
 
 /* Filtered Items List */
@@ -154,27 +166,42 @@
     margin-bottom: 0;
 }
 .turnitin-filtered-list li {
-    font-size: 0.82rem;
+    font-size: 0.835rem;
     color: #1e293b;
-    line-height: 1.7;
+    line-height: 1.6;
     display: flex;
     align-items: center;
+    margin-bottom: 2px;
 }
 .filtered-arrow {
-    font-size: 0.62rem;
+    font-size: 0.65rem;
     color: #0f172a;
     margin-right: 8px;
+    display: inline-block;
+    line-height: 1;
 }
 
 /* Divider Line */
 .turnitin-sheet-divider {
     border: 0;
-    border-top: 1px solid #e2e8f0;
-    margin: 24px 0 20px 0;
+    border-top: 1px solid #cbd5e1;
+    margin: 20px 0;
     opacity: 1;
 }
 
 /* Match Groups */
+.mg-badge-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 0.65rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
 .mg-circle-icon {
     width: 20px;
     height: 20px;
@@ -185,21 +212,21 @@
     color: #ffffff;
     font-size: 0.65rem;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 .mg-item-title {
-    font-size: 0.85rem;
+    font-size: 0.86rem;
     font-weight: 700;
     color: #0f172a;
 }
 .mg-item-pct {
-    font-size: 0.85rem;
-    font-weight: 700;
+    font-size: 0.86rem;
+    font-weight: 600;
     color: #0f172a;
     margin-left: 6px;
 }
 .mg-item-desc {
-    font-size: 0.74rem;
+    font-size: 0.735rem;
     color: #64748b;
     line-height: 1.35;
     margin-top: 1px;
@@ -209,25 +236,30 @@
 .turnitin-top-source-row {
     display: flex;
     align-items: center;
-    font-size: 0.83rem;
-    line-height: 1.9;
+    font-size: 0.84rem;
+    line-height: 1.8;
+    margin-bottom: 6px;
 }
 .ts-pct {
-    width: 32px;
-    font-weight: 700;
+    width: 28px;
+    font-weight: 600;
+    font-size: 0.84rem;
     color: #0f172a;
     text-align: left;
+    flex-shrink: 0;
 }
 .ts-icon {
     width: 22px;
     text-align: center;
     color: #64748b;
     margin-right: 8px;
+    font-size: 0.875rem;
+    flex-shrink: 0;
 }
 .ts-name {
-    color: #334155;
-    font-weight: 500;
-    font-size: 0.82rem;
+    color: #1e293b;
+    font-weight: 400;
+    font-size: 0.84rem;
 }
 
 /* Integrity Flags & Advisory Box */
@@ -410,7 +442,11 @@ mark.turnitin-highlight:hover {
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="turnitin-brand-text">turnitin</span>
             <span class="turnitin-header-section-title">Page 1 of {{ criteria.total_pages|default:25 }} - Cover Page</span>
         </div>
@@ -462,7 +498,11 @@ mark.turnitin-highlight:hover {
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="turnitin-brand-text">turnitin</span>
             <span class="turnitin-header-section-title">Page 1 of {{ criteria.total_pages|default:25 }} - Cover Page</span>
         </div>
@@ -473,13 +513,17 @@ mark.turnitin-highlight:hover {
 </div>
 
 <!-- =========================================================================
-     PAGE 2: INTEGRITY OVERVIEW (PART 1 - Similarity Score, Filtering, Flags)
+     PAGE 2: INTEGRITY OVERVIEW (Score, Filters, Match Groups, Database Sources, Flags)
      ========================================================================= -->
 <div class="turnitin-sheet" id="section-overview">
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="turnitin-brand-text">turnitin</span>
             <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
@@ -511,6 +555,62 @@ mark.turnitin-highlight:hover {
 
     <div class="turnitin-sheet-divider"></div>
 
+    <!-- Match Groups (Left) & Top Sources Database Breakdown (Right) -->
+    <div class="row g-4 mb-3">
+        <!-- Match Groups -->
+        <div class="col-md-7">
+            <div class="turnitin-section-header mb-3">Match Groups</div>
+            <div class="d-flex flex-column gap-3">
+                {% for mg in criteria.match_groups %}
+                <div class="d-flex align-items-start">
+                    {% if mg.icon == 'files' %}
+                    <span class="mg-badge-icon me-2" style="background-color: {{ mg.color }};">
+                        <i class="bi bi-files" style="font-size:0.65rem;"></i>
+                    </span>
+                    {% else %}
+                    <span class="mg-circle-icon me-2" style="background-color: {{ mg.color }};">
+                        {% if mg.icon == 'quote' %}
+                            <i class="bi bi-quote" style="font-size:0.95rem; line-height: 1;"></i>
+                        {% elif mg.icon == 'citation' %}
+                            <i class="bi bi-card-text" style="font-size:0.7rem;"></i>
+                        {% elif mg.icon == 'mortarboard' %}
+                            <i class="bi bi-mortarboard-fill" style="font-size:0.65rem;"></i>
+                        {% endif %}
+                    </span>
+                    {% endif %}
+                    <div>
+                        <div>
+                            <span class="mg-item-title">{{ mg.count }} {{ mg.name }}</span>
+                            <span class="mg-item-pct">{{ mg.percent }}</span>
+                        </div>
+                        <div class="mg-item-desc">
+                            {{ mg.description }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Top Sources Database Categories -->
+        <div class="col-md-5">
+            <div class="turnitin-section-header mb-3">Top Sources</div>
+            <div class="d-flex flex-column gap-2 pt-1">
+                {% for db in criteria.database_sources %}
+                <div class="turnitin-top-source-row d-flex align-items-center">
+                    <span class="ts-pct">{{ db.percent }}</span>
+                    <span class="ts-icon">
+                        <i class="bi {{ db.icon_class }}"></i>
+                    </span>
+                    <span class="ts-name">{{ db.name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="turnitin-sheet-divider"></div>
+
     <!-- Integrity Flags (Left) & Soft Blue Advisory Notice (Right) -->
     <div class="row g-4 align-items-center">
         <div class="col-md-6">
@@ -535,7 +635,11 @@ mark.turnitin-highlight:hover {
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="turnitin-brand-text">turnitin</span>
             <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
@@ -546,13 +650,17 @@ mark.turnitin-highlight:hover {
 </div>
 
 <!-- =========================================================================
-     PAGE 3: INTEGRITY OVERVIEW (PART 2 - Match Groups & Top Sources 1-10) [Image 1]
+     PAGE 3: INTEGRITY OVERVIEW (PART 2 - Top Sources 1-10) [Image 1]
      ========================================================================= -->
 <div class="turnitin-sheet" id="section-page3">
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="turnitin-brand-text">turnitin</span>
             <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
@@ -561,66 +669,16 @@ mark.turnitin-highlight:hover {
         </div>
     </div>
 
-    <!-- Match Groups (Left) & Top Sources (Right) -->
-    <div class="row g-4 mb-2">
-        <!-- Match Groups -->
-        <div class="col-md-7">
-            <div class="turnitin-section-header mb-3">Match Groups</div>
-            <div class="d-flex flex-column gap-3">
-                {% for mg in criteria.match_groups %}
-                <div class="d-flex align-items-start">
-                    <span class="rounded-circle text-white me-2 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width:20px; height:20px; background-color: {{ mg.color }}; margin-top: 1px;">
-                        {% if mg.icon == 'files' %}
-                            <i class="bi bi-files" style="font-size:0.65rem;"></i>
-                        {% elif mg.icon == 'quote' %}
-                            <i class="bi bi-quote" style="font-size:0.95rem; line-height: 1;"></i>
-                        {% elif mg.icon == 'citation' %}
-                            <i class="bi bi-card-text" style="font-size:0.7rem;"></i>
-                        {% elif mg.icon == 'mortarboard' %}
-                            <i class="bi bi-mortarboard-fill" style="font-size:0.65rem;"></i>
-                        {% endif %}
-                    </span>
-                    <div>
-                        <div>
-                            <span class="mg-item-title">{{ mg.count }} {{ mg.name }}</span>
-                            <span class="mg-item-pct">{{ mg.percent }}</span>
-                        </div>
-                        <div class="mg-item-desc">
-                            {{ mg.description }}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Top Sources Database Categories -->
-        <div class="col-md-5">
-            <div class="turnitin-section-header mb-3">Top Sources</div>
-            <div class="d-flex flex-column gap-2 pt-1">
-                {% for db in criteria.database_sources %}
-                <div class="turnitin-top-source-row d-flex align-items-center">
-                    <span class="ts-pct fw-bold" style="width: 32px;">{{ db.percent }}</span>
-                    <span class="ts-icon me-2 text-muted" style="width: 20px; text-align: center;">
-                        <i class="bi {{ db.icon_class }} fs-6"></i>
-                    </span>
-                    <span class="ts-name text-dark fw-medium">{{ db.name }}</span>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <div class="turnitin-sheet-divider"></div>
-
     <!-- Top Sources Title & Subtitle -->
-    <div class="mb-3">
-        <h6 class="fw-bold mb-1 text-dark">Top Sources</h6>
+    <div class="mb-2">
+        <div class="turnitin-section-header mb-1">Top Sources</div>
         <div class="text-muted small">The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.</div>
     </div>
 
+    <div class="turnitin-sheet-divider my-2"></div>
+
     <!-- Sources 1 to 10 -->
-    <div class="list-group list-group-flush border-top">
+    <div class="list-group list-group-flush">
         {% for s in criteria.top_sources|slice:":10" %}
         <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-0 border-bottom source-row-clickable" onclick="jumpToSource({{ s.index }})" title="Click to view Source [{{ s.index }}] highlight in text">
             <div class="d-flex align-items-center flex-grow-1">
@@ -651,7 +709,11 @@ mark.turnitin-highlight:hover {
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="turnitin-brand-text">turnitin</span>
             <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
@@ -668,7 +730,11 @@ mark.turnitin-highlight:hover {
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="turnitin-brand-text">turnitin</span>
             <span class="turnitin-header-section-title">Page 4 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
@@ -677,7 +743,15 @@ mark.turnitin-highlight:hover {
         </div>
     </div>
 
-    <div class="list-group list-group-flush border-top">
+    <!-- Top Sources Title & Subtitle -->
+    <div class="mb-2">
+        <div class="turnitin-section-header mb-1">Top Sources</div>
+        <div class="text-muted small">The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.</div>
+    </div>
+
+    <div class="turnitin-sheet-divider my-2"></div>
+
+    <div class="list-group list-group-flush">
         {% for s in criteria.top_sources|slice:"10:" %}
         <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-0 border-bottom source-row-clickable" onclick="jumpToSource({{ s.index }})" title="Click to view Source [{{ s.index }}] highlight in text">
             <div class="d-flex align-items-center flex-grow-1">
@@ -712,7 +786,11 @@ mark.turnitin-highlight:hover {
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="turnitin-brand-text">turnitin</span>
             <span class="turnitin-header-section-title">Page 4 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
         </div>
@@ -729,7 +807,11 @@ mark.turnitin-highlight:hover {
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="turnitin-brand-text">turnitin</span>
             <span class="turnitin-header-section-title">Page 5 of {{ criteria.total_pages|default:25 }} - Integrity Submission</span>
         </div>
@@ -765,7 +847,11 @@ mark.turnitin-highlight:hover {
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <span class="turnitin-brand-dot"></span>
+            <svg class="turnitin-header-logo-icon" width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 8V3C2.5 1.9 3.4 1 4.5 1H10C11.1 1 12 1.9 12 3V14.5C12 15.6 11.1 16.5 10 16.5H7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M1 16.5C1 12.5 3 8.5 7 7.5" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M3.5 7.5H7V11" stroke="#0084ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="turnitin-brand-text">turnitin</span>
             <span class="turnitin-header-section-title">Page 5 of {{ criteria.total_pages|default:25 }} - Integrity Submission</span>
         </div>

@@ -20,6 +20,42 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
 
 
+def _draw_turnitin_logo_canvas(canv, x, y):
+    """Draws the authentic Turnitin brand vector mark on the canvas at (x, y)."""
+    canv.saveState()
+    canv.setStrokeColor(colors.HexColor('#0084ff'))
+    canv.setLineWidth(1.3)
+    canv.setLineCap(1)
+    canv.setLineJoin(1)
+
+    # 1. Outer bracket
+    p = canv.beginPath()
+    p.moveTo(x + 0.6 * mm, y + 2.2 * mm)
+    p.lineTo(x + 0.6 * mm, y + 3.8 * mm)
+    p.curveTo(x + 0.6 * mm, y + 4.4 * mm, x + 1.0 * mm, y + 4.8 * mm, x + 1.6 * mm, y + 4.8 * mm)
+    p.lineTo(x + 2.8 * mm, y + 4.8 * mm)
+    p.curveTo(x + 3.4 * mm, y + 4.8 * mm, x + 3.8 * mm, y + 4.4 * mm, x + 3.8 * mm, y + 3.8 * mm)
+    p.lineTo(x + 3.8 * mm, y + 0.8 * mm)
+    p.curveTo(x + 3.8 * mm, y + 0.2 * mm, x + 3.4 * mm, y - 0.2 * mm, x + 2.8 * mm, y - 0.2 * mm)
+    p.lineTo(x + 2.1 * mm, y - 0.2 * mm)
+    canv.drawPath(p, stroke=1, fill=0)
+
+    # 2. Curved ascending arrow
+    p2 = canv.beginPath()
+    p2.moveTo(x + 0.2 * mm, y - 0.2 * mm)
+    p2.curveTo(x + 0.2 * mm, y + 1.0 * mm, x + 0.8 * mm, y + 1.8 * mm, x + 2.2 * mm, y + 2.3 * mm)
+    canv.drawPath(p2, stroke=1, fill=0)
+
+    # Arrow head
+    p3 = canv.beginPath()
+    p3.moveTo(x + 1.1 * mm, y + 2.3 * mm)
+    p3.lineTo(x + 2.2 * mm, y + 2.3 * mm)
+    p3.lineTo(x + 2.2 * mm, y + 1.2 * mm)
+    canv.drawPath(p3, stroke=1, fill=0)
+
+    canv.restoreState()
+
+
 class AICanvas(canvas.Canvas):
     """Two-pass canvas for AI Writing report running header/footer."""
 
@@ -45,31 +81,32 @@ class AICanvas(canvas.Canvas):
         section = "AI Writing Detection" if page_num == 1 else ("AI Overview" if page_num == 2 else "AI Highlighted Submission")
 
         self.saveState()
-        self.setFont('Helvetica', 7.5)
-        self.setFillColor(colors.HexColor('#0284c7'))
-
-        # Header
-        self.circle(22 * mm, 282 * mm, 3, stroke=0, fill=1)
-        self.setFont('Helvetica-Bold', 8.5)
-        self.drawString(26 * mm, 280.5 * mm, "turnitin")
-
-        self.setFont('Helvetica', 7.5)
-        self.setFillColor(colors.HexColor('#64748b'))
-        self.drawString(45 * mm, 280.5 * mm, f"Page {page_num} of {total_pages} - {section}")
-
         sub_str = f"Submission ID  {self.submission_id}"
-        self.drawRightString(190 * mm, 280.5 * mm, sub_str)
 
-        # Footer
-        self.circle(22 * mm, 14 * mm, 3, stroke=0, fill=1)
-        self.setFont('Helvetica-Bold', 8.5)
-        self.setFillColor(colors.HexColor('#0284c7'))
-        self.drawString(26 * mm, 12.5 * mm, "turnitin")
+        def draw_brand_decor(y_base):
+            x_icon = 18 * mm
+            _draw_turnitin_logo_canvas(self, x_icon, y_base)
 
-        self.setFont('Helvetica', 7.5)
-        self.setFillColor(colors.HexColor('#64748b'))
-        self.drawString(45 * mm, 12.5 * mm, f"Page {page_num} of {total_pages} - {section}")
-        self.drawRightString(190 * mm, 12.5 * mm, sub_str)
+            # "turnitin" in dark slate/petrol teal #012e38
+            self.setFont('Helvetica-Bold', 10)
+            self.setFillColor(colors.HexColor('#012e38'))
+            self.drawString(x_icon + 5.2 * mm, y_base + 0.5 * mm, "turnitin")
+
+            # Page and Section info
+            self.setFont('Helvetica', 8.5)
+            self.setFillColor(colors.HexColor('#475569'))
+            self.drawString(x_icon + 24 * mm, y_base + 0.5 * mm, f"Page {page_num} of {total_pages} - {section}")
+
+            # Submission ID right-aligned
+            self.setFont('Helvetica', 8.5)
+            self.setFillColor(colors.HexColor('#475569'))
+            self.drawRightString(192 * mm, y_base + 0.5 * mm, sub_str)
+
+        # Header (Top)
+        draw_brand_decor(281 * mm)
+
+        # Footer (Bottom)
+        draw_brand_decor(12.5 * mm)
 
         self.restoreState()
 
