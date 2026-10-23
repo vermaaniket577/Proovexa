@@ -339,10 +339,10 @@
             </div>
         </div>
         <div class="col-md-5">
-            <div class="details-summary-box text-center">
-                <div class="fs-2 fw-bold text-primary mb-1">{{ overall_ai_display }}</div>
-                <div class="fw-bold text-dark small text-uppercase mb-2">detected as AI</div>
-                <div class="small text-muted">{{ ai_report.ai_sentence_count }} of {{ ai_report.total_sentences }} Sentences Flagged</div>
+            <div class="details-summary-box text-start px-4 py-3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px;">
+                <div class="fw-bold text-dark small mb-2">{{ page_count }} Pages</div>
+                <div class="fw-bold text-dark small mb-2">{{ word_count }} Words</div>
+                <div class="fw-bold text-dark small">{{ character_count }} Characters</div>
             </div>
         </div>
     </div>
@@ -409,7 +409,21 @@
     </div>
 
     <!-- Divider Line -->
-    <div class="turnitin-sheet-divider my-4"></div>
+    <div class="turnitin-sheet-divider my-3"></div>
+
+    <!-- Middle Row: AI-generated group row -->
+    <div class="d-flex align-items-center gap-3 py-2">
+        <div class="d-flex align-items-center justify-content-center rounded" style="width: 20px; height: 20px; background-color: #0084ff; color: #fff;">
+            <i class="bi bi-robot" style="font-size: 11px;"></i>
+        </div>
+        <div>
+            <div class="fw-bold text-dark small">{{ ai_report.ai_sentence_count }} AI-generated &nbsp;{{ overall_ai_display }}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Likely generated or likely generated and revised by AI.</div>
+        </div>
+    </div>
+
+    <!-- Divider Line -->
+    <div class="turnitin-sheet-divider my-3"></div>
 
     <!-- Bottom: Disclaimer Section -->
     <div class="pt-1 pb-4">

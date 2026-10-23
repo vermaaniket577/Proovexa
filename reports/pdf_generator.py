@@ -1,19 +1,18 @@
 """
 Turnitin-identical PDF report generator using ReportLab.
 Implements the exact layout and criteria from Turnitin academic similarity reports:
-- Page 1: Cover Page (Author, File, Institution, Submission ID, Dates, Pages/Words/Chars card)
-- Page 2: Integrity Overview Part 1 (Overall Similarity, Filtered items, Integrity Flags & Advisory Notice)
-- Page 3: Integrity Overview Part 2 (Match Groups, Top Sources database summary, and Top Sources 1-10) [Image 1]
-- Page 4: Integrity Overview Part 3 (Top Sources continuation 11-13+) [Image 2]
+- Page 1: Cover Page (Author, File, Institution, Document Details, Pages/Words/Chars card)
+- Page 2: Integrity Overview Part 1 (Overall Similarity, Filtered items, Match Groups, Top Sources database breakdown, Integrity Flags & Advisory Notice)
+- Page 3: Integrity Overview Part 2 (Match Groups & Top Sources snapshot, Top Sources title/desc, and Top Sources 1-10)
+- Page 4: Integrity Overview Part 3 (Top Sources continuation 11-13+)
 - Pages 5+: Integrity Submission (Document text with left-margin numbered source badges and pastel highlights)
 """
 import io
 import re
 from datetime import datetime
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch, mm
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
     PageBreak, HRFlowable, Flowable
@@ -62,33 +61,33 @@ def _draw_turnitin_logo_canvas(canv, x, y):
     """Draws the authentic Turnitin brand vector mark on the canvas at (x, y)."""
     canv.saveState()
     canv.setStrokeColor(colors.HexColor('#0084ff'))
-    canv.setLineWidth(1.3)
+    canv.setLineWidth(1.2)
     canv.setLineCap(1)
     canv.setLineJoin(1)
 
     # 1. Outer bracket
     p = canv.beginPath()
-    p.moveTo(x + 0.6 * mm, y + 2.2 * mm)
-    p.lineTo(x + 0.6 * mm, y + 3.8 * mm)
-    p.curveTo(x + 0.6 * mm, y + 4.4 * mm, x + 1.0 * mm, y + 4.8 * mm, x + 1.6 * mm, y + 4.8 * mm)
-    p.lineTo(x + 2.8 * mm, y + 4.8 * mm)
-    p.curveTo(x + 3.4 * mm, y + 4.8 * mm, x + 3.8 * mm, y + 4.4 * mm, x + 3.8 * mm, y + 3.8 * mm)
-    p.lineTo(x + 3.8 * mm, y + 0.8 * mm)
-    p.curveTo(x + 3.8 * mm, y + 0.2 * mm, x + 3.4 * mm, y - 0.2 * mm, x + 2.8 * mm, y - 0.2 * mm)
-    p.lineTo(x + 2.1 * mm, y - 0.2 * mm)
+    p.moveTo(x + 1.5, y + 6.0)
+    p.lineTo(x + 1.5, y + 10.5)
+    p.curveTo(x + 1.5, y + 12.0, x + 2.5, y + 13.0, x + 4.0, y + 13.0)
+    p.lineTo(x + 7.5, y + 13.0)
+    p.curveTo(x + 9.0, y + 13.0, x + 10.0, y + 12.0, x + 10.0, y + 10.5)
+    p.lineTo(x + 10.0, y + 2.5)
+    p.curveTo(x + 10.0, y + 1.0, x + 9.0, y + 0.0, x + 7.5, y + 0.0)
+    p.lineTo(x + 5.5, y + 0.0)
     canv.drawPath(p, stroke=1, fill=0)
 
     # 2. Curved ascending arrow
     p2 = canv.beginPath()
-    p2.moveTo(x + 0.2 * mm, y - 0.2 * mm)
-    p2.curveTo(x + 0.2 * mm, y + 1.0 * mm, x + 0.8 * mm, y + 1.8 * mm, x + 2.2 * mm, y + 2.3 * mm)
+    p2.moveTo(x + 0.5, y + 0.0)
+    p2.curveTo(x + 0.5, y + 3.0, x + 2.0, y + 5.0, x + 5.5, y + 6.5)
     canv.drawPath(p2, stroke=1, fill=0)
 
     # Arrow head
     p3 = canv.beginPath()
-    p3.moveTo(x + 1.1 * mm, y + 2.3 * mm)
-    p3.lineTo(x + 2.2 * mm, y + 2.3 * mm)
-    p3.lineTo(x + 2.2 * mm, y + 1.2 * mm)
+    p3.moveTo(x + 3.0, y + 6.5)
+    p3.lineTo(x + 5.5, y + 6.5)
+    p3.lineTo(x + 5.5, y + 4.0)
     canv.drawPath(p3, stroke=1, fill=0)
 
     canv.restoreState()
@@ -100,6 +99,7 @@ class TurnitinReportCanvas(canvas.Canvas):
     headers and footers matching Turnitin reports:
     'Page X of Y - [Cover Page | Integrity Overview | Integrity Submission]'
     and 'Submission ID trn:oid:::...'
+    Coordinates: US Letter (612 x 792 pt), margins 36 pt.
     """
 
     def __init__(self, *args, **kwargs):
@@ -130,29 +130,27 @@ class TurnitinReportCanvas(canvas.Canvas):
         sub_str = f"Submission ID  {self.submission_id}"
 
         def draw_brand_decor(y_base):
-            x_icon = 18 * mm
-            _draw_turnitin_logo_canvas(self, x_icon, y_base)
+            # Turnitin icon at left margin x = 36 pt
+            _draw_turnitin_logo_canvas(self, 36.0, y_base - 2.0)
 
-            # "turnitin" in dark slate/petrol teal #012e38
-            self.setFont('Helvetica-Bold', 10)
+            # "turnitin" wordmark in dark slate/petrol teal #012e38
+            self.setFont('Helvetica-Bold', 8.5)
             self.setFillColor(colors.HexColor('#012e38'))
-            self.drawString(x_icon + 5.2 * mm, y_base + 0.5 * mm, "turnitin")
+            self.drawString(50.0, y_base + 1.0, "turnitin")
 
-            # Page and Section info
-            self.setFont('Helvetica', 8.5)
-            self.setFillColor(colors.HexColor('#475569'))
-            self.drawString(x_icon + 24 * mm, y_base + 0.5 * mm, f"Page {page_num} of {total_pages} - {section}")
+            # Page and Section info at x = 107 pt (6.0 pt, #191919)
+            self.setFont('Helvetica', 6.0)
+            self.setFillColor(colors.HexColor('#191919'))
+            self.drawString(107.0, y_base + 1.5, f"Page {page_num} of {total_pages} - {section}")
 
-            # Submission ID right-aligned
-            self.setFont('Helvetica', 8.5)
-            self.setFillColor(colors.HexColor('#475569'))
-            self.drawRightString(192 * mm, y_base + 0.5 * mm, sub_str)
+            # Submission ID right-aligned at right margin x = 576 pt (6.0 pt, #191919)
+            self.drawRightString(576.0, y_base + 1.5, sub_str)
 
-        # Header (Top)
-        draw_brand_decor(281 * mm)
+        # Header (Top): baseline y = 756.5 pt
+        draw_brand_decor(756.5)
 
-        # Footer (Bottom)
-        draw_brand_decor(12.5 * mm)
+        # Footer (Bottom): baseline y = 32.5 pt
+        draw_brand_decor(32.5)
 
         self.restoreState()
 
@@ -161,21 +159,22 @@ def _build_source_table_rows(s):
     """Constructs a 2-line source row matching Turnitin Top Sources list:
        Line 1: [Badge] [Category Pill]
        Line 2: Title/URL (left) and Percentage (right)
+       Total width: 540 pt (colWidths: 490, 50)
     """
     # 1. Colored number badge (oval pill)
-    badge_d = Drawing(20, 13)
-    badge_d.add(Rect(0, 0, 20, 13, rx=6.5, ry=6.5, fillColor=colors.HexColor(s['color']), strokeColor=None))
-    badge_d.add(String(10, 3.2, str(s['index']), fontName='Helvetica-Bold', fontSize=7.5, fillColor=colors.white, textAnchor='middle'))
+    badge_d = Drawing(16, 11)
+    badge_d.add(Rect(0, 0, 16, 11, rx=5.5, ry=5.5, fillColor=colors.HexColor(s['color']), strokeColor=None))
+    badge_d.add(String(8, 2.8, str(s['index']), fontName='Helvetica-Bold', fontSize=7.0, fillColor=colors.white, textAnchor='middle'))
 
     # 2. Category pill tag (matching source's pastel tone)
     pill_bg = colors.HexColor(s.get('pill_bg', '#fce4ec'))
     pill_text = colors.HexColor(s.get('pill_text', '#be185d'))
-    pill_d = Drawing(58, 13)
-    pill_d.add(Rect(0, 0, 58, 13, rx=6.5, ry=6.5, fillColor=pill_bg, strokeColor=None))
-    pill_d.add(String(29, 3.2, s['category'], fontName='Helvetica-Bold', fontSize=7, fillColor=pill_text, textAnchor='middle'))
+    pill_d = Drawing(52, 11)
+    pill_d.add(Rect(0, 0, 52, 11, rx=5.5, ry=5.5, fillColor=pill_bg, strokeColor=None))
+    pill_d.add(String(26, 2.8, s['category'], fontName='Helvetica-Bold', fontSize=7.0, fillColor=pill_text, textAnchor='middle'))
 
     # Top line container table: Badge and Pill side by side
-    top_table = Table([[badge_d, pill_d]], colWidths=[24, 65])
+    top_table = Table([[badge_d, pill_d]], colWidths=[20, 60])
     top_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -184,16 +183,16 @@ def _build_source_table_rows(s):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
 
-    # Title / Domain (Line 2 Left)
+    # Title / Domain (Line 2 Left: width 490 pt)
     title_p = Paragraph(
         f"<b>{s['title']}</b>",
-        ParagraphStyle('SrcTitle', fontName='Helvetica-Bold', fontSize=8.5, leading=11, textColor=colors.HexColor('#000000'))
+        ParagraphStyle('SrcTitle', fontName='Helvetica-Bold', fontSize=8.0, leading=10.5, textColor=colors.HexColor('#191919'))
     )
 
-    # Percentage (Line 2 Right)
+    # Percentage (Line 2 Right: width 50 pt)
     pct_p = Paragraph(
         f"<b>{s['percent']}</b>",
-        ParagraphStyle('SrcPct', fontName='Helvetica-Bold', fontSize=8.5, leading=11, alignment=TA_RIGHT, textColor=colors.HexColor('#000000'))
+        ParagraphStyle('SrcPct', fontName='Helvetica-Bold', fontSize=8.0, leading=10.5, alignment=TA_RIGHT, textColor=colors.HexColor('#191919'))
     )
 
     return [
@@ -203,13 +202,13 @@ def _build_source_table_rows(s):
 
 
 def _build_match_group_icon(mg):
-    """Draws a crisp 15x15 vector icon matching Turnitin screenshot."""
+    """Draws a crisp 15x15 vector icon matching Turnitin match groups."""
     d = Drawing(15, 15)
     bg_color = colors.HexColor(mg['color'])
     icon_type = mg.get('icon', 'files')
 
     if icon_type == 'files':
-        # Rounded square frame for Not Cited or Quoted (exact match with screenshot)
+        # Rounded square frame for Not Cited or Quoted
         d.add(Rect(0, 0, 15, 15, rx=3.5, ry=3.5, fillColor=bg_color, strokeColor=None))
         # Overlapping document sheets
         d.add(Rect(3.8, 4.8, 5, 6.5, rx=0.5, ry=0.5, fillColor=colors.white, strokeColor=None))
@@ -259,90 +258,91 @@ def generate_pdf_report(report):
     """
     Generate the Turnitin-styled similarity report with:
     1. Cover Page (Page 1)
-    2. Integrity Overview (Page 2: Similarity score, filtering, integrity flags)
-    3. Integrity Overview (Page 3: Match Groups, Top Sources breakdown & Sources 1-10) [Image 1]
-    4. Integrity Overview (Page 4: Sources continuation 11-13+) [Image 2]
+    2. Integrity Overview (Page 2: Similarity score, filtering, match groups, database sources, flags)
+    3. Integrity Overview (Page 3: Match Groups & Top Sources snapshot & Sources 1-10)
+    4. Integrity Overview (Page 4: Sources continuation 11-13+)
     5. Integrity Submission (Pages 5+: Document text with inline highlights & margin badges)
     """
     criteria = compute_report_criteria(report)
 
     buffer = io.BytesIO()
+    # US Letter: 612.0 x 792.0 pt. Margins: 36.0 pt each side. Usable width: 540.0 pt.
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=A4,
-        rightMargin=18 * mm,
-        leftMargin=18 * mm,
-        topMargin=22 * mm,
-        bottomMargin=22 * mm,
+        pagesize=letter,
+        rightMargin=36.0,
+        leftMargin=36.0,
+        topMargin=48.0,
+        bottomMargin=48.0,
     )
 
     styles = getSampleStyleSheet()
 
-    # Typography styles
+    # Exact Typography styles from Turnitin samples
     cover_author_style = ParagraphStyle(
         'CoverAuthor', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=22, leading=26,
-        textColor=colors.HexColor('#0f172a'), spaceAfter=8
+        fontName='Helvetica-Bold', fontSize=20.0, leading=24.0,
+        textColor=colors.HexColor('#191919'), spaceAfter=8
     )
 
     cover_title_style = ParagraphStyle(
         'CoverTitle', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=16, leading=20,
-        textColor=colors.HexColor('#1e293b'), spaceAfter=10
+        fontName='Helvetica-Bold', fontSize=17.0, leading=21.0,
+        textColor=colors.HexColor('#191919'), spaceAfter=10
     )
 
     cover_inst_style = ParagraphStyle(
         'CoverInst', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=10, leading=14,
-        textColor=colors.HexColor('#475569'), spaceAfter=20
+        fontName='Helvetica', fontSize=8.0, leading=12.0,
+        textColor=colors.HexColor('#636363'), spaceAfter=16
     )
 
     h2_style = ParagraphStyle(
         'H2Style', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=12, leading=16,
-        textColor=colors.HexColor('#0f172a'), spaceBefore=0, spaceAfter=8
+        fontName='Helvetica-Bold', fontSize=10.0, leading=14.0,
+        textColor=colors.HexColor('#191919'), spaceBefore=0, spaceAfter=6
     )
 
     detail_label = ParagraphStyle(
         'DetailLabel', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=7.5, leading=10,
-        textColor=colors.HexColor('#64748b')
+        fontName='Helvetica', fontSize=7.0, leading=9.5,
+        textColor=colors.HexColor('#636363')
     )
 
     detail_val = ParagraphStyle(
         'DetailVal', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=8.5, leading=11,
-        textColor=colors.HexColor('#0f172a')
+        fontName='Helvetica-Bold', fontSize=7.0, leading=9.5,
+        textColor=colors.HexColor('#191919')
     )
 
     stat_box_text = ParagraphStyle(
         'StatBoxText', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=9, leading=18,
-        textColor=colors.HexColor('#1e293b')
+        fontName='Helvetica-Bold', fontSize=7.0, leading=16.0,
+        textColor=colors.HexColor('#191919')
     )
 
     overview_score_style = ParagraphStyle(
         'OverviewScore', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=24, leading=28,
-        textColor=colors.HexColor('#0f172a'), spaceAfter=4
+        fontName='Helvetica-Bold', fontSize=17.0, leading=22.0,
+        textColor=colors.HexColor('#191919'), spaceAfter=4
     )
 
     overview_sub_style = ParagraphStyle(
         'OverviewSub', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=8.5, leading=11.5,
-        textColor=colors.HexColor('#64748b'), spaceAfter=14
+        fontName='Helvetica', fontSize=7.0, leading=10.0,
+        textColor=colors.HexColor('#636363'), spaceAfter=12
     )
 
     filtered_hdr_style = ParagraphStyle(
         'FilteredHdr', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=11, leading=15,
-        textColor=colors.HexColor('#0f172a'), spaceAfter=5
+        fontName='Helvetica-Bold', fontSize=10.0, leading=14.0,
+        textColor=colors.HexColor('#191919'), spaceAfter=4
     )
 
     filtered_item_style = ParagraphStyle(
         'FilteredItem', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=8.5, leading=12.5,
-        textColor=colors.HexColor('#1e293b')
+        fontName='Helvetica', fontSize=7.0, leading=11.0,
+        textColor=colors.HexColor('#191919')
     )
 
     story = []
@@ -351,33 +351,45 @@ def generate_pdf_report(report):
     # PAGE 1: COVER PAGE
     # =========================================================================
     story.append(SetSection("Cover Page"))
-    story.append(Spacer(1, 100 * mm))  # Center content vertically
+    story.append(Spacer(1, 280))  # Positions author at y ~ 336 pt from top
 
     story.append(Paragraph(criteria['author_name'], cover_author_style))
     story.append(Paragraph(criteria['file_name'], cover_title_style))
-    story.append(Paragraph(f"🎓  {criteria['institution_name']}", cover_inst_style))
 
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=14))
+    # Mortarboard graduation cap icon + Institution name
+    inst_icon = Drawing(16, 11)
+    inst_icon.add(Polygon([8, 10.5, 14, 7.5, 8, 4.5, 2, 7.5], fillColor=colors.HexColor('#636363'), strokeColor=None))
+    inst_icon.add(Rect(5.5, 2.0, 5.0, 3.0, rx=0.5, ry=0.5, fillColor=colors.HexColor('#636363'), strokeColor=None))
+    inst_p = Paragraph(criteria['institution_name'], cover_inst_style)
+    inst_table = Table([[inst_icon, inst_p]], colWidths=[20, 520])
+    inst_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 14),
+    ]))
+    story.append(inst_table)
+
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=12))
     story.append(Paragraph("Document Details", h2_style))
 
     # Details table: Left Column (Metadata) vs Right Column (Summary Card)
+    # Total width = 540 pt (360 + 180)
     left_meta_cells = [
-        [Paragraph("Submission ID", detail_label)],
-        [Paragraph(criteria['submission_id'], detail_val)],
-        [Spacer(1, 3)],
         [Paragraph("Submission Date", detail_label)],
         [Paragraph(criteria['submission_date'], detail_val)],
-        [Spacer(1, 3)],
+        [Spacer(1, 4)],
         [Paragraph("Download Date", detail_label)],
         [Paragraph(criteria['download_date'], detail_val)],
-        [Spacer(1, 3)],
+        [Spacer(1, 4)],
         [Paragraph("File Name", detail_label)],
         [Paragraph(criteria['file_name'], detail_val)],
-        [Spacer(1, 3)],
+        [Spacer(1, 4)],
         [Paragraph("File Size", detail_label)],
         [Paragraph(criteria['file_size_display'], detail_val)],
     ]
-    left_table = Table(left_meta_cells, colWidths=[240])
+    left_table = Table(left_meta_cells, colWidths=[360])
     left_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
@@ -390,7 +402,7 @@ def generate_pdf_report(report):
         [Paragraph(f"{criteria['word_count']:,} Words", stat_box_text)],
         [Paragraph(f"{criteria['character_count']:,} Characters", stat_box_text)],
     ]
-    right_table = Table(right_box_cells, colWidths=[140])
+    right_table = Table(right_box_cells, colWidths=[180])
     right_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
@@ -401,7 +413,7 @@ def generate_pdf_report(report):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
-    doc_details_table = Table([[left_table, right_table]], colWidths=[310, 160])
+    doc_details_table = Table([[left_table, right_table]], colWidths=[360, 180])
     doc_details_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -412,14 +424,14 @@ def generate_pdf_report(report):
     story.append(doc_details_table)
 
     # =========================================================================
-    # PAGE 2: INTEGRITY OVERVIEW (Score, Filters, Match Groups, Database Sources, Flags)
+    # PAGE 2: INTEGRITY OVERVIEW (Part 1: Score, Filters, Match Groups, DB Breakdown, Flags)
     # =========================================================================
     story.append(PageBreak())
     story.append(SetSection("Integrity Overview"))
 
     # 1. Overall Similarity Header
     score_val = criteria.get('overall_similarity_display', str(int(criteria['overall_similarity'])) + '%')
-    score_display_str = f'<font size="25"><b>{score_val}</b></font>&nbsp; <font size="21"><b>Overall Similarity</b></font>'
+    score_display_str = f"<b>{score_val} Overall Similarity</b>"
     story.append(Paragraph(score_display_str, overview_score_style))
     story.append(Paragraph(
         "The combined total of all matches, including overlapping sources, for each database.",
@@ -429,18 +441,90 @@ def generate_pdf_report(report):
     # 2. Filtered from the Report
     story.append(Paragraph("<b>Filtered from the Report</b>", filtered_hdr_style))
     for item in criteria['filtered_from_report']:
-        story.append(Paragraph(f'<font size="6.5">&#9656;</font>&nbsp; {item}', filtered_item_style))
+        story.append(Paragraph(f'<font size="6.0" color="#191919">&#9656;</font>&nbsp; {item}', filtered_item_style))
 
-    story.append(Spacer(1, 12))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=14))
+    story.append(Spacer(1, 10))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=12))
 
-    # 3. Integrity Flags (Left) & Advisory Callout Box (Right) on Page 2
+    # 3. Two Columns: Match Groups (Left 270 pt) & Top Sources Database Breakdown (Right 270 pt)
+    def _create_match_groups_table():
+        mg_left_rows = [[Paragraph("<b>Match Groups</b>", h2_style)]]
+        for mg in criteria['match_groups']:
+            icon_circle = _build_match_group_icon(mg)
+            title_p = Paragraph(
+                f"<b>{mg['count']} {mg['name']}</b> &nbsp;{mg['percent']}",
+                ParagraphStyle('MgTitle', fontName='Helvetica-Bold', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#191919'))
+            )
+            desc_p = Paragraph(
+                mg['description'],
+                ParagraphStyle('MgDesc', fontName='Helvetica', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#636363'))
+            )
+            row_content = Table([[icon_circle, [title_p, desc_p]]], colWidths=[18, 248])
+            row_content.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 1),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ]))
+            mg_left_rows.append([row_content])
+
+        mg_t = Table(mg_left_rows, colWidths=[270])
+        mg_t.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        return mg_t
+
+    def _create_top_sources_db_table():
+        ts_right_rows = [[Paragraph("<b>Top Sources</b>", h2_style)]]
+        for db in criteria['database_sources']:
+            pct_p = Paragraph(f"<b>{db['percent']}</b>", ParagraphStyle('DbPct', fontName='Helvetica-Bold', fontSize=7.0, textColor=colors.HexColor('#191919')))
+            icon_d = _build_database_source_icon(db)
+            name_p = Paragraph(db['name'], ParagraphStyle('DbName', fontName='Helvetica', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#191919')))
+            row_t = Table([[pct_p, icon_d, name_p]], colWidths=[24, 16, 226])
+            row_t.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 1),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ]))
+            ts_right_rows.append([row_t])
+
+        ts_t = Table(ts_right_rows, colWidths=[270])
+        ts_t.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        return ts_t
+
+    mg_ts_split = Table([[_create_match_groups_table(), _create_top_sources_db_table()]], colWidths=[270, 270])
+    mg_ts_split.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    story.append(mg_ts_split)
+
+    story.append(Spacer(1, 10))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=12))
+
+    # 4. Integrity Flags (Left 270 pt) & Advisory Callout Box (Right 270 pt)
     flags_left_rows = [
         [Paragraph("<b>Integrity Flags</b>", h2_style)],
-        [Paragraph(f"<b>{criteria['flags_count']} Integrity Flags for Review</b>", ParagraphStyle('FlagHdr', fontName='Helvetica-Bold', fontSize=8.5, leading=11, textColor=colors.HexColor('#0f172a')))],
-        [Paragraph("No suspicious text manipulations found." if criteria['flags_count'] == 0 else "Anomalies detected in submission text.", ParagraphStyle('FlagSub', fontName='Helvetica', fontSize=7.5, leading=10, textColor=colors.HexColor('#64748b')))],
+        [Paragraph(f"<b>{criteria['flags_count']} Integrity Flags for Review</b>", ParagraphStyle('FlagHdr', fontName='Helvetica-Bold', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#191919')))],
+        [Paragraph("No suspicious text manipulations found." if criteria['flags_count'] == 0 else "Anomalies detected in submission text.", ParagraphStyle('FlagSub', fontName='Helvetica', fontSize=7.0, leading=9.5, textColor=colors.HexColor('#636363')))],
     ]
-    flags_left_table = Table(flags_left_rows, colWidths=[220])
+    flags_left_table = Table(flags_left_rows, colWidths=[270])
     flags_left_table.setStyle(TableStyle([
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
@@ -452,13 +536,14 @@ def generate_pdf_report(report):
     advisory_text = (
         "Our system's algorithms look deeply at a document for any inconsistencies that "
         "would set it apart from a normal submission. If we notice something strange, we flag it for you to review.<br/><br/>"
-        "A flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review."
+        "A Flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review."
     )
-    advisory_p = Paragraph(advisory_text, ParagraphStyle('AdvText', fontName='Helvetica', fontSize=7, leading=9.5, textColor=colors.HexColor('#0369a1')))
-    advisory_box = Table([[advisory_p]], colWidths=[240])
+    advisory_p = Paragraph(advisory_text, ParagraphStyle('AdvText', fontName='Helvetica', fontSize=6.0, leading=8.5, textColor=colors.HexColor('#2c2c2c')))
+    advisory_box = Table([[advisory_p]], colWidths=[260])
     advisory_box.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#dbeafe')),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#bae6fd')),
+        ('ROUNDEDCORNERS', [6, 6, 6, 6]),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ('LEFTPADDING', (0, 0), (-1, -1), 10),
@@ -466,7 +551,7 @@ def generate_pdf_report(report):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    flags_split_table = Table([[flags_left_table, advisory_box]], colWidths=[230, 244])
+    flags_split_table = Table([[flags_left_table, advisory_box]], colWidths=[270, 270])
     flags_split_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -477,89 +562,33 @@ def generate_pdf_report(report):
     story.append(flags_split_table)
 
     # =========================================================================
-    # PAGE 3: INTEGRITY OVERVIEW (PART 2 - Match Groups, Database Summary & Sources 1-10) [Image 1]
+    # PAGE 3: INTEGRITY OVERVIEW (PART 2 - Match Groups & Database Snapshot & Sources 1-10)
     # =========================================================================
     story.append(PageBreak())
     story.append(SetSection("Integrity Overview"))
 
-    # Top of Page 3: Two Columns: Match Groups (Left) & Top Sources Database Breakdown (Right)
-    mg_left_rows = [[Paragraph("<b>Match Groups</b>", h2_style)]]
-    for mg in criteria['match_groups']:
-        icon_circle = _build_match_group_icon(mg)
-
-        title_p = Paragraph(
-            f"<b>{mg['count']} {mg['name']}</b> &nbsp;{mg['percent']}",
-            ParagraphStyle('MgTitle', fontName='Helvetica-Bold', fontSize=8.5, leading=11, textColor=colors.HexColor('#0f172a'))
-        )
-        desc_p = Paragraph(
-            mg['description'],
-            ParagraphStyle('MgDesc', fontName='Helvetica', fontSize=7, leading=9.5, textColor=colors.HexColor('#64748b'))
-        )
-
-        row_content = Table([[icon_circle, [title_p, desc_p]]], colWidths=[18, 226])
-        row_content.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 1),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ]))
-        mg_left_rows.append([row_content])
-
-    mg_table = Table(mg_left_rows, colWidths=[250])
-    mg_table.setStyle(TableStyle([
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    ts_right_rows = [[Paragraph("<b>Top Sources</b>", h2_style)]]
-    for db in criteria['database_sources']:
-        pct_p = Paragraph(f"<b>{db['percent']}</b>", ParagraphStyle('DbPct', fontName='Helvetica-Bold', fontSize=8.5, textColor=colors.HexColor('#0f172a')))
-        icon_d = _build_database_source_icon(db)
-        name_p = Paragraph(db['name'], ParagraphStyle('DbName', fontName='Helvetica', fontSize=8.5, leading=11, textColor=colors.HexColor('#1e293b')))
-        row_t = Table([[pct_p, icon_d, name_p]], colWidths=[26, 18, 160])
-        row_t.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-            ('TOPPADDING', (0, 0), (-1, -1), 2),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-        ]))
-        ts_right_rows.append([row_t])
-
-    ts_table = Table(ts_right_rows, colWidths=[210])
-    ts_table.setStyle(TableStyle([
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    split_mg_ts_table = Table([[mg_table, ts_table]], colWidths=[260, 214])
-    split_mg_ts_table.setStyle(TableStyle([
+    # Top snapshot of Match Groups and Top Sources DB breakdown
+    p3_mg_ts_split = Table([[_create_match_groups_table(), _create_top_sources_db_table()]], colWidths=[270, 270])
+    p3_mg_ts_split.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
         ('TOPPADDING', (0, 0), (-1, -1), 0),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
-    story.append(split_mg_ts_table)
+    story.append(p3_mg_ts_split)
 
     story.append(Spacer(1, 8))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=8))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=8))
 
-    # Middle of Page 3: Top Sources Section Title & Subtitle (Image 1)
+    # Middle of Page 3: Top Sources Section Title & Subtitle
     story.append(Paragraph("<b>Top Sources</b>", h2_style))
     story.append(Paragraph(
         "The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.",
         overview_sub_style
     ))
     story.append(Spacer(1, 4))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=6))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=6))
 
     # Sources 1 to 10 on Page 3
     all_sources = criteria['top_sources']
@@ -571,7 +600,7 @@ def generate_pdf_report(report):
         for s in page3_sources:
             p3_table_data.extend(_build_source_table_rows(s))
 
-        p3_table = Table(p3_table_data, colWidths=[420, 44])
+        p3_table = Table(p3_table_data, colWidths=[490, 50])
         p3_style = [
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -589,7 +618,7 @@ def generate_pdf_report(report):
         story.append(p3_table)
 
     # =========================================================================
-    # PAGE 4: INTEGRITY OVERVIEW (PART 3 - Top Sources Continuation 11+) [Image 2]
+    # PAGE 4: INTEGRITY OVERVIEW (PART 3 - Top Sources Continuation 11+)
     # =========================================================================
     story.append(PageBreak())
     story.append(SetSection("Integrity Overview"))
@@ -599,7 +628,7 @@ def generate_pdf_report(report):
         for s in page4_sources:
             p4_table_data.extend(_build_source_table_rows(s))
 
-        p4_table = Table(p4_table_data, colWidths=[420, 44])
+        p4_table = Table(p4_table_data, colWidths=[490, 50])
         p4_style = [
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -627,20 +656,21 @@ def generate_pdf_report(report):
 
     doc_title_style = ParagraphStyle(
         'DocTitleStyle', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=13, leading=17,
-        textColor=colors.HexColor('#0f172a'), spaceAfter=14
+        fontName='Helvetica-Bold', fontSize=12.0, leading=16.0,
+        textColor=colors.HexColor('#191919'), spaceAfter=4
     )
 
     doc_para_style = ParagraphStyle(
         'DocParaStyle', parent=styles['Normal'],
-        fontName='Times-Roman', fontSize=10, leading=15,
-        alignment=TA_JUSTIFY, spaceAfter=10
+        fontName='Times-Roman', fontSize=11.04, leading=14.5,
+        alignment=TA_JUSTIFY, spaceAfter=8
     )
 
     extracted_texts = report.document.extracted_texts.all().order_by('page_number', 'paragraph_number')
     matched_passages = report.matched_passages.filter(is_excluded=False).order_by('submitted_char_start')
 
     story.append(Paragraph(report.document.title, doc_title_style))
+    story.append(HRFlowable(width="100%", thickness=1.2, color=colors.HexColor('#0084ff'), spaceAfter=14))
 
     # Pre-map passages to paragraph content
     if extracted_texts.exists():
@@ -666,29 +696,31 @@ def generate_pdf_report(report):
                     replacement = f'<font backcolor="{pastel_bg}">{m.submitted_text.strip()}</font>'
                     highlighted_content = re.sub(esc_match, replacement, highlighted_content, count=1)
 
-                badge_html = f'<font color="{badge_color_hex}"><b>[{top_badge_idx}]</b></font>'
-                badge_para = Paragraph(badge_html, ParagraphStyle('BadgeP', fontName='Helvetica-Bold', fontSize=9, alignment=TA_CENTER))
+                badge_d = Drawing(16, 16)
+                badge_d.add(Circle(8, 8, 7, fillColor=colors.HexColor(badge_color_hex), strokeColor=None))
+                badge_d.add(String(8, 5.2, str(top_badge_idx), fontName='Helvetica-Bold', fontSize=7.0, fillColor=colors.white, textAnchor='middle'))
+
                 text_para = Paragraph(highlighted_content, doc_para_style)
 
-                row_table = Table([[badge_para, text_para]], colWidths=[24, 450])
+                row_table = Table([[badge_d, text_para]], colWidths=[24, 516])
                 row_table.setStyle(TableStyle([
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('LEFTPADDING', (0, 0), (-1, -1), 0),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                     ('TOPPADDING', (0, 0), (-1, -1), 0),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                 ]))
                 story.append(row_table)
             else:
-                blank_p = Paragraph("", doc_para_style)
+                blank_d = Drawing(16, 16)
                 text_para = Paragraph(content, doc_para_style)
-                row_table = Table([[blank_p, text_para]], colWidths=[24, 450])
+                row_table = Table([[blank_d, text_para]], colWidths=[24, 516])
                 row_table.setStyle(TableStyle([
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('LEFTPADDING', (0, 0), (-1, -1), 0),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                     ('TOPPADDING', (0, 0), (-1, -1), 0),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                 ]))
                 story.append(row_table)
     else:
