@@ -2,8 +2,8 @@
 Turnitin-style AI Writing Detection PDF Report Generator.
 Generates an official AI report with:
 - Page 1: AI Writing Cover Page
-- Page 2: AI Content Overview & Linguistic Diagnostics
-- Pages 3+: AI Highlighted Submission (Cyan highlights on suspected AI sentences)
+- Page 2: AI Writing Overview (Matching exact Turnitin screenshot with score, caution box & disclaimer)
+- Pages 3+: AI Writing Submission (Cyan highlights on suspected AI sentences with [AI] badge)
 """
 import io
 import re
@@ -14,10 +14,25 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, mm
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    PageBreak, HRFlowable
+    PageBreak, HRFlowable, Flowable
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
+
+
+class SetSection(Flowable):
+    """Zero-size flowable to dynamically instruct canvas of current section name."""
+    def __init__(self, section_name):
+        super().__init__()
+        self.section_name = section_name
+        self.width = 0
+        self.height = 0
+
+    def wrap(self, availWidth, availHeight):
+        return 0, 0
+
+    def draw(self):
+        self.canv.current_section = self.section_name
 
 
 def _draw_turnitin_logo_canvas(canv, x, y):
@@ -63,8 +78,11 @@ class AICanvas(canvas.Canvas):
         super().__init__(*args, **kwargs)
         self.pages = []
         self.submission_id = ""
+        self.current_section = "AI Writing Cover Page"
+        self.page_sections = {}
 
     def showPage(self):
+        self.page_sections[self._pageNumber] = getattr(self, 'current_section', 'AI Writing Overview')
         self.pages.append(dict(self.__dict__))
         self._startPage()
 
@@ -78,7 +96,7 @@ class AICanvas(canvas.Canvas):
 
     def draw_decorations(self, total_pages):
         page_num = self._pageNumber
-        section = "AI Writing Detection" if page_num == 1 else ("AI Overview" if page_num == 2 else "AI Highlighted Submission")
+        section = self.page_sections.get(page_num, "AI Writing Overview")
 
         self.saveState()
         sub_str = f"Submission ID  {self.submission_id}"
@@ -105,6 +123,11 @@ class AICanvas(canvas.Canvas):
         # Header (Top)
         draw_brand_decor(281 * mm)
 
+        # Thin divider line under header on all pages (matching Turnitin official style)
+        self.setStrokeColor(colors.HexColor('#cbd5e1'))
+        self.setLineWidth(0.5)
+        self.line(18 * mm, 276 * mm, 192 * mm, 276 * mm)
+
         # Footer (Bottom)
         draw_brand_decor(12.5 * mm)
 
@@ -121,7 +144,7 @@ def generate_ai_pdf_report(ai_report):
     inst_name = getattr(uploaded_by.institution, 'name', 'Academic Institute') if getattr(uploaded_by, 'institution', None) else 'Academic Institute'
 
     num_seed = abs(hash(str(ai_report.id))) % 900000000 + 100000000
-    submission_id = f"trn:oid:::5:{num_seed}"
+    submission_id = f"trn:oid:::1:{num_seed}"
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -129,7 +152,7 @@ def generate_ai_pdf_report(ai_report):
         pagesize=A4,
         rightMargin=18 * mm,
         leftMargin=18 * mm,
-        topMargin=22 * mm,
+        topMargin=26 * mm,
         bottomMargin=22 * mm,
     )
 
@@ -156,7 +179,7 @@ def generate_ai_pdf_report(ai_report):
     h2_style = ParagraphStyle(
         'AIH2', parent=styles['Normal'],
         fontName='Helvetica-Bold', fontSize=12, leading=16,
-        textColor=colors.HexColor('#0f172a'), spaceBefore=12, spaceAfter=8
+        textColor=colors.HexColor('#0f172a'), spaceBefore=8, spaceAfter=8
     )
 
     detail_label = ParagraphStyle(
@@ -176,13 +199,14 @@ def generate_ai_pdf_report(ai_report):
     # =========================================================================
     # PAGE 1: AI WRITING COVER PAGE
     # =========================================================================
-    story.append(Spacer(1, 100 * mm))
+    story.append(SetSection("AI Writing Cover Page"))
+    story.append(Spacer(1, 95 * mm))
     story.append(Paragraph(author_name, cover_author_style))
     story.append(Paragraph(doc_obj.original_filename, cover_title_style))
     story.append(Paragraph(f"🎓  {inst_name}", cover_inst_style))
 
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceAfter=14))
-    story.append(Paragraph("AI Writing Evaluation Details", h2_style))
+    story.append(Paragraph("Document Details", h2_style))
 
     sub_date = (doc_obj.uploaded_at or ai_report.created_at).strftime('%b %d, %Y, %I:%M %p GMT+1')
     now_date = datetime.now().strftime('%b %d, %Y, %I:%M %p GMT+1')
@@ -194,7 +218,7 @@ def generate_ai_pdf_report(ai_report):
         [Paragraph("Submission Date", detail_label)],
         [Paragraph(sub_date, detail_val)],
         [Spacer(1, 3)],
-        [Paragraph("AI Scan Date", detail_label)],
+        [Paragraph("Download Date", detail_label)],
         [Paragraph(now_date, detail_val)],
         [Spacer(1, 3)],
         [Paragraph("File Name", detail_label)],
@@ -209,9 +233,11 @@ def generate_ai_pdf_report(ai_report):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
 
+    score_display = "*" if ai_report.overall_ai_score == 0 else f"{ai_report.overall_ai_score:.0f}%"
+
     right_cells = [
-        [Paragraph(f"<font size='16' color='#0284c7'><b>{ai_report.overall_ai_score:.0f}%</b></font>", ParagraphStyle('ScoreBig', alignment=TA_CENTER))],
-        [Paragraph("<b>AI Writing Detected</b>", ParagraphStyle('ScoreSub', fontName='Helvetica-Bold', fontSize=8, alignment=TA_CENTER, textColor=colors.HexColor('#0369a1')))],
+        [Paragraph(f"<font size='18' color='#0284c7'><b>{score_display}</b></font>", ParagraphStyle('ScoreBig', alignment=TA_CENTER))],
+        [Paragraph("<b>detected as AI</b>", ParagraphStyle('ScoreSub', fontName='Helvetica-Bold', fontSize=8.5, alignment=TA_CENTER, textColor=colors.HexColor('#0369a1')))],
         [Spacer(1, 4)],
         [Paragraph(f"{ai_report.ai_sentence_count} of {ai_report.total_sentences} Sentences Flagged", ParagraphStyle('SentencesP', fontName='Helvetica', fontSize=8, alignment=TA_CENTER, textColor=colors.HexColor('#475569')))],
     ]
@@ -236,73 +262,134 @@ def generate_ai_pdf_report(ai_report):
     ]))
     story.append(cover_details_table)
 
+    # =========================================================================
+    # PAGE 2: AI WRITING OVERVIEW (Matching Exact Turnitin Screenshot)
+    # =========================================================================
     story.append(PageBreak())
+    story.append(SetSection("AI Writing Overview"))
 
-    # =========================================================================
-    # PAGE 2: AI OVERVIEW & LINGUISTIC DIAGNOSTICS
-    # =========================================================================
-    ai_score_style = ParagraphStyle(
-        'AIScoreStyle', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=22, leading=26,
-        textColor=colors.HexColor('#0f172a'), spaceAfter=4
+    score_heading_style = ParagraphStyle(
+        'AIScoreHeading',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=24,
+        leading=28,
+        textColor=colors.HexColor('#000000'),
+        spaceAfter=10
+    )
+    score_desc_style = ParagraphStyle(
+        'AIScoreDesc',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9.5,
+        leading=14.5,
+        textColor=colors.HexColor('#0f172a'),
     )
 
-    story.append(Paragraph(f"{ai_report.overall_ai_score:.0f}%  AI Writing Detected", ai_score_style))
-    story.append(Paragraph(
-        "Estimated probability that text was generated by automated language models (such as ChatGPT, Claude, Gemini).",
-        ParagraphStyle('AISub', fontName='Helvetica', fontSize=8, leading=11, textColor=colors.HexColor('#64748b'), spaceAfter=14)
-    ))
-
-    # Metrics grid
-    metric_cells = [
-        [
-            Paragraph(f"<b>{ai_report.ai_sentence_count}</b><br/><font size='7' color='#64748b'>AI-Generated Sentences</font>", ParagraphStyle('M1', fontName='Helvetica', fontSize=12, leading=14)),
-            Paragraph(f"<b>{ai_report.human_sentence_count}</b><br/><font size='7' color='#64748b'>Human-Written Sentences</font>", ParagraphStyle('M2', fontName='Helvetica', fontSize=12, leading=14)),
-            Paragraph(f"<b>{ai_report.burstiness_score}</b><br/><font size='7' color='#64748b'>Sentence Burstiness</font>", ParagraphStyle('M3', fontName='Helvetica', fontSize=12, leading=14)),
-            Paragraph(f"<b>{ai_report.perplexity_score}</b><br/><font size='7' color='#64748b'>Lexical Perplexity</font>", ParagraphStyle('M4', fontName='Helvetica', fontSize=12, leading=14)),
-        ]
+    left_cells = [
+        [Paragraph(f"<b>{score_display} detected as AI</b>", score_heading_style)],
+        [Paragraph(
+            "The percentage indicates the combined amount of likely AI-generated text as well as likely AI-generated text that was also likely revised by AI.",
+            score_desc_style
+        )]
     ]
-    metric_table = Table(metric_cells, colWidths=[115, 115, 115, 115])
-    metric_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
-        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    left_table = Table(left_cells, colWidths=[240])
+    left_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 16),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
-    story.append(metric_table)
+
+    caution_title_style = ParagraphStyle(
+        'AICautionTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9.5,
+        leading=13.5,
+        textColor=colors.HexColor('#0f172a'),
+        spaceAfter=8
+    )
+    caution_body_style = ParagraphStyle(
+        'AICautionBody',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8.5,
+        leading=13,
+        textColor=colors.HexColor('#1e293b'),
+    )
+
+    caution_cells = [
+        [Paragraph("<b>Caution: Review required.</b>", caution_title_style)],
+        [Paragraph(
+            "It is essential to understand the limitations of AI detection before making decisions about a student's work. "
+            "We encourage you to learn more about Turnitin's AI detection capabilities before using the tool.",
+            caution_body_style
+        )]
+    ]
+    caution_table = Table(caution_cells, colWidths=[210])
+    caution_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#e0f2fe')),
+        ('ROUNDEDCORNERS', [10, 10, 10, 10]),
+        ('TOPPADDING', (0, 0), (-1, -1), 16),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 16),
+        ('LEFTPADDING', (0, 0), (-1, -1), 16),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 16),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    overview_table = Table([[left_table, caution_table]], colWidths=[250, 220])
+    overview_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 14),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 14),
+    ]))
+    story.append(overview_table)
 
     story.append(Spacer(1, 14))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'), spaceBefore=8, spaceAfter=22))
 
-    # Advisory notice box
-    advisory_text = (
-        "<b>Important Academic Advisory Notice:</b><br/>"
-        "Our AI detection engine evaluates lexical perplexity, structural burstiness, and stylistic uniformity. "
-        "AI writing detection provides an indicator, not definitive proof of academic misconduct. "
-        "False positives may occasionally occur in formulaic academic phrasing. Reviewers should assess text in context."
+    # Disclaimer Section (Bottom)
+    disclaimer_title_style = ParagraphStyle(
+        'AIDisclaimerTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9.5,
+        leading=13.5,
+        textColor=colors.HexColor('#000000'),
+        spaceAfter=6
     )
-    advisory_p = Paragraph(advisory_text, ParagraphStyle('AdvAI', fontName='Helvetica', fontSize=7.5, leading=11, textColor=colors.HexColor('#0369a1')))
-    advisory_box = Table([[advisory_p]], colWidths=[460])
-    advisory_box.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#e0f2fe')),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#bae6fd')),
-        ('TOPPADDING', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-        ('LEFTPADDING', (0, 0), (-1, -1), 12),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 12),
-    ]))
-    story.append(advisory_box)
+    disclaimer_body_style = ParagraphStyle(
+        'AIDisclaimerBody',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8,
+        leading=12.5,
+        textColor=colors.HexColor('#000000'),
+    )
 
-    story.append(PageBreak())
+    story.append(Paragraph("<b>Disclaimer</b>", disclaimer_title_style))
+    disclaimer_text = (
+        "Our AI writing assessment is designed to help educators identify text that might be prepared by a generative AI tool. "
+        "Our AI writing assessment may not always be accurate (it may misidentify writing that is likely human generated as AI generated "
+        "and likely AI generated as human generated) so it should not be used as the sole basis for adverse actions against a student. "
+        "It takes further scrutiny and human judgment in conjunction with an organization's application of its specific academic policies "
+        "to determine whether any academic misconduct has occurred."
+    )
+    story.append(Paragraph(disclaimer_text, disclaimer_body_style))
 
     # =========================================================================
     # PAGES 3+: AI HIGHLIGHTED SUBMISSION
     # Flagged sentences highlighted in signature Turnitin Cyan/Light Blue
     # =========================================================================
-    story.append(Paragraph(f"<b>AI Evaluated Submission: {doc_obj.title}</b>", h2_style))
+    story.append(PageBreak())
+    story.append(SetSection("AI Writing Submission"))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph(f"<b>{doc_obj.title}</b>", h2_style))
     story.append(Paragraph(
         "Sentences highlighted in cyan indicate language patterns consistent with AI generation.",
         ParagraphStyle('SubIntro', fontName='Helvetica', fontSize=8, textColor=colors.HexColor('#64748b'), spaceAfter=14)

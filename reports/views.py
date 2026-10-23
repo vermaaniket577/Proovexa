@@ -2,6 +2,7 @@
 Report views: view, download (PDF/DOCX/JSON), and list reports.
 """
 import json
+from datetime import datetime
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
@@ -314,10 +315,45 @@ def ai_report_view(request, doc_id):
     # Latest similarity report for navigation toggle
     similarity_report = document.similarity_reports.order_by('-created_at').first()
 
+    num_seed = abs(hash(str(ai_report.id))) % 900000000 + 100000000
+    submission_id = f"trn:oid:::1:{num_seed}"
+
+    uploaded_by = document.uploaded_by
+    author_name = uploaded_by.get_full_name() or uploaded_by.username or "Student Author"
+    inst_name = getattr(uploaded_by.institution, 'name', 'Academic Institute') if getattr(uploaded_by, 'institution', None) else 'Academic Institute'
+
+    score = ai_report.overall_ai_score
+    overall_ai_display = "*" if score == 0 else f"{score:.0f}%"
+
+    file_size_display = "0 KB"
+    if document.file_size:
+        if document.file_size >= 1048576:
+            file_size_display = f"{document.file_size / 1048576:.2f} MB"
+        else:
+            file_size_display = f"{document.file_size / 1024:.1f} KB"
+
+    page_count = document.page_count or 1
+    total_pages = page_count + 2  # Cover + Overview + Submission pages
+
+    char_count = (document.word_count or 100) * 6
+    if hasattr(document, 'extracted_texts') and document.extracted_texts.exists():
+        char_count = sum(len(t.content) for t in document.extracted_texts.all())
+
     context = {
         'ai_report': ai_report,
         'document': document,
         'similarity_report': similarity_report,
+        'author_name': author_name,
+        'institution_name': inst_name,
+        'submission_id': submission_id,
+        'submission_date': (document.uploaded_at or ai_report.created_at).strftime('%b %d, %Y, %I:%M %p GMT+1'),
+        'download_date': datetime.now().strftime('%b %d, %Y, %I:%M %p GMT+1'),
+        'overall_ai_display': overall_ai_display,
+        'file_size_display': file_size_display,
+        'page_count': page_count,
+        'word_count': document.word_count or 0,
+        'character_count': char_count,
+        'total_pages': total_pages,
     }
     return render(request, 'reports/ai_report.html', context)
 
