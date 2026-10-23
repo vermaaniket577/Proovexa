@@ -11,7 +11,7 @@ import io
 import os
 import re
 from datetime import datetime
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
@@ -123,7 +123,7 @@ class TurnitinReportCanvas(canvas.Canvas):
     headers and footers matching Turnitin reports:
     'Page X of Y - [Cover Page | Integrity Overview | Integrity Submission]'
     and 'Submission ID trn:oid:::...'
-    Coordinates: US Letter (612 x 792 pt), margins 36 pt.
+    Coordinates: Standard A4 (595.28 x 841.89 pt), margins 36 pt.
     """
 
     def __init__(self, *args, **kwargs):
@@ -174,13 +174,13 @@ class TurnitinReportCanvas(canvas.Canvas):
             self.setFillColor(colors.HexColor('#191919'))
             self.drawString(107.0, y_base, f"Page {page_num} of {total_pages} - {section}")
 
-            # Submission ID right-aligned at right margin x = 576.0 pt (6.0 pt, #191919)
-            self.drawRightString(576.0, y_base, sub_str)
+            # Submission ID right-aligned at right margin x = 559.28 pt (A4 width 595.28 - 36.0 pt)
+            self.drawRightString(559.28, y_base, sub_str)
 
-        # Header (Top): baseline y = 756.5 pt, logo y = 751.52 pt
-        draw_brand_decor(756.5, 751.52)
+        # Header (Top of A4: height 841.89 pt): baseline y = 806.0 pt, logo y = 801.0 pt
+        draw_brand_decor(806.0, 801.0)
 
-        # Footer (Bottom): baseline y = 32.5 pt, logo y = 27.52 pt
+        # Footer (Bottom of A4): baseline y = 32.5 pt, logo y = 27.52 pt
         draw_brand_decor(32.5, 27.52)
 
         self.restoreState()
@@ -305,10 +305,10 @@ def generate_pdf_report(report):
     criteria = compute_report_criteria(report)
 
     buffer = io.BytesIO()
-    # US Letter: 612.0 x 792.0 pt. Margins: 36.0 pt each side. Usable width: 540.0 pt.
+    # Standard A4: 595.28 x 841.89 pt. Margins: 36.0 pt each side. Usable width: 523.28 pt.
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=letter,
+        pagesize=A4,
         rightMargin=36.0,
         leftMargin=36.0,
         topMargin=48.0,
@@ -404,7 +404,7 @@ def generate_pdf_report(report):
     inst_icon.add(Polygon([8, 10.5, 14, 7.5, 8, 4.5, 2, 7.5], fillColor=colors.HexColor('#636363'), strokeColor=None))
     inst_icon.add(Rect(5.5, 2.0, 5.0, 3.0, rx=0.5, ry=0.5, fillColor=colors.HexColor('#636363'), strokeColor=None))
     inst_p = Paragraph(criteria['institution_name'], cover_inst_style)
-    inst_table = Table([[inst_icon, inst_p]], colWidths=[20, 520])
+    inst_table = Table([[inst_icon, inst_p]], colWidths=[20, 503.28])
     inst_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -418,7 +418,7 @@ def generate_pdf_report(report):
     story.append(Paragraph("Document Details", h2_style))
 
     # Details table: Left Column (Metadata) vs Right Column (Summary Card)
-    # Total width = 540 pt (360 + 180)
+    # Total width = 523.28 pt (348.28 + 175.0)
     left_meta_cells = [
         [Paragraph("Submission Date", detail_label)],
         [Paragraph(criteria['submission_date'], detail_val)],
@@ -432,7 +432,7 @@ def generate_pdf_report(report):
         [Paragraph("File Size", detail_label)],
         [Paragraph(criteria['file_size_display'], detail_val)],
     ]
-    left_table = Table(left_meta_cells, colWidths=[360])
+    left_table = Table(left_meta_cells, colWidths=[348.28])
     left_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
@@ -445,7 +445,7 @@ def generate_pdf_report(report):
         [Paragraph(f"{criteria['word_count']:,} Words", stat_box_text)],
         [Paragraph(f"{criteria['character_count']:,} Characters", stat_box_text)],
     ]
-    right_table = Table(right_box_cells, colWidths=[180])
+    right_table = Table(right_box_cells, colWidths=[175.0])
     right_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
@@ -456,7 +456,7 @@ def generate_pdf_report(report):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
-    doc_details_table = Table([[left_table, right_table]], colWidths=[360, 180])
+    doc_details_table = Table([[left_table, right_table]], colWidths=[348.28, 175.0])
     doc_details_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -486,7 +486,7 @@ def generate_pdf_report(report):
     for item in criteria['filtered_from_report']:
         bullet_d = _build_arrow_bullet()
         item_p = Paragraph(item, filtered_item_style)
-        item_t = Table([[bullet_d, item_p]], colWidths=[10, 530])
+        item_t = Table([[bullet_d, item_p]], colWidths=[10, 513.28])
         item_t.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -499,7 +499,7 @@ def generate_pdf_report(report):
     story.append(Spacer(1, 10))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=12))
 
-    # 3. Two Columns: Match Groups (Left 270 pt) & Top Sources Database Breakdown (Right 270 pt)
+    # 3. Two Columns: Match Groups (Left 261.64 pt) & Top Sources Database Breakdown (Right 261.64 pt)
     def _create_match_groups_table():
         mg_left_rows = [[Paragraph("<b>Match Groups</b>", h2_style)]]
         for mg in criteria['match_groups']:
@@ -512,7 +512,7 @@ def generate_pdf_report(report):
                 mg['description'],
                 ParagraphStyle('MgDesc', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363'))
             )
-            row_content = Table([[icon_circle, [title_p, desc_p]]], colWidths=[18, 248])
+            row_content = Table([[icon_circle, [title_p, desc_p]]], colWidths=[18, 243.64])
             row_content.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -522,7 +522,7 @@ def generate_pdf_report(report):
             ]))
             mg_left_rows.append([row_content])
 
-        mg_t = Table(mg_left_rows, colWidths=[270])
+        mg_t = Table(mg_left_rows, colWidths=[261.64])
         mg_t.setStyle(TableStyle([
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
@@ -538,7 +538,7 @@ def generate_pdf_report(report):
             pct_p = Paragraph(f"<b>{db['percent']}</b>", ParagraphStyle('DbPct', fontName=f_bold, fontSize=7.8, textColor=colors.HexColor('#191919')))
             icon_d = _build_database_source_icon(db)
             name_p = Paragraph(db['name'], ParagraphStyle('DbName', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919')))
-            row_t = Table([[pct_p, icon_d, name_p]], colWidths=[24, 16, 226])
+            row_t = Table([[pct_p, icon_d, name_p]], colWidths=[24, 16, 221.64])
             row_t.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -548,7 +548,7 @@ def generate_pdf_report(report):
             ]))
             ts_right_rows.append([row_t])
 
-        ts_t = Table(ts_right_rows, colWidths=[270])
+        ts_t = Table(ts_right_rows, colWidths=[261.64])
         ts_t.setStyle(TableStyle([
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
@@ -558,7 +558,7 @@ def generate_pdf_report(report):
         ]))
         return ts_t
 
-    mg_ts_split = Table([[_create_match_groups_table(), _create_top_sources_db_table()]], colWidths=[270, 270])
+    mg_ts_split = Table([[_create_match_groups_table(), _create_top_sources_db_table()]], colWidths=[261.64, 261.64])
     mg_ts_split.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -571,13 +571,13 @@ def generate_pdf_report(report):
     story.append(Spacer(1, 10))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=12))
 
-    # 4. Integrity Flags (Left 270 pt) & Advisory Callout Box (Right 270 pt)
+    # 4. Integrity Flags (Left 261.64 pt) & Advisory Callout Box (Right 261.64 pt)
     flags_left_rows = [
         [Paragraph("<b>Integrity Flags</b>", h2_style)],
         [Paragraph(f"<b>{criteria['flags_count']} Integrity Flags for Review</b>", ParagraphStyle('FlagHdr', fontName=f_bold, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919')))],
         [Paragraph("No suspicious text manipulations found." if criteria['flags_count'] == 0 else "Anomalies detected in submission text.", ParagraphStyle('FlagSub', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363')))],
     ]
-    flags_left_table = Table(flags_left_rows, colWidths=[270])
+    flags_left_table = Table(flags_left_rows, colWidths=[261.64])
     flags_left_table.setStyle(TableStyle([
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
@@ -592,7 +592,7 @@ def generate_pdf_report(report):
         "A Flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review."
     )
     advisory_p = Paragraph(advisory_text, ParagraphStyle('AdvText', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#2c2c2c')))
-    advisory_box = Table([[advisory_p]], colWidths=[260])
+    advisory_box = Table([[advisory_p]], colWidths=[255.0])
     advisory_box.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#dbeafe')),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#bae6fd')),
@@ -604,7 +604,7 @@ def generate_pdf_report(report):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    flags_split_table = Table([[flags_left_table, advisory_box]], colWidths=[270, 270])
+    flags_split_table = Table([[flags_left_table, advisory_box]], colWidths=[261.64, 261.64])
     flags_split_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -621,7 +621,7 @@ def generate_pdf_report(report):
     story.append(SetSection("Integrity Overview"))
 
     # Top snapshot of Match Groups and Top Sources DB breakdown
-    p3_mg_ts_split = Table([[_create_match_groups_table(), _create_top_sources_db_table()]], colWidths=[270, 270])
+    p3_mg_ts_split = Table([[_create_match_groups_table(), _create_top_sources_db_table()]], colWidths=[261.64, 261.64])
     p3_mg_ts_split.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -653,7 +653,7 @@ def generate_pdf_report(report):
         for s in page3_sources:
             p3_table_data.extend(_build_source_table_rows(s))
 
-        p3_table = Table(p3_table_data, colWidths=[490, 50])
+        p3_table = Table(p3_table_data, colWidths=[473.28, 50.0])
         p3_style = [
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -681,7 +681,7 @@ def generate_pdf_report(report):
         for s in page4_sources:
             p4_table_data.extend(_build_source_table_rows(s))
 
-        p4_table = Table(p4_table_data, colWidths=[490, 50])
+        p4_table = Table(p4_table_data, colWidths=[473.28, 50.0])
         p4_style = [
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -755,7 +755,7 @@ def generate_pdf_report(report):
 
                 text_para = Paragraph(highlighted_content, doc_para_style)
 
-                row_table = Table([[badge_d, text_para]], colWidths=[24, 516])
+                row_table = Table([[badge_d, text_para]], colWidths=[22.0, 501.28])
                 row_table.setStyle(TableStyle([
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -767,7 +767,7 @@ def generate_pdf_report(report):
             else:
                 blank_d = Drawing(16, 16)
                 text_para = Paragraph(content, doc_para_style)
-                row_table = Table([[blank_d, text_para]], colWidths=[24, 516])
+                row_table = Table([[blank_d, text_para]], colWidths=[22.0, 501.28])
                 row_table.setStyle(TableStyle([
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('LEFTPADDING', (0, 0), (-1, -1), 0),

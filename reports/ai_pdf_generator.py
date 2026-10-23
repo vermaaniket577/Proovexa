@@ -9,7 +9,7 @@ import io
 import os
 import re
 from datetime import datetime
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
@@ -98,7 +98,7 @@ def _draw_turnitin_logo_canvas(canv, x, y):
 class AICanvas(canvas.Canvas):
     """
     Two-pass canvas for AI Writing report running header/footer.
-    Coordinates: US Letter (612 x 792 pt), margins 36 pt.
+    Coordinates: Standard A4 (595.28 x 841.89 pt), margins 36 pt.
     """
 
     def __init__(self, *args, **kwargs):
@@ -149,13 +149,13 @@ class AICanvas(canvas.Canvas):
             self.setFillColor(colors.HexColor('#191919'))
             self.drawString(107.0, y_base, f"Page {page_num} of {total_pages} - {section}")
 
-            # Submission ID right-aligned at right margin x = 576.0 pt (6.0 pt, #191919)
-            self.drawRightString(576.0, y_base, sub_str)
+            # Submission ID right-aligned at right margin x = 559.28 pt (A4 width 595.28 - 36.0 pt)
+            self.drawRightString(559.28, y_base, sub_str)
 
-        # Header (Top): baseline y = 756.5 pt, logo y = 751.52 pt
-        draw_brand_decor(756.5, 751.52)
+        # Header (Top of A4: height 841.89 pt): baseline y = 806.0 pt, logo y = 801.0 pt
+        draw_brand_decor(806.0, 801.0)
 
-        # Footer (Bottom): baseline y = 32.5 pt, logo y = 27.52 pt
+        # Footer (Bottom of A4): baseline y = 32.5 pt, logo y = 27.52 pt
         draw_brand_decor(32.5, 27.52)
 
         self.restoreState()
@@ -188,10 +188,10 @@ def generate_ai_pdf_report(ai_report):
     file_size_display = doc_obj.file_size_display if hasattr(doc_obj, 'file_size_display') else f"{doc_obj.file_size / 1024:.1f} KB"
 
     buffer = io.BytesIO()
-    # US Letter: 612.0 x 792.0 pt. Margins: 36.0 pt each side. Usable width: 540.0 pt.
+    # Standard A4: 595.28 x 841.89 pt. Margins: 36.0 pt each side. Usable width: 523.28 pt.
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=letter,
+        pagesize=A4,
         rightMargin=36.0,
         leftMargin=36.0,
         topMargin=48.0,
@@ -263,7 +263,7 @@ def generate_ai_pdf_report(ai_report):
     inst_icon.add(Polygon([8, 10.5, 14, 7.5, 8, 4.5, 2, 7.5], fillColor=colors.HexColor('#636363'), strokeColor=None))
     inst_icon.add(Rect(5.5, 2.0, 5.0, 3.0, rx=0.5, ry=0.5, fillColor=colors.HexColor('#636363'), strokeColor=None))
     inst_p = Paragraph(inst_name, cover_inst_style)
-    inst_table = Table([[inst_icon, inst_p]], colWidths=[20, 520])
+    inst_table = Table([[inst_icon, inst_p]], colWidths=[20, 503.28])
     inst_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -277,7 +277,7 @@ def generate_ai_pdf_report(ai_report):
     story.append(Paragraph("Document Details", h2_style))
 
     # Details table: Left Column (Metadata) vs Right Column (Summary Card)
-    # Total width = 540 pt (360 + 180)
+    # Total width = 523.28 pt (348.28 + 175.0)
     left_meta_cells = [
         [Paragraph("Submission Date", detail_label)],
         [Paragraph(sub_date, detail_val)],
@@ -291,7 +291,7 @@ def generate_ai_pdf_report(ai_report):
         [Paragraph("File Size", detail_label)],
         [Paragraph(file_size_display, detail_val)],
     ]
-    left_table = Table(left_meta_cells, colWidths=[360])
+    left_table = Table(left_meta_cells, colWidths=[348.28])
     left_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
@@ -304,7 +304,7 @@ def generate_ai_pdf_report(ai_report):
         [Paragraph(f"{word_count:,} Words", stat_box_text)],
         [Paragraph(f"{char_count:,} Characters", stat_box_text)],
     ]
-    right_table = Table(right_box_cells, colWidths=[180])
+    right_table = Table(right_box_cells, colWidths=[175.0])
     right_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
@@ -315,7 +315,7 @@ def generate_ai_pdf_report(ai_report):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
-    doc_details_table = Table([[left_table, right_table]], colWidths=[360, 180])
+    doc_details_table = Table([[left_table, right_table]], colWidths=[348.28, 175.0])
     doc_details_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -333,7 +333,7 @@ def generate_ai_pdf_report(ai_report):
 
     score_display = f"{int(ai_report.overall_ai_score)}%"
 
-    # Top Section: Left Score + Subtext (270 pt), Right Caution Box (270 pt)
+    # Top Section: Left Score + Subtext (261.64 pt), Right Caution Box (261.64 pt)
     score_heading_style = ParagraphStyle(
         'AIScoreHeading', parent=styles['Normal'],
         fontName=f_bold, fontSize=17.0, leading=22.0,
@@ -353,7 +353,7 @@ def generate_ai_pdf_report(ai_report):
             score_desc_style
         )]
     ]
-    left_table = Table(left_cells, colWidths=[270])
+    left_table = Table(left_cells, colWidths=[261.64])
     left_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -382,7 +382,7 @@ def generate_ai_pdf_report(ai_report):
             caution_body_style
         )]
     ]
-    caution_table = Table(caution_cells, colWidths=[260])
+    caution_table = Table(caution_cells, colWidths=[255.0])
     caution_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#dbeafe')),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#bae6fd')),
@@ -394,7 +394,7 @@ def generate_ai_pdf_report(ai_report):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    overview_top_table = Table([[left_table, caution_table]], colWidths=[270, 270])
+    overview_top_table = Table([[left_table, caution_table]], colWidths=[261.64, 261.64])
     overview_top_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -422,7 +422,7 @@ def generate_ai_pdf_report(ai_report):
         ParagraphStyle('AIGrpDesc', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363'))
     )
 
-    ai_grp_table = Table([[ai_icon, [ai_grp_title, ai_grp_desc]]], colWidths=[20, 520])
+    ai_grp_table = Table([[ai_icon, [ai_grp_title, ai_grp_desc]]], colWidths=[20, 503.28])
     ai_grp_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),

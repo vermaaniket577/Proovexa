@@ -12,27 +12,69 @@
    ========================================================================== */
 .turnitin-sheet {
     background: #ffffff;
-    max-width: 860px;
-    margin: 0 auto 30px auto;
-    padding: 42px 48px;
-    border-radius: 4px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    border: 1px solid #d1d5db;
+    border-radius: 2px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+    width: 794px;
+    min-height: 1123px;
+    max-width: 100%;
+    margin: 0 auto 36px auto;
+    padding: 44px 48px 36px 48px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #0f172a;
     position: relative;
-    border: 1px solid #e2e8f0;
+    transition: box-shadow 0.2s ease;
+}
+.turnitin-sheet:hover {
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
+}
+.turnitin-sheet-content {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 820px) {
+    .turnitin-sheet {
+        width: 100%;
+        min-height: auto;
+        padding: 24px 20px;
+    }
 }
 
 @media print {
-    body { background: #ffffff !important; }
-    .turnitin-sheet {
-        box-shadow: none !important;
-        border: none !important;
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+    body {
+        background: #ffffff !important;
         padding: 0 !important;
-        max-width: 100% !important;
-        page-break-after: always;
         margin: 0 !important;
     }
-    .no-print { display: none !important; }
+    .turnitin-sheet {
+        width: 210mm !important;
+        min-height: 297mm !important;
+        height: 297mm !important;
+        max-width: 210mm !important;
+        margin: 0 !important;
+        padding: 14mm 16mm 12mm 16mm !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+    }
+    .no-print, .btn, .navbar, .sidebar {
+        display: none !important;
+    }
 }
 
 /* Running Header & Footer */
@@ -41,9 +83,12 @@
     justify-content: space-between;
     align-items: center;
     font-family: 'Inter', Arial, sans-serif;
+    font-size: 10px;
+    color: #191919;
     margin-bottom: 24px;
     padding-bottom: 4px;
     border-bottom: none;
+    flex-shrink: 0;
 }
 
 .turnitin-brand-mark {
@@ -55,7 +100,9 @@
 .turnitin-header-logo-img {
     height: 16.5px;
     width: auto;
+    max-width: 60px;
     display: block;
+    object-fit: contain;
 }
 .turnitin-header-logo-icon {
     width: 14px;
@@ -89,9 +136,12 @@
     justify-content: space-between;
     align-items: center;
     font-family: 'Inter', Arial, sans-serif;
-    margin-top: 36px;
-    padding-top: 14px;
+    font-size: 10px;
+    color: #191919;
+    margin-top: 24px;
+    padding-top: 10px;
     border-top: none;
+    flex-shrink: 0;
 }
 
 .turnitin-sheet-divider {
@@ -320,7 +370,7 @@
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
+            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 1 of {{ total_pages }} - AI Writing Cover Page</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -328,42 +378,45 @@
         </div>
     </div>
 
-    <!-- Title Block -->
-    <div class="pt-5 pb-3">
-        <div class="cover-author-title">{{ author_name }}</div>
-        <div class="cover-doc-filename">{{ document.original_filename }}</div>
-        <div class="cover-inst-line">
-            <i class="bi bi-mortarboard-fill me-1 text-primary"></i> {{ institution_name }}
-        </div>
-    </div>
-
-    <div class="turnitin-sheet-divider"></div>
-
-    <div class="row align-items-center my-3">
-        <div class="col-md-7">
-            <h6 class="fw-bold text-dark mb-3">Document Details</h6>
-            <div class="row g-2 small">
-                <div class="col-sm-4 text-muted">Submission ID</div>
-                <div class="col-sm-8 fw-semibold font-monospace">{{ submission_id }}</div>
-
-                <div class="col-sm-4 text-muted">Submission Date</div>
-                <div class="col-sm-8 fw-semibold">{{ submission_date }}</div>
-
-                <div class="col-sm-4 text-muted">Download Date</div>
-                <div class="col-sm-8 fw-semibold">{{ download_date }}</div>
-
-                <div class="col-sm-4 text-muted">File Name</div>
-                <div class="col-sm-8 fw-semibold">{{ document.original_filename }}</div>
-
-                <div class="col-sm-4 text-muted">File Size</div>
-                <div class="col-sm-8 fw-semibold">{{ file_size_display }}</div>
+    <!-- Content -->
+    <div class="turnitin-sheet-content">
+        <!-- Title Block -->
+        <div class="pt-5 pb-3">
+            <div class="cover-author-title">{{ author_name }}</div>
+            <div class="cover-doc-filename">{{ document.original_filename }}</div>
+            <div class="cover-inst-line">
+                <i class="bi bi-mortarboard-fill me-1 text-primary"></i> {{ institution_name }}
             </div>
         </div>
-        <div class="col-md-5">
-            <div class="details-summary-box text-start px-4 py-3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px;">
-                <div class="fw-bold text-dark small mb-2">{{ page_count }} Pages</div>
-                <div class="fw-bold text-dark small mb-2">{{ word_count }} Words</div>
-                <div class="fw-bold text-dark small">{{ character_count }} Characters</div>
+
+        <div class="turnitin-sheet-divider"></div>
+
+        <div class="row align-items-center my-3">
+            <div class="col-md-7">
+                <h6 class="fw-bold text-dark mb-3">Document Details</h6>
+                <div class="row g-2 small">
+                    <div class="col-sm-4 text-muted">Submission ID</div>
+                    <div class="col-sm-8 fw-semibold font-monospace">{{ submission_id }}</div>
+
+                    <div class="col-sm-4 text-muted">Submission Date</div>
+                    <div class="col-sm-8 fw-semibold">{{ submission_date }}</div>
+
+                    <div class="col-sm-4 text-muted">Download Date</div>
+                    <div class="col-sm-8 fw-semibold">{{ download_date }}</div>
+
+                    <div class="col-sm-4 text-muted">File Name</div>
+                    <div class="col-sm-8 fw-semibold">{{ document.original_filename }}</div>
+
+                    <div class="col-sm-4 text-muted">File Size</div>
+                    <div class="col-sm-8 fw-semibold">{{ file_size_display }}</div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="details-summary-box text-start px-4 py-3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px;">
+                    <div class="fw-bold text-dark small mb-2">{{ page_count }} Pages</div>
+                    <div class="fw-bold text-dark small mb-2">{{ word_count }} Words</div>
+                    <div class="fw-bold text-dark small">{{ character_count }} Characters</div>
+                </div>
             </div>
         </div>
     </div>
@@ -371,7 +424,7 @@
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
+            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 1 of {{ total_pages }} - AI Writing Cover Page</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -387,7 +440,7 @@
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
+            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 2 of {{ total_pages }} - AI Writing Overview</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -395,59 +448,62 @@
         </div>
     </div>
 
-    <!-- Main Two-Column Row matching reference screenshot -->
-    <div class="row g-4 align-items-stretch pt-2 pb-2">
-        <!-- Left: Headline and description -->
-        <div class="col-md-7">
-            <div class="ai-overview-score-line">
-                <span class="ai-score-num">{{ overall_ai_display }}</span>
-                <span class="ai-score-title">detected as AI</span>
+    <!-- Content -->
+    <div class="turnitin-sheet-content">
+        <!-- Main Two-Column Row matching reference screenshot -->
+        <div class="row g-4 align-items-stretch pt-2 pb-2">
+            <!-- Left: Headline and description -->
+            <div class="col-md-7">
+                <div class="ai-overview-score-line">
+                    <span class="ai-score-num">{{ overall_ai_display }}</span>
+                    <span class="ai-score-title">detected as AI</span>
+                </div>
+                <div class="ai-score-subtext">
+                    The percentage indicates the combined amount of likely AI-generated text as well as likely AI-generated text that was also likely revised by AI.
+                </div>
             </div>
-            <div class="ai-score-subtext">
-                The percentage indicates the combined amount of likely AI-generated text as well as likely AI-generated text that was also likely revised by AI.
-            </div>
-        </div>
 
-        <!-- Right: Light Blue Caution Callout Card -->
-        <div class="col-md-5">
-            <div class="turnitin-ai-caution-box">
-                <div class="ai-caution-title">Caution: Review required.</div>
-                <div class="ai-caution-body">
-                    It is essential to understand the limitations of AI detection before making decisions about a student's work. We encourage you to learn more about Turnitin's AI detection capabilities before using the tool.
+            <!-- Right: Light Blue Caution Callout Card -->
+            <div class="col-md-5">
+                <div class="turnitin-ai-caution-box">
+                    <div class="ai-caution-title">Caution: Review required.</div>
+                    <div class="ai-caution-body">
+                        It is essential to understand the limitations of AI detection before making decisions about a student's work. We encourage you to learn more about Turnitin's AI detection capabilities before using the tool.
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Divider Line -->
-    <div class="turnitin-sheet-divider my-3"></div>
+        <!-- Divider Line -->
+        <div class="turnitin-sheet-divider my-3"></div>
 
-    <!-- Middle Row: AI-generated group row -->
-    <div class="d-flex align-items-center gap-3 py-2">
-        <div class="d-flex align-items-center justify-content-center rounded" style="width: 20px; height: 20px; background-color: #0084ff; color: #fff;">
-            <i class="bi bi-robot" style="font-size: 11px;"></i>
+        <!-- Middle Row: AI-generated group row -->
+        <div class="d-flex align-items-center gap-3 py-2">
+            <div class="d-flex align-items-center justify-content-center rounded" style="width: 20px; height: 20px; background-color: #0084ff; color: #fff;">
+                <i class="bi bi-robot" style="font-size: 11px;"></i>
+            </div>
+            <div>
+                <div class="fw-bold text-dark small">{{ ai_report.ai_sentence_count }} AI-generated &nbsp;{{ overall_ai_display }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">Likely generated or likely generated and revised by AI.</div>
+            </div>
         </div>
-        <div>
-            <div class="fw-bold text-dark small">{{ ai_report.ai_sentence_count }} AI-generated &nbsp;{{ overall_ai_display }}</div>
-            <div class="text-muted" style="font-size: 0.75rem;">Likely generated or likely generated and revised by AI.</div>
-        </div>
-    </div>
 
-    <!-- Divider Line -->
-    <div class="turnitin-sheet-divider my-3"></div>
+        <!-- Divider Line -->
+        <div class="turnitin-sheet-divider my-3"></div>
 
-    <!-- Bottom: Disclaimer Section -->
-    <div class="pt-1 pb-4">
-        <div class="ai-disclaimer-title">Disclaimer</div>
-        <div class="ai-disclaimer-text">
-            Our AI writing assessment is designed to help educators identify text that might be prepared by a generative AI tool. Our AI writing assessment may not always be accurate (it may misidentify writing that is likely human generated as AI generated and likely AI generated as human generated) so it should not be used as the sole basis for adverse actions against a student. It takes further scrutiny and human judgment in conjunction with an organization's application of its specific academic policies to determine whether any academic misconduct has occurred.
+        <!-- Bottom: Disclaimer Section -->
+        <div class="pt-1 pb-4">
+            <div class="ai-disclaimer-title">Disclaimer</div>
+            <div class="ai-disclaimer-text">
+                Our AI writing assessment is designed to help educators identify text that might be prepared by a generative AI tool. Our AI writing assessment may not always be accurate (it may misidentify writing that is likely human generated as AI generated and likely AI generated as human generated) so it should not be used as the sole basis for adverse actions against a student. It takes further scrutiny and human judgment in conjunction with an organization's application of its specific academic policies to determine whether any academic misconduct has occurred.
+            </div>
         </div>
     </div>
 
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
+            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 2 of {{ total_pages }} - AI Writing Overview</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -463,7 +519,7 @@
     <!-- Header -->
     <div class="turnitin-sheet-header">
         <div class="turnitin-brand-mark">
-            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
+            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 3 of {{ total_pages }} - AI Writing Submission</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -471,41 +527,44 @@
         </div>
     </div>
 
-    <!-- Filter Buttons (Top of submission) -->
-    <div class="d-flex justify-content-between align-items-center mb-4 no-print flex-wrap gap-2">
-        <div>
-            <div class="ai-submission-title">{{ document.title }}</div>
-            <div class="ai-submission-subtitle">Sentences highlighted in cyan reflect linguistic traits characteristic of generative models</div>
-        </div>
-        <div class="btn-group btn-group-sm" role="group">
-            <button type="button" class="btn btn-outline-secondary active" onclick="filterSentences('all', this)">All ({{ ai_report.total_sentences }})</button>
-            <button type="button" class="btn btn-outline-info" onclick="filterSentences('ai', this)">AI Flagged ({{ ai_report.ai_sentence_count }})</button>
-            <button type="button" class="btn btn-outline-success" onclick="filterSentences('human', this)">Human Authored ({{ ai_report.human_sentence_count }})</button>
-        </div>
-    </div>
-
-    <!-- Paragraphs Flow -->
-    <div id="sentence-container">
-        {% for s in ai_report.sentences_data %}
-        <div class="sentence-item mb-3 {% if s.is_ai %}is-ai{% else %}is-human{% endif %}" id="sent-{{ s.index }}">
-            <div class="ai-passage-paragraph">
-                {% if s.is_ai %}
-                    <span class="ai-margin-badge">[AI]</span>
-                    <span class="ai-highlight-cyan" title="Confidence: {{ s.confidence|floatformat:0 }}%">{{ s.sentence }}</span>
-                {% else %}
-                    <span>{{ s.sentence }}</span>
-                {% endif %}
+    <!-- Content -->
+    <div class="turnitin-sheet-content">
+        <!-- Filter Buttons (Top of submission) -->
+        <div class="d-flex justify-content-between align-items-center mb-4 no-print flex-wrap gap-2">
+            <div>
+                <div class="ai-submission-title">{{ document.title }}</div>
+                <div class="ai-submission-subtitle">Sentences highlighted in cyan reflect linguistic traits characteristic of generative models</div>
+            </div>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary active" onclick="filterSentences('all', this)">All ({{ ai_report.total_sentences }})</button>
+                <button type="button" class="btn btn-outline-info" onclick="filterSentences('ai', this)">AI Flagged ({{ ai_report.ai_sentence_count }})</button>
+                <button type="button" class="btn btn-outline-success" onclick="filterSentences('human', this)">Human Authored ({{ ai_report.human_sentence_count }})</button>
             </div>
         </div>
-        {% empty %}
-        <p class="text-muted">No text extracted for submission.</p>
-        {% endfor %}
+
+        <!-- Paragraphs Flow -->
+        <div id="sentence-container">
+            {% for s in ai_report.sentences_data %}
+            <div class="sentence-item mb-3 {% if s.is_ai %}is-ai{% else %}is-human{% endif %}" id="sent-{{ s.index }}">
+                <div class="ai-passage-paragraph">
+                    {% if s.is_ai %}
+                        <span class="ai-margin-badge">[AI]</span>
+                        <span class="ai-highlight-cyan" title="Confidence: {{ s.confidence|floatformat:0 }}%">{{ s.sentence }}</span>
+                    {% else %}
+                        <span>{{ s.sentence }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">No text extracted for submission.</p>
+            {% endfor %}
+        </div>
     </div>
 
     <!-- Footer -->
     <div class="turnitin-sheet-footer">
         <div class="turnitin-brand-mark">
-            <img src="{% static 'images/turnitin_header_logo.png' %}" alt="turnitin" class="turnitin-header-logo-img" />
+            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
             <span class="turnitin-header-section-title">Page 3 of {{ total_pages }} - AI Writing Submission</span>
         </div>
         <div class="turnitin-header-meta-id">
@@ -526,13 +585,13 @@ function showAiSection(sectionId, btn) {
         const el = document.getElementById(id);
         if (!el) return;
         if (sectionId === 'all') {
-            el.style.display = 'block';
+            el.style.display = 'flex';
         } else if (sectionId === 'cover' && id === 'section-ai-cover') {
-            el.style.display = 'block';
+            el.style.display = 'flex';
         } else if (sectionId === 'overview' && id === 'section-ai-overview') {
-            el.style.display = 'block';
+            el.style.display = 'flex';
         } else if (sectionId === 'submission' && id === 'section-ai-submission') {
-            el.style.display = 'block';
+            el.style.display = 'flex';
         } else {
             el.style.display = 'none';
         }

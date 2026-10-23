@@ -7,8 +7,33 @@ Extracts and computes:
 - Integrity Flags (Text manipulation detection, zero-width characters, homoglyphs)
 - Top Sources ranked list with badges, categories, and percentages
 """
+import base64
+import os
 import re
 from datetime import datetime
+
+_LOGO_DATA_URI = None
+
+def get_turnitin_logo_data_uri():
+    """
+    Returns an inline base64 data URI for the official Turnitin logo mark + wordmark.
+    Ensures the image always renders instantly without 404s or static-file dependency.
+    """
+    global _LOGO_DATA_URI
+    if _LOGO_DATA_URI is None:
+        logo_path = os.path.join(os.path.dirname(__file__), 'turnitin_header_logo.png')
+        if not os.path.exists(logo_path):
+            logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'images', 'turnitin_header_logo.png')
+        if os.path.exists(logo_path):
+            try:
+                with open(logo_path, 'rb') as f:
+                    b64 = base64.b64encode(f.read()).decode('ascii')
+                    _LOGO_DATA_URI = f"data:image/png;base64,{b64}"
+            except Exception:
+                _LOGO_DATA_URI = "/static/images/turnitin_header_logo.png"
+        else:
+            _LOGO_DATA_URI = "/static/images/turnitin_header_logo.png"
+    return _LOGO_DATA_URI
 
 
 def compute_report_criteria(report):
@@ -400,4 +425,5 @@ def compute_report_criteria(report):
         'flags_count': flags_count,
         'top_sources': top_sources,
         'source_count': len(top_sources),
+        'logo_data_uri': get_turnitin_logo_data_uri(),
     }

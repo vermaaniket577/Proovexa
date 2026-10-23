@@ -368,6 +368,7 @@ def ai_report_view(request, doc_id):
         'word_count': document.word_count or 0,
         'character_count': char_count,
         'total_pages': total_pages,
+        'logo_data_uri': criteria['logo_data_uri'] if 'criteria' in locals() else __import__('reports.criteria', fromlist=['get_turnitin_logo_data_uri']).get_turnitin_logo_data_uri(),
     }
     return render(request, 'reports/ai_report.html', context)
 
