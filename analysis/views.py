@@ -140,7 +140,7 @@ def quick_scan_view(request, doc_id):
             messages.success(
                 request,
                 f"1-Click Scan complete for '{document.title}'! "
-                f"Similarity: {sim_report.similarity_display} &bull; AI Content: {ai_report.overall_ai_score:.0f}%"
+                f"Similarity: {sim_report.similarity_display} • AI Content: {ai_report.overall_ai_score:.0f}%"
             )
             if next_url:
                 return redirect(next_url)
