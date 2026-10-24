@@ -7,6 +7,7 @@ Modular, explainable architecture implementing:
 4. Mixed-authorship sliding window & segment evaluation
 5. False-positive suppression protocol (<20% thresholding)
 """
+import re
 import time
 import logging
 from typing import Optional, Dict, Any
@@ -15,6 +16,8 @@ from .preprocessor import DocumentPreprocessor
 from .features import FeatureExtractor
 from .classifier import CalibratedAIClassifier, RuleBasedBaselineDetector
 from .segments import SegmentAnalyzer
+
+from .turnitin_ai_engine import TurnitinAIDetector
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +38,7 @@ class AIDetectionEngine:
             rule_baseline=self.rule_baseline,
             feature_extractor=self.feature_extractor,
         )
+        self.turnitin_detector = TurnitinAIDetector()
 
     def analyze_document(self, document, user=None):
         """
@@ -62,7 +66,10 @@ class AIDetectionEngine:
                 ai_report.save()
                 return ai_report
 
-            # 2. Preprocessing & Abbreviation-Aware Segmentation
+            # 2. Stage 1-4 Turnitin AI Detection Pipeline
+            turnitin_result = self.turnitin_detector.evaluate_document(raw_full_text)
+
+            # 3. Preprocessing & Abbreviation-Aware Segmentation
             paragraphs, sentences, stats = self.preprocessor.process(raw_full_text)
 
             if not sentences:
@@ -72,26 +79,51 @@ class AIDetectionEngine:
                 ai_report.save()
                 return ai_report
 
-            # 3. Feature Extraction (Burstiness, MTLD, Entropy, PPL Proxy, Markers)
+            # 4. Feature Extraction (Burstiness, MTLD, Entropy, PPL Proxy, Markers)
             doc_features = self.feature_extractor.extract_document_features(sentences, raw_full_text)
 
-            # 4. Multi-Scale Window & Segment Analysis
+            # 5. Multi-Scale Window & Segment Analysis
             evaluated_sentences, segments, summary = self.segment_analyzer.analyze_document_segments(
                 paragraphs=paragraphs,
                 all_sentences=sentences,
                 doc_features=doc_features,
             )
 
-            # 5. Populate and Persist AIReport
-            ai_report.overall_ai_score = summary['overall_ai_score']
-            ai_report.ai_sentence_count = summary['ai_sentence_count']
-            ai_report.human_sentence_count = summary['human_sentence_count']
-            ai_report.total_sentences = summary['total_sentences']
-            ai_report.perplexity_score = doc_features['perplexity_score']
-            ai_report.burstiness_score = doc_features['burstiness']
+            # Merge Turnitin Dual-Category highlights (Cyan vs Purple) into evaluated sentences
+            tb_lookup = {
+                re.sub(r'\s+', ' ', s_item['sentence'].lower().strip()[:40]): s_item
+                for s_item in turnitin_result.get('sentence_breakdown', [])
+            }
+            for es in evaluated_sentences:
+                clean_s = re.sub(r'\s+', ' ', es.get('sentence', '').lower().strip()[:40])
+                if clean_s in tb_lookup:
+                    tb_match = tb_lookup[clean_s]
+                    es['highlight_color'] = tb_match.get('highlight_color', 'none')
+                    es['category'] = tb_match.get('category', es.get('category', 'Human'))
+                    es['perplexity'] = tb_match.get('perplexity', doc_features.get('perplexity_score', 50.0))
+                else:
+                    if es.get('is_ai', False):
+                        es['highlight_color'] = 'cyan'
+                    else:
+                        es['highlight_color'] = 'none'
+
+            # 6. Populate and Persist AIReport
+            # If Turnitin dual-category pipeline ran, use its raw score and metrics
+            raw_ai_score = turnitin_result.get('raw_total_ai_pct', summary['overall_ai_score'])
+            ai_report.overall_ai_score = raw_ai_score
+            ai_report.ai_generated_only_cyan_pct = turnitin_result.get('ai_generated_only_cyan_pct', raw_ai_score)
+            ai_report.ai_paraphrased_purple_pct = turnitin_result.get('ai_paraphrased_purple_pct', 0.0)
+            ai_report.qualifying_word_count = turnitin_result.get('document_metrics', {}).get('qualifying_word_count', len(raw_full_text.split()))
+            ai_report.below_300_word_warning = turnitin_result.get('document_metrics', {}).get('below_300_word_minimum', False)
+
+            ai_report.ai_sentence_count = sum(1 for s in evaluated_sentences if s.get('highlight_color') != 'none')
+            ai_report.human_sentence_count = len(evaluated_sentences) - ai_report.ai_sentence_count
+            ai_report.total_sentences = len(evaluated_sentences)
+            ai_report.perplexity_score = turnitin_result.get('document_metrics', {}).get('mean_sentence_perplexity', doc_features['perplexity_score'])
+            ai_report.burstiness_score = turnitin_result.get('document_metrics', {}).get('burstiness_index', doc_features['burstiness'])
             ai_report.sentences_data = evaluated_sentences
             ai_report.segments_data = segments
-            ai_report.model_version = summary['model_version']
+            ai_report.model_version = 'TurnitinStyle-AI-V2.5-SlidingWindow'
             ai_report.model_confidence = summary['model_confidence']
             ai_report.uncertain_percentage = summary['uncertain_percentage']
             ai_report.linguistic_features = doc_features

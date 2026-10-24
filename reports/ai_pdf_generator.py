@@ -433,8 +433,10 @@ def generate_ai_pdf_report(ai_report):
             ParagraphStyle('AIGrpTitle', fontName=f_bold, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919'))
         )
         ai_grp_desc = Paragraph(
-            "Likely generated or likely generated and revised by AI.",
-            ParagraphStyle('AIGrpDesc', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363'))
+            f"<b>Cyan (AI-Generated Only):</b> {ai_report.ai_generated_only_cyan_pct:.0f}% &nbsp;&bull;&nbsp; "
+            f"<b>Purple (AI-Paraphrased):</b> {ai_report.ai_paraphrased_purple_pct:.0f}% &nbsp;&bull;&nbsp; "
+            f"Likely generated or likely generated and revised by AI.",
+            ParagraphStyle('AIGrpDesc', fontName=f_reg, fontSize=7.5, leading=10.0, textColor=colors.HexColor('#636363'))
         )
 
         ai_grp_table = Table([[ai_icon, [ai_grp_title, ai_grp_desc]]], colWidths=[20, 503.28])
@@ -446,6 +448,23 @@ def generate_ai_pdf_report(ai_report):
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
         story.append(ai_grp_table)
+
+        if ai_report.below_300_word_warning:
+            story.append(Spacer(1, 6))
+            warn_p = Paragraph(
+                f"<b>Notice:</b> Qualifying prose contains {ai_report.qualifying_word_count} words. Turnitin recommends a minimum of 300 words of continuous prose to perform confident AI writing assessment without elevated false-positive risk.",
+                ParagraphStyle('AIWarn', fontName=f_reg, fontSize=7.0, leading=9.0, textColor=colors.HexColor('#b45309'))
+            )
+            warn_table = Table([[warn_p]], colWidths=[523.28])
+            warn_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fffbeb')),
+                ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#fde68a')),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            story.append(warn_table)
 
         story.append(Spacer(1, 14))
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=14))
@@ -509,9 +528,12 @@ def generate_ai_pdf_report(ai_report):
         para_sentences = []
         for s in sentences_data:
             sent_text = s['sentence'].strip()
-            is_ai = s['is_ai']
-            if is_ai:
-                para_sentences.append(f'<font backcolor="#cffafe">{sent_text}</font>')
+            hl_color = s.get('highlight_color')
+            category = s.get('category', '')
+            if hl_color == 'purple' or category == 'AI-Paraphrased':
+                para_sentences.append(f'<font backcolor="#f3e8ff" color="#581c87"><b>[Paraphrased]</b> {sent_text}</font>')
+            elif hl_color == 'cyan' or s.get('is_ai'):
+                para_sentences.append(f'<font backcolor="#cffafe" color="#083344"><b>[AI]</b> {sent_text}</font>')
             else:
                 para_sentences.append(sent_text)
 

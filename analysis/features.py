@@ -66,7 +66,11 @@ class FeatureExtractor:
         if not sentences or not full_text.strip():
             return self._empty_document_features()
 
-        word_counts = [s.word_count for s in sentences if s.word_count > 0]
+        word_counts = [
+            getattr(s, 'word_count', len(str(s).split()))
+            for s in sentences
+            if getattr(s, 'word_count', len(str(s).split())) > 0
+        ]
         if not word_counts:
             return self._empty_document_features()
 

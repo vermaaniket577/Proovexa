@@ -277,6 +277,12 @@ class AIReport(models.Model):
     # Multi-sentence segment and mixed-authorship window data
     segments_data = models.JSONField(default=list, blank=True)
 
+    # Dual-category percentages (Cyan vs Purple)
+    ai_generated_only_cyan_pct = models.FloatField(default=0.0, help_text="AI-Generated Only percentage (Cyan)")
+    ai_paraphrased_purple_pct = models.FloatField(default=0.0, help_text="AI-Paraphrased percentage (Purple)")
+    qualifying_word_count = models.IntegerField(default=0, help_text="Qualifying prose word count")
+    below_300_word_warning = models.BooleanField(default=False, help_text="Flagged if qualifying prose is < 300 words")
+
     # Model metadata & explainable statistics
     model_version = models.CharField(max_length=50, default='TurnitinStyle-AI-V2.0-Calibrated')
     model_confidence = models.FloatField(default=0.0, help_text="Average classifier confidence (0.0 - 1.0)")
@@ -309,13 +315,13 @@ class AIReport(models.Model):
 
     @property
     def is_zero_ai(self):
-        """Turnitin treats 0% (and sub-20% false-positive threshold) as *% with specific disclaimer."""
-        return self.overall_ai_score == 0 or self.overall_ai_score < 1
+        """Turnitin treats 0% and sub-20% scores as *% with review required disclaimer."""
+        return self.overall_ai_score < 20.0
 
     @property
     def display_score(self):
-        """Display as '*%' when 0% or below threshold, matching Turnitin reference."""
-        return "*%" if self.is_zero_ai else f"{self.overall_ai_score:.0f}%"
+        """Display as '*%' when below 20% threshold, matching Turnitin reference."""
+        return "*%" if self.is_zero_ai else f"{int(round(self.overall_ai_score))}%"
 
     def __str__(self):
         return f"AI Report for {self.document.title} - {self.display_score} AI"

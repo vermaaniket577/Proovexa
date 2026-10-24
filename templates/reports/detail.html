@@ -1190,18 +1190,53 @@ mark.turnitin-highlight:hover {
 
         <div class="turnitin-sheet-divider my-3"></div>
 
-        <!-- Middle Row: AI-generated group row -->
-        <div class="d-flex align-items-center gap-3 py-2">
-            <div class="d-flex align-items-center justify-content-center rounded" style="width: 20px; height: 20px; background-color: #0084ff; color: #fff;">
-                <i class="bi bi-robot" style="font-size: 11px;"></i>
-            </div>
+        {% if ai_report and ai_report.below_300_word_warning %}
+        <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 py-2 px-3 small border-0 shadow-sm" style="background-color: #fffbeb; color: #b45309; border-left: 4px solid #f59e0b !important;">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
             <div>
-                <div class="fw-bold text-dark small">{% if ai_report %}{{ ai_report.ai_sentence_count }}{% else %}0{% endif %} AI-generated &nbsp;{{ overall_ai_display }}</div>
-                <div class="text-muted" style="font-size: 0.75rem;">Likely generated or likely generated and revised by AI.</div>
+                <strong>Short qualifying prose ({{ ai_report.qualifying_word_count }} words):</strong> Turnitin requires a minimum of 300 words of continuous prose to perform confident AI writing analysis without elevated false-positive risk.
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not is_zero_ai %}
+        <!-- Middle Row: AI-generated group row with Dual-Category Breakdown -->
+        <div class="py-2">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <div class="d-flex align-items-center justify-content-center rounded" style="width: 20px; height: 20px; background-color: #0084ff; color: #fff;">
+                    <i class="bi bi-robot" style="font-size: 11px;"></i>
+                </div>
+                <div>
+                    <div class="fw-bold text-dark small">{% if ai_report %}{{ ai_report.ai_sentence_count }}{% else %}0{% endif %} AI-generated &nbsp;{{ overall_ai_display }}</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">Likely generated or likely generated and revised by AI.</div>
+                </div>
+            </div>
+
+            <!-- Dual-Category Percentage Bars (Cyan vs Purple) -->
+            <div class="row g-2 mt-2 pt-2 border-top">
+                <div class="col-sm-6">
+                    <div class="p-2 rounded bg-light border d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rounded-circle" style="width: 10px; height: 10px; background-color: #06b6d4;"></span>
+                            <span class="small fw-semibold text-dark">AI-Generated Only</span>
+                        </div>
+                        <span class="badge" style="background-color: #cffafe; color: #083344; font-weight: 700;">{% if ai_report %}{{ ai_report.ai_generated_only_cyan_pct|floatformat:0 }}{% else %}0{% endif %}%</span>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="p-2 rounded bg-light border d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rounded-circle" style="width: 10px; height: 10px; background-color: #a855f7;"></span>
+                            <span class="small fw-semibold text-dark">AI-Paraphrased</span>
+                        </div>
+                        <span class="badge" style="background-color: #f3e8ff; color: #581c87; font-weight: 700;">{% if ai_report %}{{ ai_report.ai_paraphrased_purple_pct|floatformat:0 }}{% else %}0{% endif %}%</span>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="turnitin-sheet-divider my-3"></div>
+        {% endif %}
 
         <!-- Disclaimer -->
         <div class="pt-1 pb-4">
@@ -1248,9 +1283,12 @@ mark.turnitin-highlight:hover {
                 {% for s in ai_report.sentences_data %}
                 <div class="sentence-item mb-3 {% if s.is_ai %}is-ai{% else %}is-human{% endif %}" id="ai-sent-{{ s.index }}">
                     <div class="ai-passage-paragraph">
-                        {% if s.is_ai %}
-                            <span class="ai-margin-badge">[AI]</span>
-                            <span class="ai-highlight-cyan" title="Confidence: {{ s.confidence|floatformat:0 }}%">{{ s.sentence }}</span>
+                        {% if s.highlight_color == 'purple' or s.category == 'AI-Paraphrased' %}
+                            <span class="ai-margin-badge" style="background-color: #9333ea;">[AI-Paraphrased]</span>
+                            <span style="background-color: #f3e8ff; color: #581c87; padding: 2px 4px; border-radius: 3px; font-weight: 500; border-bottom: 2px solid #a855f7;" title="AI Probability: {{ s.ai_probability_pct|default:s.confidence }}% | PPL: {{ s.perplexity }}">{{ s.sentence }}</span>
+                        {% elif s.highlight_color == 'cyan' or s.is_ai %}
+                            <span class="ai-margin-badge" style="background-color: #0284c7;">[AI-Generated]</span>
+                            <span class="ai-highlight-cyan" style="border-bottom: 2px solid #06b6d4;" title="AI Probability: {{ s.ai_probability_pct|default:s.confidence }}% | PPL: {{ s.perplexity }}">{{ s.sentence }}</span>
                         {% else %}
                             <span>{{ s.sentence }}</span>
                         {% endif %}
