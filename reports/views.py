@@ -161,6 +161,7 @@ def report_detail_view(request, report_id):
         'ai_report': ai_report,
         'overall_ai_display': overall_ai_display,
         'ai_total_pages': ai_total_pages,
+        'logo_data_uri': criteria.get('logo_data_uri', ''),
     })
 
 

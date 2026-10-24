@@ -55,7 +55,9 @@ def custom_page_not_found(request, exception=None):
 
 
 def custom_server_error(request):
-    """Render friendly 500 page."""
+    """Render friendly 500 page with logging."""
+    import traceback
+    traceback.print_exc()
     return render(request, "500.html", status=500)
 
 
