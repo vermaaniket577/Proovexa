@@ -877,7 +877,7 @@ mark.turnitin-highlight:hover {
     <div class="list-group list-group-flush">
         {% for s in criteria.top_sources|slice:":10" %}
         <div class="list-group-item py-2 px-0 border-bottom source-row-clickable" onclick="jumpToSource({{ s.index }})" title="Click to view Source [{{ s.index }}] highlight in text">
-            <!-- Line 1: Badge + Category Pill -->
+            <!-- Line 1: Badge + Category Pill + Hybrid Tier Pill -->
             <div class="d-flex align-items-center mb-1">
                 <span class="turnitin-source-badge" style="background-color: {{ s.color }};">
                     {{ s.index }}
@@ -885,6 +885,11 @@ mark.turnitin-highlight:hover {
                 <span class="source-cat-pill" style="background-color: {{ s.pill_bg }}; color: {{ s.pill_text }};">
                     {{ s.category }}
                 </span>
+                {% if s.composite_similarity_pct %}
+                <span class="badge bg-light text-muted border ms-auto" style="font-size: 0.68rem; font-weight: 500;" title="Layer 1: Shingles (45%) | Layer 2: TF-IDF (20%) | Layer 3: Semantic Paraphrase (35%)">
+                    <i class="bi bi-layers-half text-primary me-1"></i>3-Tier Hybrid: {{ s.composite_similarity_pct }}%
+                </span>
+                {% endif %}
             </div>
 
             <!-- Line 2: Title / Domain & Percentage -->
@@ -896,6 +901,15 @@ mark.turnitin-highlight:hover {
                     {{ s.percent }}
                 </div>
             </div>
+
+            {% if s.flagged_sentences %}
+            <div class="mt-1 d-flex gap-2 flex-wrap" style="font-size: 0.72rem; color: #4b5563;">
+                <span><i class="bi bi-check2-circle text-success me-1"></i>Shingle: {{ s.exact_shingle_containment_pct }}%</span>
+                <span><i class="bi bi-spellcheck text-info me-1"></i>TF-IDF: {{ s.lexical_tfidf_pct }}%</span>
+                <span><i class="bi bi-chat-quote text-warning me-1"></i>Semantic: {{ s.semantic_paraphrase_pct }}%</span>
+                <span class="badge bg-warning-subtle text-warning-emphasis ms-auto">{{ s.flagged_sentences|length }} Paraphrased</span>
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
@@ -931,7 +945,7 @@ mark.turnitin-highlight:hover {
     <div class="list-group list-group-flush">
         {% for s in criteria.top_sources|slice:"10:" %}
         <div class="list-group-item py-2 px-0 border-bottom source-row-clickable" onclick="jumpToSource({{ s.index }})" title="Click to view Source [{{ s.index }}] highlight in text">
-            <!-- Line 1: Badge + Category Pill -->
+            <!-- Line 1: Badge + Category Pill + Hybrid Tier Pill -->
             <div class="d-flex align-items-center mb-1">
                 <span class="turnitin-source-badge" style="background-color: {{ s.color }};">
                     {{ s.index }}
@@ -939,6 +953,11 @@ mark.turnitin-highlight:hover {
                 <span class="source-cat-pill" style="background-color: {{ s.pill_bg }}; color: {{ s.pill_text }};">
                     {{ s.category }}
                 </span>
+                {% if s.composite_similarity_pct %}
+                <span class="badge bg-light text-muted border ms-auto" style="font-size: 0.68rem; font-weight: 500;" title="Layer 1: Shingles (45%) | Layer 2: TF-IDF (20%) | Layer 3: Semantic Paraphrase (35%)">
+                    <i class="bi bi-layers-half text-primary me-1"></i>3-Tier Hybrid: {{ s.composite_similarity_pct }}%
+                </span>
+                {% endif %}
             </div>
 
             <!-- Line 2: Title / Domain & Percentage -->
@@ -950,6 +969,15 @@ mark.turnitin-highlight:hover {
                     {{ s.percent }}
                 </div>
             </div>
+
+            {% if s.flagged_sentences %}
+            <div class="mt-1 d-flex gap-2 flex-wrap" style="font-size: 0.72rem; color: #4b5563;">
+                <span><i class="bi bi-check2-circle text-success me-1"></i>Shingle: {{ s.exact_shingle_containment_pct }}%</span>
+                <span><i class="bi bi-spellcheck text-info me-1"></i>TF-IDF: {{ s.lexical_tfidf_pct }}%</span>
+                <span><i class="bi bi-chat-quote text-warning me-1"></i>Semantic: {{ s.semantic_paraphrase_pct }}%</span>
+                <span class="badge bg-warning-subtle text-warning-emphasis ms-auto">{{ s.flagged_sentences|length }} Paraphrased</span>
+            </div>
+            {% endif %}
         </div>
         {% empty %}
         <div class="py-4 text-center text-muted">

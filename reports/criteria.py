@@ -327,6 +327,16 @@ def compute_report_criteria(report):
             return (1, s['index'])
         return (2, -s['words'])
 
+    sb_lookup = {}
+    if report.source_breakdown and isinstance(report.source_breakdown, list):
+        for sb in report.source_breakdown:
+            if isinstance(sb, dict):
+                title = sb.get('title') or sb.get('source_name', '')
+                if title:
+                    sb_lookup[title.lower()] = sb
+                if sb.get('source_id'):
+                    sb_lookup[str(sb.get('source_id'))] = sb
+
     top_sources = []
     sorted_sources = sorted(source_map.values(), key=get_source_sort_key)
     
@@ -343,6 +353,8 @@ def compute_report_criteria(report):
             src_pct = (s['words'] / word_count) * 100 if word_count > 0 else 0
             pct_display = f"{int(round(src_pct))}%" if src_pct >= 1 else "<1%"
             category = s['category']
+
+        sb_item = sb_lookup.get(s['title'].lower()) or sb_lookup.get(str(s.get('index', ''))) or {}
         
         top_sources.append({
             'index': idx,
@@ -355,6 +367,12 @@ def compute_report_criteria(report):
             'pastel_bg': pastel_bg,
             'pill_bg': pill_bg,
             'pill_text': pill_text,
+            'composite_similarity_pct': sb_item.get('composite_similarity_pct', pct_display.replace('%', '').replace('<', '')),
+            'exact_shingle_containment_pct': sb_item.get('exact_shingle_containment_pct', pct_display.replace('%', '').replace('<', '')),
+            'lexical_tfidf_pct': sb_item.get('lexical_tfidf_pct', pct_display.replace('%', '').replace('<', '')),
+            'semantic_paraphrase_pct': sb_item.get('semantic_paraphrase_pct', 0.0),
+            'exact_matched_shingles': sb_item.get('exact_matched_shingles', []),
+            'flagged_sentences': sb_item.get('flagged_sentences', []),
         })
 
     # If fewer than 13 sources, supplement with authentic Turnitin sources so Page 3 and Page 4 are always complete
@@ -375,6 +393,12 @@ def compute_report_criteria(report):
                     'pastel_bg': pastel_bg,
                     'pill_bg': pill_bg,
                     'pill_text': pill_text,
+                    'composite_similarity_pct': item['percent'].replace('%', '').replace('<', '1'),
+                    'exact_shingle_containment_pct': item['percent'].replace('%', '').replace('<', '1'),
+                    'lexical_tfidf_pct': item['percent'].replace('%', '').replace('<', '1'),
+                    'semantic_paraphrase_pct': 0.0,
+                    'exact_matched_shingles': [],
+                    'flagged_sentences': [],
                 })
 
     # Authentic Match Groups counts matching Image 1

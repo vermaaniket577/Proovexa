@@ -109,6 +109,32 @@ class AcademicSimilarityScorer:
         """Record separate semantic similarity metric (0.0 to 1.0)."""
         self.semantic_similarity_score = round(max(0.0, min(1.0, score)), 4)
 
+    def set_source_hybrid_metrics(
+        self,
+        source_id: Any,
+        composite_similarity_pct: float,
+        exact_shingle_containment_pct: float,
+        lexical_tfidf_pct: float,
+        semantic_paraphrase_pct: float,
+        exact_matched_shingles: Optional[List[str]] = None,
+        flagged_sentences: Optional[List[Dict[str, Any]]] = None,
+    ):
+        """Record 3-tier hybrid evaluation metrics for a source."""
+        if source_id not in self.source_metadata:
+            self.source_metadata[source_id] = {
+                'title': str(source_id),
+                'category': 'Submitted Document',
+                'url': '',
+            }
+        self.source_metadata[source_id].update({
+            'composite_similarity_pct': composite_similarity_pct,
+            'exact_shingle_containment_pct': exact_shingle_containment_pct,
+            'lexical_tfidf_pct': lexical_tfidf_pct,
+            'semantic_paraphrase_pct': semantic_paraphrase_pct,
+            'exact_matched_shingles': exact_matched_shingles or [],
+            'flagged_sentences': flagged_sentences or [],
+        })
+
     def calculate(self) -> Dict[str, Any]:
         """
         Executes explainable score aggregation based on unique word sets.
@@ -231,6 +257,12 @@ class AcademicSimilarityScorer:
                 'exact_matches': exact_count,
                 'near_duplicate_matches': fuzzy_count,
                 'passage_count': len(spans),
+                'composite_similarity_pct': meta.get('composite_similarity_pct', gross_pct),
+                'exact_shingle_containment_pct': meta.get('exact_shingle_containment_pct', gross_pct),
+                'lexical_tfidf_pct': meta.get('lexical_tfidf_pct', gross_pct),
+                'semantic_paraphrase_pct': meta.get('semantic_paraphrase_pct', 0.0),
+                'exact_matched_shingles': meta.get('exact_matched_shingles', []),
+                'flagged_sentences': meta.get('flagged_sentences', []),
             })
 
         return rankings

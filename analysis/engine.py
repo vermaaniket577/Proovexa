@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from .comparators import ExactMatchComparator, NGramComparator, FuzzyComparator, TFIDFComparator
 from .winnowing import WinnowingEngine
+from .hybrid_checker import TurnitinStyleChecker
 from .exclusions import ExclusionEngine
 from .scoring import AcademicSimilarityScorer, SimilarityScorer
 from .models import SimilarityReport, MatchedPassage, ProcessingJob
@@ -48,6 +49,7 @@ class AnalysisEngine:
         self.ngram_comparator = NGramComparator(n=ngram_size)
         self.fuzzy_comparator = FuzzyComparator(threshold=0.75)
         self.tfidf_comparator = TFIDFComparator()
+        self.hybrid_checker = TurnitinStyleChecker(shingle_size=min_words, semantic_threshold=0.75)
 
         self.exclusion_engine = ExclusionEngine(self.exclusion_settings)
 
@@ -230,6 +232,44 @@ class AnalysisEngine:
                     match['match_type'] = 'fuzzy'
                     all_matches.append(match)
                     fuzzy_count += 1
+
+                # Method E: Turnitin 3-Tier Hybrid Evaluation (Shingle Containment, Lexical, Semantic Paraphrase)
+                shingle_containment, exact_phrases = self.hybrid_checker.compute_shingle_containment(
+                    full_text, source_text
+                )
+                lexical_sim = self.hybrid_checker.compute_lexical_similarity(
+                    full_text, source_text
+                )
+                semantic_cov, flagged_pairs = self.hybrid_checker.compute_semantic_matches(
+                    full_text, source_text
+                )
+
+                composite_sim = (
+                    (0.45 * shingle_containment)
+                    + (0.20 * lexical_sim)
+                    + (0.35 * semantic_cov)
+                )
+
+                for pair in flagged_pairs:
+                    all_matches.append({
+                        'submitted_text': pair['submitted_sentence'],
+                        'source_text': pair['matched_source_sentence'],
+                        'similarity': pair['similarity'] / 100.0,
+                        'match_type': 'exact' if pair['match_type'] == 'Exact/Near-Exact' else 'fuzzy',
+                        'source': source,
+                        'source_index': source_index,
+                    })
+
+                # Register hybrid metrics with scorer for source-level breakdown
+                scorer.set_source_hybrid_metrics(
+                    source_id=str(source.id),
+                    composite_similarity_pct=round(composite_sim * 100, 1),
+                    exact_shingle_containment_pct=round(shingle_containment * 100, 1),
+                    lexical_tfidf_pct=round(lexical_sim * 100, 1),
+                    semantic_paraphrase_pct=round(semantic_cov * 100, 1),
+                    exact_matched_shingles=exact_phrases[:5],
+                    flagged_sentences=flagged_pairs,
+                )
 
             # Deduplicate matching spans and apply exclusions
             for match in all_matches:
