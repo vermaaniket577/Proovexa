@@ -10,6 +10,17 @@ import shutil
 import os
 
 
+def landing_page_view(request):
+    """
+    Public marketing landing page for the Turnitin-style Plagiarism Checker
+    & AI Detection SaaS platform.
+    """
+    return render(request, "landing.html", {
+        "is_authenticated": request.user.is_authenticated,
+        "page_title": "Academic Integrity & AI Detection SaaS",
+    })
+
+
 def health_check(request):
     """
     Health check endpoint for load balancers, container orchestrators,

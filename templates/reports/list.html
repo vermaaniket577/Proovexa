@@ -26,7 +26,7 @@
                     <th>Document</th>
                     <th>Author</th>
                     <th>Similarity Index</th>
-                    <th>Matched Words</th>
+                    <th>AI Writing Index</th>
                     <th>Sources</th>
                     <th>Date Generated</th>
                     <th>Actions</th>
@@ -36,31 +36,50 @@
                 {% for r in reports %}
                 <tr>
                     <td>
-                        <a href="{% url 'reports:detail' r.id %}" class="fw-semibold text-decoration-none text-dark">
+                        <a href="{% url 'reports:detail' r.id %}" class="fw-bold text-decoration-none text-dark d-block">
                             {{ r.document.title }}
                         </a>
                         <div class="text-muted small">{{ r.document.original_filename }} &bull; {{ r.document.word_count }} words</div>
                     </td>
-                    <td><small>{{ r.document.uploaded_by.get_full_name|default:r.document.uploaded_by.username }}</small></td>
+                    <td><small class="text-muted">{{ r.document.uploaded_by.get_full_name|default:r.document.uploaded_by.username }}</small></td>
                     <td>
-                        <span class="similarity-badge {% if r.overall_similarity < 15 %}low{% elif r.overall_similarity < 25 %}moderate{% elif r.overall_similarity < 50 %}high{% else %}very-high{% endif %}">
-                            {{ r.similarity_display }}
-                        </span>
+                        <a href="{% url 'reports:detail' r.id %}" class="text-decoration-none">
+                            <span class="similarity-badge {% if r.overall_similarity < 15 %}low{% elif r.overall_similarity < 25 %}moderate{% elif r.overall_similarity < 50 %}high{% else %}very-high{% endif %}">
+                                <i class="bi bi-shield-check me-1"></i>{{ r.similarity_display }}
+                            </span>
+                        </a>
                     </td>
-                    <td><small class="text-muted">{{ r.matched_words }} / {{ r.total_words }}</small></td>
-                    <td><span class="badge bg-light text-dark border">{{ r.source_count }}</span></td>
+                    <td>
+                        {% if r.document.latest_ai_report %}
+                            <a href="{% url 'reports:ai_report' r.document.id %}" class="text-decoration-none">
+                                <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 fs-6">
+                                    <i class="bi bi-robot me-1"></i>{{ r.document.latest_ai_report.display_score }} AI
+                                </span>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'analysis:quick_scan' r.document.id %}?type=ai&next={{ request.get_full_path }}" class="btn btn-sm btn-outline-info py-0 px-2 small" title="Run Turnitin AI detection scan">
+                                <i class="bi bi-plus-circle me-1"></i>Scan AI
+                            </a>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-light text-dark border">{{ r.source_count }} sources</span></td>
                     <td><small class="text-muted">{{ r.created_at|date:"M d, Y H:i" }}</small></td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <a href="{% url 'reports:detail' r.id %}" class="btn btn-outline-primary" title="Interactive View">
-                                <i class="bi bi-eye"></i> View
+                            <a href="{% url 'reports:detail' r.id %}" class="btn btn-outline-primary" title="View Turnitin Similarity Report">
+                                <i class="bi bi-eye"></i> Similarity
                             </a>
-                            <a href="{% url 'reports:download_pdf' r.id %}" class="btn btn-outline-secondary" title="PDF Report">
+                            <a href="{% url 'reports:ai_report' r.document.id %}" class="btn btn-outline-info" title="View Turnitin AI Report">
+                                <i class="bi bi-robot"></i> AI
+                            </a>
+                            <a href="{% url 'reports:download_pdf' r.id %}" class="btn btn-outline-secondary" title="Download Similarity PDF">
                                 <i class="bi bi-file-earmark-pdf"></i>
                             </a>
-                            <a href="{% url 'reports:download_docx' r.id %}" class="btn btn-outline-secondary" title="Word Report">
-                                <i class="bi bi-file-earmark-word"></i>
+                            {% if r.document.latest_ai_report %}
+                            <a href="{% url 'reports:download_ai_pdf' r.document.latest_ai_report.id %}" class="btn btn-outline-info" title="Download Turnitin AI PDF">
+                                <i class="bi bi-file-earmark-arrow-down"></i>
                             </a>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>

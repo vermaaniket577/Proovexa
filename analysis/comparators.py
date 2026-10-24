@@ -276,7 +276,7 @@ class FuzzyComparator:
     punctuation changes, and limited word substitutions.
     """
 
-    def __init__(self, threshold=0.75, min_sentence_length=10):
+    def __init__(self, threshold=0.75, min_sentence_length=6):
         self.threshold = threshold
         self.min_sentence_length = min_sentence_length
 
@@ -298,14 +298,13 @@ class FuzzyComparator:
             best_match = None
             best_ratio = 0
 
+            sub_tokens_clean = re.sub(r'[^\w\s]', '', sub_sent.lower()).split()
             for src_sent in src_sentences:
                 if len(src_sent.split()) < self.min_sentence_length:
                     continue
 
-                ratio = SequenceMatcher(None,
-                    sub_sent.lower().split(),
-                    src_sent.lower().split()
-                ).ratio()
+                src_tokens_clean = re.sub(r'[^\w\s]', '', src_sent.lower()).split()
+                ratio = SequenceMatcher(None, sub_tokens_clean, src_tokens_clean).ratio()
 
                 if ratio > best_ratio and ratio >= self.threshold and ratio < 1.0:
                     # Exclude exact matches (handled by ExactMatchComparator)
@@ -333,8 +332,11 @@ class FuzzyComparator:
 
     def _split_sentences(self, text):
         """Split text into sentences."""
-        sentences = re.split(r'[.!?]+\s+', text)
-        return [s.strip() for s in sentences if len(s.strip().split()) >= self.min_sentence_length]
+        sentences = re.split(r'[.!?]+(?:\s+|$)', text)
+        res = [s.strip() for s in sentences if len(s.strip().split()) >= self.min_sentence_length]
+        if not res and text.strip() and len(text.strip().split()) >= self.min_sentence_length:
+            return [text.strip()]
+        return res
 
     def _find_location(self, pages, text):
         if not pages:

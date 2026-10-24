@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ScholarGuard - Enterprise Turnitin-grade plagiarism checker and AI writing detection SaaS platform for universities, researchers, and students.">
+    <title>ScholarGuard | Turnitin-Grade Plagiarism Checker & AI Detection Platform</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{% load static %}{% static 'css/main.css' %}" rel="stylesheet">
+</head>
+<body class="landing-body">
+
+    <!-- Global SaaS Navigation Bar -->
+    <header class="landing-nav">
+        <div class="container">
+            <nav class="navbar navbar-expand-lg navbar-dark p-0">
+                <a href="{% url 'landing' %}" class="landing-brand">
+                    <div class="landing-brand-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <span>ScholarGuard</span>
+                </a>
+
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#landingNavbar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="landingNavbar">
+                    <ul class="landing-nav-links mx-auto mt-3 mt-lg-0">
+                        <li><a href="#features" class="landing-nav-link">Features</a></li>
+                        <li><a href="#interactive-preview" class="landing-nav-link">Turnitin Report Preview</a></li>
+                        <li><a href="#how-it-works" class="landing-nav-link">How It Works</a></li>
+                        <li><a href="#pricing" class="landing-nav-link">Pricing</a></li>
+                        <li><a href="#institutions" class="landing-nav-link">Institutions</a></li>
+                        <li><a href="#faq" class="landing-nav-link">FAQ</a></li>
+                    </ul>
+
+                    <div class="d-flex align-items-center gap-3 mt-3 mt-lg-0">
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard:home' %}" class="btn btn-hero-primary py-2 px-4">
+                            <i class="bi bi-grid-1x2 me-1"></i> Dashboard
+                        </a>
+                        {% else %}
+                        <a href="{% url 'accounts:login' %}" class="btn btn-link text-light text-decoration-none fw-semibold px-2">
+                            Sign In
+                        </a>
+                        <a href="{% url 'accounts:register' %}" class="btn btn-hero-primary py-2 px-3">
+                            Start Free Check <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="landing-hero text-center">
+        <div class="container position-relative" style="z-index: 2;">
+            <div class="landing-badge-eyebrow">
+                <i class="bi bi-stars"></i> Next-Gen Turnitin Alternative & AI Writing Detector
+            </div>
+            <h1 class="hero-title">
+                Verify Originality. Detect AI Writing.<br>
+                <span class="text-gradient">Protect Academic Trust.</span>
+            </h1>
+            <p class="hero-subtitle">
+                The modern academic integrity SaaS for universities, researchers, publishers, and students.
+                Deep multi-source similarity scanning + 99.4% accurate AI attribution with 1:1 authentic Turnitin-style downloadable reports.
+            </p>
+
+            <div class="hero-cta-group">
+                {% if user.is_authenticated %}
+                <a href="{% url 'documents:upload' %}" class="btn-hero-primary">
+                    <i class="bi bi-cloud-arrow-up-fill"></i> Upload Document Now
+                </a>
+                <a href="{% url 'dashboard:home' %}" class="btn-hero-secondary">
+                    <i class="bi bi-speedometer2"></i> Open Dashboard
+                </a>
+                {% else %}
+                <a href="{% url 'accounts:register' %}" class="btn-hero-primary">
+                    <i class="bi bi-shield-shaded"></i> Start Free Plagiarism Scan
+                </a>
+                <a href="#interactive-preview" class="btn-hero-secondary">
+                    <i class="bi bi-eye"></i> View Live Report Demo
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Trust Metrics Bar -->
+            <div class="hero-stats-strip">
+                <div class="hero-stat-item">
+                    <div class="hero-stat-value">10B+</div>
+                    <div class="hero-stat-label">Web & Academic Sources</div>
+                </div>
+                <div class="hero-stat-item">
+                    <div class="hero-stat-value">99.4%</div>
+                    <div class="hero-stat-label">AI Attribution Precision</div>
+                </div>
+                <div class="hero-stat-item">
+                    <div class="hero-stat-value">100%</div>
+                    <div class="hero-stat-label">FERPA & Privacy Compliant</div>
+                </div>
+                <div class="hero-stat-item">
+                    <div class="hero-stat-value">1:1</div>
+                    <div class="hero-stat-label">Turnitin-Style PDF Reports</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Turnitin-Style Report Showcase Section -->
+    <section class="landing-preview-section" id="interactive-preview">
+        <div class="container">
+            <div class="text-center mb-4">
+                <div class="section-tag">Interactive Product Demonstration</div>
+                <h2 class="section-title">Authentic Turnitin Dual-Mode Viewer</h2>
+                <p class="section-desc mx-auto">
+                    Toggle seamlessly between source similarity matching and AI probability analysis.
+                    Experience identical styling, color indices, and downloadable A4 reports.
+                </p>
+            </div>
+
+            <div class="interactive-showcase-card">
+                <!-- Showcase Header Toolbar -->
+                <div class="showcase-header">
+                    <div class="showcase-tabs">
+                        <button class="showcase-tab-btn active" id="btnTabSimilarity" onclick="switchDemoTab('similarity')">
+                            <i class="bi bi-intersect"></i> Similarity Report
+                        </button>
+                        <button class="showcase-tab-btn" id="btnTabAI" onclick="switchDemoTab('ai')">
+                            <i class="bi bi-robot"></i> AI Writing Detection
+                        </button>
+                    </div>
+
+                    <div class="showcase-badges">
+                        <div id="similarityPill" class="turnitin-score-pill similarity">
+                            <i class="bi bi-pie-chart-fill"></i> 2% Overall Similarity
+                        </div>
+                        <div id="aiPill" class="turnitin-score-pill ai d-none">
+                            <i class="bi bi-cpu-fill"></i> 14% AI Generated Text
+                        </div>
+                        <span class="badge bg-secondary-subtle text-light px-3 py-2 border border-secondary">
+                            <i class="bi bi-file-earmark-pdf me-1"></i> A4 Formatted View
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Showcase Main Body (Document Paper + Right Matrix Panel) -->
+                <div class="showcase-grid">
+                    <!-- Document Paper Viewer -->
+                    <div class="showcase-document-panel" id="demoDocPanel">
+                        <div class="showcase-doc-title">Deep Learning Architectures in Molecular Pharmacology</div>
+                        <div class="showcase-doc-meta">
+                            <span><strong>Author:</strong> Dr. Alex Vance</span> &bull;
+                            <span><strong>Submitted:</strong> Oct 24, 2026</span> &bull;
+                            <span><strong>Word Count:</strong> 1,420 words</span>
+                        </div>
+
+                        <!-- SIMILARITY VIEW CONTENT -->
+                        <div id="contentSimilarityView">
+                            <p>
+                                Computational biology has witnessed a paradigm shift with the emergence of self-supervised learning algorithms. By leveraging graph neural networks (GNNs), researchers can represent molecular conformations as topological graphs where atoms constitute nodes and chemical bonds denote edges.
+                            </p>
+                            <p>
+                                In recent benchmarking studies, <span class="highlight-source-1" title="Matched to ArXiv Repositories (1.8%)">the predictive accuracy of molecular property prediction models surpassed conventional quantitative structure-activity relationship (QSAR) baselines by an average margin of 14.6% across standard Tox21 evaluation suites</span>. This indicates that non-Euclidean spatial relationships encode significant structural pharmacophores.
+                            </p>
+                            <p>
+                                Furthermore, generative adversarial frameworks and latent diffusion models enable the de novo generation of lead-like compounds with optimized binding affinities. However, synthesisability constraints remain a critical bottleneck during laboratory validation cycles. <span class="highlight-source-2" title="Matched to Student Repository Submission (0.4%)">Multi-objective reinforcement learning provides an adaptive mechanism to penalize synthesizability penalties prior to high-throughput screening</span>.
+                            </p>
+                            <p>
+                                In conclusion, integration of physics-informed inductive biases within neural representations offers a mathematically principled trajectory for modern drug discovery pipelines.
+                            </p>
+                        </div>
+
+                        <!-- AI DETECTION VIEW CONTENT (Initially Hidden) -->
+                        <div id="contentAIView" class="d-none">
+                            <p>
+                                Computational biology has witnessed a paradigm shift with the emergence of self-supervised learning algorithms. By leveraging graph neural networks (GNNs), researchers can represent molecular conformations as topological graphs where atoms constitute nodes and chemical bonds denote edges.
+                            </p>
+                            <p>
+                                <span class="highlight-ai-sentence" title="High AI Probability (Perplexity: Low, Predictability: 96%)">In recent benchmarking studies, the predictive accuracy of molecular property prediction models surpassed conventional quantitative structure-activity relationship baselines by an average margin of 14.6% across standard Tox21 evaluation suites.</span> This indicates that non-Euclidean spatial relationships encode significant structural pharmacophores.
+                            </p>
+                            <p>
+                                <span class="highlight-ai-sentence" title="High AI Probability (Perplexity: Low, Predictability: 94%)">Generative adversarial frameworks and latent diffusion models facilitate the automated design of candidate molecules by iteratively sampling high-dimensional latent manifolds.</span> However, synthesizability constraints remain a critical bottleneck during laboratory validation cycles. Multi-objective reinforcement learning provides an adaptive mechanism to penalize synthesizability penalties prior to high-throughput screening.
+                            </p>
+                            <p>
+                                In conclusion, integration of physics-informed inductive biases within neural representations offers a mathematically principled trajectory for modern drug discovery pipelines.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Right Matrix / Breakdown Panel -->
+                    <div class="showcase-sidebar-panel">
+                        <!-- Similarity Sidebar Breakdown -->
+                        <div id="sidebarSimilarity">
+                            <div class="showcase-panel-heading">
+                                <span>Match Overview</span>
+                                <span class="badge bg-danger">2 Matches</span>
+                            </div>
+
+                            <div class="match-source-item">
+                                <div class="match-source-header">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="match-source-num bg-danger">1</span>
+                                        <span class="badge bg-secondary-subtle text-light small">Internet Source</span>
+                                    </div>
+                                    <span class="match-source-percent">2%</span>
+                                </div>
+                                <div class="match-source-title">arxiv.org/abs/2304.09812</div>
+                                <div class="match-source-url">Cornell University Open Archive &bull; 26 words matched</div>
+                            </div>
+
+                            <div class="match-source-item">
+                                <div class="match-source-header">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="match-source-num bg-warning text-dark">2</span>
+                                        <span class="badge bg-secondary-subtle text-light small">Student Paper</span>
+                                    </div>
+                                    <span class="match-source-percent">&lt; 1%</span>
+                                </div>
+                                <div class="match-source-title">Submitted to Stanford University</div>
+                                <div class="match-source-url">Student Repository &bull; 11 words matched</div>
+                            </div>
+
+                            <div class="mt-auto pt-3 border-top border-secondary">
+                                <div class="d-flex justify-content-between text-muted small mb-2">
+                                    <span>Exclude Quotes:</span>
+                                    <span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Active</span>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted small mb-3">
+                                    <span>Exclude Bibliography:</span>
+                                    <span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Active</span>
+                                </div>
+                                <a href="{% url 'accounts:register' %}" class="btn btn-outline-light btn-sm w-100 fw-semibold">
+                                    <i class="bi bi-file-earmark-arrow-down me-1"></i> Download Turnitin PDF
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- AI Detector Sidebar Breakdown -->
+                        <div id="sidebarAI" class="d-none">
+                            <div class="showcase-panel-heading">
+                                <span>AI Writing Indicators</span>
+                                <span class="badge bg-info text-dark">Model v2.4</span>
+                            </div>
+
+                            <div class="match-source-item">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="text-muted small">AI-Generated Sentences</span>
+                                    <span class="fw-bold text-info">2 of 14</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-info" style="width: 14%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="match-source-item">
+                                <div class="d-flex justify-content-between text-muted small mb-1">
+                                    <span>Perplexity Variance</span>
+                                    <span class="text-light fw-bold">Low (Predictable)</span>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span>Burstiness Metric</span>
+                                    <span class="text-light fw-bold">Uniform Syntax</span>
+                                </div>
+                            </div>
+
+                            <div class="disclaimer-box mt-auto p-3" style="background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.25);">
+                                <h6 style="color: #38bdf8; font-size: 0.8rem; margin-bottom: 4px;">
+                                    <i class="bi bi-info-circle me-1"></i> Academic Discretion
+                                </h6>
+                                <p style="color: #cbd5e1; font-size: 0.75rem; line-height: 1.5; margin: 0;">
+                                    AI percentage represents probability of AI model generation. Human review is recommended before taking institutional action.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key Innovations & Feature Grid -->
+    <section class="landing-section" id="features">
+        <div class="container">
+            <div class="row align-items-end mb-5">
+                <div class="col-lg-7">
+                    <div class="section-tag">Enterprise Architecture</div>
+                    <h2 class="section-title">Built for Modern Academic Rigor</h2>
+                    <p class="section-desc">
+                        Everything institutions need to foster authentic research, evaluate student work with precision, and maintain academic credibility.
+                    </p>
+                </div>
+                <div class="col-lg-5 text-lg-end">
+                    <a href="{% url 'accounts:register' %}" class="btn btn-hero-secondary">
+                        Explore Full Architecture <i class="bi bi-chevron-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Feature 1 -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="landing-feature-card">
+                        <div class="feature-icon-wrapper" style="background: rgba(79, 70, 229, 0.15); color: #818cf8;">
+                            <i class="bi bi-intersect"></i>
+                        </div>
+                        <h3 class="feature-title">Multi-Layer Similarity Engine</h3>
+                        <p class="feature-text">
+                            Proprietary winnowing fingerprinting algorithm scans against web pages, scholarly databases (PubMed, arXiv, Crossref), and institutional archives in real-time.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="landing-feature-card">
+                        <div class="feature-icon-wrapper" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8;">
+                            <i class="bi bi-robot"></i>
+                        </div>
+                        <h3 class="feature-title">Turnitin-Style AI Detection</h3>
+                        <p class="feature-text">
+                            Analyzes perplexity, burstiness, and syntactic patterns to detect ChatGPT, GPT-4o, Claude, and Gemini text with strict false-positive suppression for ESL writers.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="landing-feature-card">
+                        <div class="feature-icon-wrapper" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">
+                            <i class="bi bi-file-earmark-pdf-fill"></i>
+                        </div>
+                        <h3 class="feature-title">Official A4 PDF Reports</h3>
+                        <p class="feature-text">
+                            Generate authentic Turnitin-styled digital receipts, overall similarity cover sheets, colored highlighted text passages, and source matrices ready for submission.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="landing-feature-card">
+                        <div class="feature-icon-wrapper" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <h3 class="feature-title">Zero Repository Leaks</h3>
+                        <p class="feature-text">
+                            Your papers remain 100% confidential. Documents are never stored in public repositories or resold to AI training datasets. FERPA & GDPR compliant.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="landing-feature-card">
+                        <div class="feature-icon-wrapper" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+                            <i class="bi bi-sliders2"></i>
+                        </div>
+                        <h3 class="feature-title">Smart Academic Filters</h3>
+                        <p class="feature-text">
+                            Toggle one-click exclusion of bibliographies, cited quotations, title pages, methodology sections, and small matches under configurable word lengths.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="landing-feature-card">
+                        <div class="feature-icon-wrapper" style="background: rgba(139, 92, 246, 0.15); color: #c084fc;">
+                            <i class="bi bi-mortarboard-fill"></i>
+                        </div>
+                        <h3 class="feature-title">Classroom & Faculty Seats</h3>
+                        <p class="feature-text">
+                            Create courses, manage student assignment deadlines, compare cohorts, and view class distribution heatmaps from an instructor dashboard.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Workflow -->
+    <section class="landing-section" id="how-it-works" style="background: #0d131f;">
+        <div class="container text-center">
+            <div class="section-tag">Streamlined 3-Step Process</div>
+            <h2 class="section-title">How ScholarGuard Works</h2>
+            <p class="section-desc mx-auto mb-5">
+                From initial drag-and-drop to comprehensive audit reports in under 30 seconds.
+            </p>
+
+            <div class="row g-4 text-start">
+                <div class="col-md-4">
+                    <div class="landing-feature-card">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="badge bg-primary px-3 py-2 fs-6">Step 01</span>
+                            <i class="bi bi-cloud-arrow-up fs-2 text-muted"></i>
+                        </div>
+                        <h4 class="fw-bold text-light mb-2">Upload Submission</h4>
+                        <p class="text-muted small mb-0">
+                            Drop DOCX, PDF, or TXT files. Configure instant filter preferences: exclude quotes, exclude references, or enable private scan mode.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="landing-feature-card">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="badge bg-info text-dark px-3 py-2 fs-6">Step 02</span>
+                            <i class="bi bi-cpu fs-2 text-muted"></i>
+                        </div>
+                        <h4 class="fw-bold text-light mb-2">Deep Fingerprinting</h4>
+                        <p class="text-muted small mb-0">
+                            Our high-performance multi-threaded engine extracts tokens, hashes n-gram k-mers, and queries cross-repository source indices concurrently.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="landing-feature-card">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="badge bg-success px-3 py-2 fs-6">Step 03</span>
+                            <i class="bi bi-file-earmark-check fs-2 text-muted"></i>
+                        </div>
+                        <h4 class="fw-bold text-light mb-2">Audit & Download</h4>
+                        <p class="text-muted small mb-0">
+                            Examine source overlap in the dual-mode viewer or export official Turnitin-styled PDF and DOCX reports with detailed matching attribution.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Transparent Pricing Plans -->
+    <section class="landing-section" id="pricing">
+        <div class="container">
+            <div class="text-center mb-5">
+                <div class="section-tag">Flexible Plans</div>
+                <h2 class="section-title">Transparent Academic Pricing</h2>
+                <p class="section-desc mx-auto">
+                    Choose the plan that fits your research needs. Upgrade, downgrade, or cancel at any time.
+                </p>
+            </div>
+
+            <div class="row g-4 align-items-stretch justify-content-center">
+                <!-- Free Student Starter -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="pricing-card">
+                        <div class="pricing-tier-name">Free Starter</div>
+                        <div class="pricing-tier-desc">Essential originality checks for individual students.</div>
+                        <div class="pricing-price-wrap">
+                            <span class="pricing-price">$0</span>
+                            <span class="pricing-cycle">/ month</span>
+                        </div>
+                        <ul class="pricing-feature-list">
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> 3 document checks / month</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Web similarity engine</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Interactive web report</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Exclude quotes & bibliography</li>
+                            <li class="pricing-feature-item text-muted"><i class="bi bi-dash text-muted"></i> AI writing detection</li>
+                            <li class="pricing-feature-item text-muted"><i class="bi bi-dash text-muted"></i> Turnitin PDF export</li>
+                        </ul>
+                        <a href="{% url 'accounts:register' %}" class="btn btn-outline-light w-100 py-2 fw-semibold">
+                            Get Started Free
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Pro Researcher (Featured) -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="pricing-card featured">
+                        <div class="pricing-badge-popular">Most Popular</div>
+                        <div class="pricing-tier-name">Pro Researcher</div>
+                        <div class="pricing-tier-desc">For graduate students, researchers, and faculty.</div>
+                        <div class="pricing-price-wrap">
+                            <span class="pricing-price">$12</span>
+                            <span class="pricing-cycle">/ month</span>
+                        </div>
+                        <ul class="pricing-feature-list">
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> 50 document checks / month</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Full scholarly journals database</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> <strong>Turnitin-grade AI detector</strong></li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> <strong>Official Turnitin A4 PDF export</strong></li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Priority multi-core processing</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> 100% private scan guarantee</li>
+                        </ul>
+                        <a href="{% url 'accounts:register' %}" class="btn btn-hero-primary w-100 py-2 fw-bold">
+                            Start Pro Trial
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Faculty & Department -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="pricing-card">
+                        <div class="pricing-tier-name">Department</div>
+                        <div class="pricing-tier-desc">For academic departments and teacher cohorts.</div>
+                        <div class="pricing-price-wrap">
+                            <span class="pricing-price">$49</span>
+                            <span class="pricing-cycle">/ month</span>
+                        </div>
+                        <ul class="pricing-feature-list">
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> 300 document checks / month</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Up to 10 instructor seats</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Classroom assignments & rosters</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Cohort similarity distribution</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Shared reference repository</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Turnitin Similarity + AI PDFs</li>
+                        </ul>
+                        <a href="{% url 'accounts:register' %}" class="btn btn-outline-light w-100 py-2 fw-semibold">
+                            Upgrade Department
+                        </a>
+                    </div>
+                </div>
+
+                <!-- University Enterprise -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="pricing-card">
+                        <div class="pricing-tier-name">Enterprise</div>
+                        <div class="pricing-tier-desc">For universities, colleges, and academic publishers.</div>
+                        <div class="pricing-price-wrap">
+                            <span class="pricing-price">Custom</span>
+                            <span class="pricing-cycle">/ institution</span>
+                        </div>
+                        <ul class="pricing-feature-list">
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Unlimited campus-wide checks</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Canvas, Moodle & Blackboard LMS</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Custom private repository</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> REST API & Webhook integration</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Dedicated account manager</li>
+                            <li class="pricing-feature-item"><i class="bi bi-check2"></i> Custom SLA & FERPA contract</li>
+                        </ul>
+                        <a href="#institutions" class="btn btn-outline-info w-100 py-2 fw-semibold">
+                            Contact Academic Sales
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Institutional Solutions & Trust -->
+    <section class="landing-section" id="institutions" style="background: #0d131f;">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-6">
+                    <div class="section-tag">Universities & Publishers</div>
+                    <h2 class="section-title">Seamless Institutional Integration</h2>
+                    <p class="section-desc mb-4">
+                        Modernize your campus evaluation workflows without vendor lock-in or inflated licensing costs.
+                        Equip faculty with powerful originality insights and protect student intellectual property.
+                    </p>
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex align-items-start gap-3">
+                            <i class="bi bi-check-circle-fill text-primary fs-5 mt-1"></i>
+                            <div>
+                                <h6 class="text-light fw-bold mb-1">Canvas, Blackboard & Moodle LTI Ready</h6>
+                                <p class="text-muted small mb-0">Embed submission portals directly into assignment modules with automatic gradebook synchronization.</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start gap-3">
+                            <i class="bi bi-check-circle-fill text-primary fs-5 mt-1"></i>
+                            <div>
+                                <h6 class="text-light fw-bold mb-1">Strict FERPA, GDPR & Student Ownership</h6>
+                                <p class="text-muted small mb-0">Unlike other vendors, we never ingest student submissions into commercial datasets without explicit institutional consent.</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start gap-3">
+                            <i class="bi bi-check-circle-fill text-primary fs-5 mt-1"></i>
+                            <div>
+                                <h6 class="text-light fw-bold mb-1">Custom Institutional Repository Ingestion</h6>
+                                <p class="text-muted small mb-0">Cross-reference past theses, dissertations, and past-year coursework privately within your university network.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="landing-feature-card p-4 p-md-5">
+                        <h4 class="text-light fw-bold mb-3">Request Institutional Evaluation</h4>
+                        <p class="text-muted small mb-4">
+                            Get complimentary campus trial access, pilot documentation, and technical integration consultation for your faculty committee.
+                        </p>
+                        <form onsubmit="event.preventDefault(); alert('Thank you! Our academic partnerships team will reach out within 24 hours.');">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-semibold">Institutional Email</label>
+                                <input type="email" class="form-control bg-dark text-light border-secondary" placeholder="dean@university.edu" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-semibold">Institution Name</label>
+                                <input type="text" class="form-control bg-dark text-light border-secondary" placeholder="e.g. University Department of Computer Science" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label text-muted small fw-semibold">Estimated Student Body / Annual Submissions</label>
+                                <select class="form-select bg-dark text-light border-secondary">
+                                    <option>Under 1,000 students</option>
+                                    <option>1,000 – 10,000 students</option>
+                                    <option>10,000+ students (Campus-Wide)</option>
+                                    <option>Journal / Academic Publisher</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-hero-primary w-100 py-3 fw-bold">
+                                Request Institutional Pilot
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Frequently Asked Questions Accordion -->
+    <section class="landing-section" id="faq">
+        <div class="container" style="max-width: 860px;">
+            <div class="text-center mb-5">
+                <div class="section-tag">Got Questions?</div>
+                <h2 class="section-title">Frequently Asked Questions</h2>
+                <p class="section-desc mx-auto">
+                    Learn more about our similarity algorithms, AI detection metrics, and Turnitin report parity.
+                </p>
+            </div>
+
+            <div class="accordion faq-accordion" id="faqAccordion">
+                <!-- FAQ 1 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            How does the Turnitin-style report match the authentic standard?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Our downloadable PDF reports are rendered to exact Turnitin A4 specifications: including cover page digital receipt metadata, submission ID, word count, character count, overall similarity score (displaying an asterisk '*' for 0% matches), color-coded text highlight overlays with numerical source indices (#1, #2, #3), and an appendix listing matching internet, publication, and student paper sources.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ 2 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            Will my uploaded papers be added to a public database?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            No. Unlike traditional services that index student work into global databases without consent, ScholarGuard respects full author copyright. Your submissions remain strictly private to your account or your institution's private repository.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ 3 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            How does the AI writing detection work?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Our AI detection model analyzes linguistic perplexity (lexical predictability) and burstiness (variation in sentence cadence and syntactic length). High predictability and uniform structure correlate with text generated by LLMs like ChatGPT, Claude, and Gemini. A cautious disclaimer is provided on every report advising faculty that AI scores are indicators, not definitive proof of misconduct.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ 4 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                            Can I automatically exclude quoted text and bibliographies?
+                        </button>
+                    </h2>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Yes. You can enable or disable bibliography exclusion (Works Cited, References), block quote exclusion, and small match threshold filters (e.g. ignore matches less than 8 words or 1%) either globally or per document submission.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ 5 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                            What document formats are accepted?
+                        </button>
+                    </h2>
+                    <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            We support PDF, Microsoft Word (.docx, .doc), Plain Text (.txt), and PowerPoint (.pptx). Our extraction engine automatically cleans whitespace, extracts text streams, and verifies character integrity.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final Call to Action -->
+    <section class="landing-section text-center position-relative" style="background: radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.25) 0%, #0b0f19 70%);">
+        <div class="container position-relative" style="z-index: 2;">
+            <h2 class="hero-title mb-3">Ready to Elevate Academic Integrity?</h2>
+            <p class="hero-subtitle mx-auto mb-4">
+                Join thousands of researchers, educators, and institutions safeguarding original scholarship.
+            </p>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <a href="{% url 'accounts:register' %}" class="btn btn-hero-primary py-3 px-5 fs-5">
+                    <i class="bi bi-shield-check me-2"></i> Start Free Plagiarism Scan
+                </a>
+                <a href="{% url 'accounts:login' %}" class="btn btn-hero-secondary py-3 px-4 fs-5">
+                    Sign In
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="landing-brand mb-3">
+                        <div class="landing-brand-icon">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <span>ScholarGuard</span>
+                    </div>
+                    <p class="text-muted small" style="max-width: 320px; line-height: 1.6;">
+                        Next-generation academic similarity checking and AI attribution platform. Empowering students, educators, and researchers worldwide.
+                    </p>
+                    <div class="d-flex gap-3 text-muted fs-5 mt-3">
+                        <a href="#" class="text-muted"><i class="bi bi-github"></i></a>
+                        <a href="#" class="text-muted"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#" class="text-muted"><i class="bi bi-linkedin"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-6 col-lg-2">
+                    <div class="footer-heading">Platform</div>
+                    <ul class="footer-links">
+                        <li class="footer-link-item"><a href="#interactive-preview" class="footer-link">Similarity Engine</a></li>
+                        <li class="footer-link-item"><a href="#interactive-preview" class="footer-link">AI Writing Detector</a></li>
+                        <li class="footer-link-item"><a href="#interactive-preview" class="footer-link">Turnitin PDF Reports</a></li>
+                        <li class="footer-link-item"><a href="{% url 'documents:upload' %}" class="footer-link">Document Upload</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-6 col-lg-2">
+                    <div class="footer-heading">Solutions</div>
+                    <ul class="footer-links">
+                        <li class="footer-link-item"><a href="#institutions" class="footer-link">Universities & Colleges</a></li>
+                        <li class="footer-link-item"><a href="#pricing" class="footer-link">Researchers & Faculty</a></li>
+                        <li class="footer-link-item"><a href="#pricing" class="footer-link">Students & Authors</a></li>
+                        <li class="footer-link-item"><a href="#institutions" class="footer-link">Academic Publishers</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-6 col-lg-2">
+                    <div class="footer-heading">Compliance</div>
+                    <ul class="footer-links">
+                        <li class="footer-link-item"><a href="#" class="footer-link">FERPA Compliance</a></li>
+                        <li class="footer-link-item"><a href="#" class="footer-link">GDPR Data Privacy</a></li>
+                        <li class="footer-link-item"><a href="#" class="footer-link">Zero Data Retention</a></li>
+                        <li class="footer-link-item"><a href="#" class="footer-link">Security Audits</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-6 col-lg-2">
+                    <div class="footer-heading">Account</div>
+                    <ul class="footer-links">
+                        <li class="footer-link-item"><a href="{% url 'accounts:login' %}" class="footer-link">User Login</a></li>
+                        <li class="footer-link-item"><a href="{% url 'accounts:register' %}" class="footer-link">Register Account</a></li>
+                        <li class="footer-link-item"><a href="{% url 'dashboard:home' %}" class="footer-link">App Dashboard</a></li>
+                        <li class="footer-link-item"><a href="#faq" class="footer-link">Support & FAQ</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom-bar">
+                <div>&copy; 2026 ScholarGuard &bull; Proovexa Academic Integrity Systems. All rights reserved.</div>
+                <div class="d-flex gap-4">
+                    <a href="#" class="footer-link">Privacy Policy</a>
+                    <a href="#" class="footer-link">Terms of Service</a>
+                    <a href="#" class="footer-link">Honor Code</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Interactive Showcase Switcher Script -->
+    <script>
+        function switchDemoTab(mode) {
+            const btnSim = document.getElementById('btnTabSimilarity');
+            const btnAI = document.getElementById('btnTabAI');
+            const pillSim = document.getElementById('similarityPill');
+            const pillAI = document.getElementById('aiPill');
+            const contentSim = document.getElementById('contentSimilarityView');
+            const contentAI = document.getElementById('contentAIView');
+            const sidebarSim = document.getElementById('sidebarSimilarity');
+            const sidebarAI = document.getElementById('sidebarAI');
+
+            if (mode === 'similarity') {
+                btnSim.classList.add('active');
+                btnSim.classList.remove('ai-active');
+                btnAI.classList.remove('active', 'ai-active');
+
+                pillSim.classList.remove('d-none');
+                pillAI.classList.add('d-none');
+
+                contentSim.classList.remove('d-none');
+                contentAI.classList.add('d-none');
+
+                sidebarSim.classList.remove('d-none');
+                sidebarAI.classList.add('d-none');
+            } else {
+                btnAI.classList.add('active', 'ai-active');
+                btnSim.classList.remove('active');
+
+                pillAI.classList.remove('d-none');
+                pillSim.classList.add('d-none');
+
+                contentAI.classList.remove('d-none');
+                contentSim.classList.add('d-none');
+
+                sidebarAI.classList.remove('d-none');
+                sidebarSim.classList.add('d-none');
+            }
+        }
+    </script>
+</body>
+</html>

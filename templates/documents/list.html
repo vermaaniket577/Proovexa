@@ -64,7 +64,7 @@
                             {% endif %}
                             {% if doc.latest_ai_report %}
                                 <a href="{% url 'reports:ai_report' doc.id %}" class="badge bg-info-subtle text-info border text-decoration-none" title="AI Writing: {{ doc.latest_ai_report.overall_ai_score|floatformat:0 }}%">
-                                    <i class="bi bi-robot me-1"></i>{{ doc.latest_ai_report.overall_ai_score|floatformat:0 }}% AI
+                                    <i class="bi bi-robot me-1"></i>{{ doc.latest_ai_report.display_score }} AI
                                 </a>
                             {% endif %}
                         </div>

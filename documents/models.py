@@ -108,6 +108,26 @@ class Document(models.Model):
         """Check if both similarity and AI reports have been generated."""
         return bool(self.latest_similarity_report and self.latest_ai_report)
 
+    @property
+    def clean_basename(self):
+        """Return clean base filename without file extension."""
+        import os
+        name = self.original_filename or self.title or "document"
+        base = os.path.splitext(name)[0].strip()
+        safe = "".join(c for c in base if c.isalnum() or c in (' ', '-', '_')).strip()
+        return safe or "document"
+
+    @property
+    def plag_report_filename(self):
+        """Download filename for similarity plagiarism report: [filename]-plag report.pdf"""
+        return f"{self.clean_basename}-plag report.pdf"
+
+    @property
+    def ai_report_filename(self):
+        """Download filename for AI detection report: [filename]-ai report.pdf"""
+        return f"{self.clean_basename}-ai report.pdf"
+
+
 
 class ExtractedText(models.Model):
     """Extracted text content from a document, organized by page/section."""

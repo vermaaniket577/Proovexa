@@ -199,64 +199,64 @@
 }
 .ai-score-num {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 22.5px; /* 22–23 px Bold/Semibold */
+    font-size: 23px; /* 22–23 px Semibold/Bold */
     font-weight: 700;
     color: #191919;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
     line-height: 1.15;
 }
 .ai-score-title {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 22.5px; /* 22–23 px Bold/Semibold */
+    font-size: 23px; /* 22–23 px Semibold/Bold */
     font-weight: 700;
     color: #191919;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
     line-height: 1.15;
 }
 .ai-score-subtext {
     font-family: 'Inter', Arial, sans-serif;
     font-size: 10.5px; /* 10–11 px Regular */
     font-weight: 400;
-    color: #636363;
+    color: #191919;
     line-height: 1.45;
 }
 
 /* Caution Callout Card (Right Column) */
 .turnitin-ai-caution-box {
-    background-color: #dbeafe;
-    border: 1px solid #bae6fd;
-    border-radius: 6px;
-    padding: 12px 16px;
+    background-color: #e2f0fb;
+    border: none;
+    border-radius: 12px;
+    padding: 16px 20px;
     height: 100%;
 }
 .ai-caution-title {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 14px; /* 14 px Semibold */
-    font-weight: 600;
+    font-size: 11.5px;
+    font-weight: 700;
     color: #191919;
     margin-bottom: 6px;
 }
 .ai-caution-body {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 10.5px; /* 10–11 px Regular */
+    font-size: 10px;
     font-weight: 400;
-    color: #2c2c2c;
+    color: #191919;
     line-height: 1.45;
 }
 
 /* Disclaimer Section (Bottom) */
 .ai-disclaimer-title {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 14px; /* 14 px Semibold */
-    font-weight: 600;
+    font-size: 11.5px;
+    font-weight: 700;
     color: #191919;
     margin-bottom: 4px;
 }
 .ai-disclaimer-text {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 10.5px; /* 10–11 px Regular */
+    font-size: 9.5px;
     font-weight: 400;
-    color: #636363;
+    color: #595959;
     line-height: 1.45;
 }
 
@@ -322,8 +322,9 @@
         <div class="d-flex flex-wrap align-items-center gap-2">
             <!-- Download PDF Report Button -->
             <a href="{% url 'reports:download_ai_pdf' ai_report.id %}" class="btn btn-danger fw-semibold px-3 py-2 shadow-sm" id="btn-download-ai-pdf">
-                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download AI PDF Report
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download {{ document.ai_report_filename }}
             </a>
+
 
             <!-- 1-Click Toggle: Plagiarism vs AI Report -->
             <div class="btn-group shadow-sm" role="group" aria-label="Report View Selector">
@@ -448,19 +449,28 @@
         </div>
     </div>
 
+    <!-- Horizontal Divider Line directly below header matching Turnitin screenshot -->
+    <div class="turnitin-sheet-divider mt-2 mb-4"></div>
+
     <!-- Content -->
     <div class="turnitin-sheet-content">
         <!-- Main Two-Column Row matching reference screenshot -->
         <div class="row g-4 align-items-stretch pt-2 pb-2">
             <!-- Left: Headline and description -->
             <div class="col-md-7">
-                <div class="ai-overview-score-line">
+                <div class="ai-overview-score-line mb-2">
                     <span class="ai-score-num">{{ overall_ai_display }}</span>
                     <span class="ai-score-title">detected as AI</span>
                 </div>
+                {% if is_zero_ai %}
+                <div class="ai-score-subtext">
+                    AI detection includes the possibility of false positives. Although some text in this submission is likely AI generated, scores below the 20% threshold are not surfaced because they have a higher likelihood of false positives.
+                </div>
+                {% else %}
                 <div class="ai-score-subtext">
                     The percentage indicates the combined amount of likely AI-generated text as well as likely AI-generated text that was also likely revised by AI.
                 </div>
+                {% endif %}
             </div>
 
             <!-- Right: Light Blue Caution Callout Card -->
@@ -475,9 +485,10 @@
         </div>
 
         <!-- Divider Line -->
-        <div class="turnitin-sheet-divider my-3"></div>
+        <div class="turnitin-sheet-divider my-4"></div>
 
-        <!-- Middle Row: AI-generated group row -->
+        {% if not is_zero_ai %}
+        <!-- Middle Row: AI-generated group row (Only surfaced when AI > 0%) -->
         <div class="d-flex align-items-center gap-3 py-2">
             <div class="d-flex align-items-center justify-content-center rounded" style="width: 20px; height: 20px; background-color: #0084ff; color: #fff;">
                 <i class="bi bi-robot" style="font-size: 11px;"></i>
@@ -489,15 +500,19 @@
         </div>
 
         <!-- Divider Line -->
-        <div class="turnitin-sheet-divider my-3"></div>
+        <div class="turnitin-sheet-divider my-4"></div>
+        {% endif %}
 
         <!-- Bottom: Disclaimer Section -->
-        <div class="pt-1 pb-4">
+        <div class="pt-1 pb-3">
             <div class="ai-disclaimer-title">Disclaimer</div>
             <div class="ai-disclaimer-text">
                 Our AI writing assessment is designed to help educators identify text that might be prepared by a generative AI tool. Our AI writing assessment may not always be accurate (it may misidentify writing that is likely human generated as AI generated and likely AI generated as human generated) so it should not be used as the sole basis for adverse actions against a student. It takes further scrutiny and human judgment in conjunction with an organization's application of its specific academic policies to determine whether any academic misconduct has occurred.
             </div>
         </div>
+
+        <!-- Divider Line below disclaimer (as seen in screenshot) -->
+        <div class="turnitin-sheet-divider mt-4 mb-2"></div>
     </div>
 
     <!-- Footer -->

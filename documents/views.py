@@ -130,12 +130,23 @@ def upload_view(request):
                         institution=request.user.institution,
                     )
 
-                messages.success(
-                    request,
-                    f'Document "{doc.title}" uploaded and text extracted successfully. '
-                    f'{result.word_count} words extracted from {result.page_count} pages.'
-                )
+                # Automatically generate both Plagiarism Similarity Report and AI Report immediately on upload
+                try:
+                    from analysis.services import generate_both_reports
+                    sim_report, ai_report = generate_both_reports(doc, user=request.user)
+                    messages.success(
+                        request,
+                        f'Document "{doc.title}" uploaded & analyzed! '
+                        f'Plagiarism: {sim_report.similarity_display} • AI: {ai_report.overall_ai_score:.0f}%'
+                    )
+                except Exception as analysis_err:
+                    messages.success(
+                        request,
+                        f'Document "{doc.title}" uploaded and text extracted successfully ({result.word_count} words).'
+                    )
+
                 return redirect('documents:detail', doc_id=doc.id)
+
 
             except Exception as e:
                 doc.status = Document.Status.FAILED

@@ -1,97 +1,204 @@
 {% extends 'base.html' %}
 
-{% block title %}Upload Document{% endblock %}
-{% block page_title %}Upload Document for Plagiarism Check{% endblock %}
+{% block title %}Upload Document | ScholarGuard{% endblock %}
+{% block page_title %}New Document Submission{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header fw-bold">
-                <i class="bi bi-cloud-arrow-up me-2 text-primary"></i>Document Submission Form
+    <div class="col-xl-9 col-lg-10">
+
+        <!-- Visual Multi-Phase Processing Stepper -->
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body p-3 p-md-4">
+                <div class="d-flex justify-content-between align-items-center position-relative">
+                    <div class="text-center flex-fill position-relative" style="z-index: 2;">
+                        <div class="badge rounded-circle bg-primary p-3 mb-2 shadow-sm text-white fs-6">
+                            <i class="bi bi-cloud-arrow-up-fill"></i>
+                        </div>
+                        <div class="fw-bold small text-primary">1. Upload & Validate</div>
+                        <small class="text-muted d-none d-sm-block">DOCX, PDF, TXT</small>
+                    </div>
+
+                    <div class="border-top border-2 border-primary position-absolute w-100" style="top: 28px; z-index: 1;"></div>
+
+                    <div class="text-center flex-fill position-relative" style="z-index: 2;">
+                        <div class="badge rounded-circle bg-light border p-3 mb-2 text-muted fs-6">
+                            <i class="bi bi-file-text"></i>
+                        </div>
+                        <div class="fw-bold small text-muted">2. Text Extraction</div>
+                        <small class="text-muted d-none d-sm-block">Structure & tokens</small>
+                    </div>
+
+                    <div class="text-center flex-fill position-relative" style="z-index: 2;">
+                        <div class="badge rounded-circle bg-light border p-3 mb-2 text-muted fs-6">
+                            <i class="bi bi-intersect"></i>
+                        </div>
+                        <div class="fw-bold small text-muted">3. Similarity & AI</div>
+                        <small class="text-muted d-none d-sm-block">Multi-repository</small>
+                    </div>
+
+                    <div class="text-center flex-fill position-relative" style="z-index: 2;">
+                        <div class="badge rounded-circle bg-light border p-3 mb-2 text-muted fs-6">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </div>
+                        <div class="fw-bold small text-muted">4. Turnitin Report</div>
+                        <small class="text-muted d-none d-sm-block">A4 PDF & Digital Receipt</small>
+                    </div>
+                </div>
             </div>
-            <div class="card-body p-4">
+        </div>
+
+        <!-- Main Upload Card -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-shield-check text-primary fs-5"></i>
+                    <span class="fw-bold text-dark fs-6">Document Submission Form & Pre-Check Options</span>
+                </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
+                    <i class="bi bi-lock-fill me-1"></i> Private & Confidential
+                </span>
+            </div>
+
+            <div class="card-body p-4 p-md-5">
                 <form method="post" action="{% url 'documents:upload' %}" enctype="multipart/form-data" id="upload-form">
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
-                    <div class="alert alert-danger py-2 small mb-3">
+                    <div class="alert alert-danger py-2 small mb-4">
                         {% for error in form.non_field_errors %}
-                            {{ error }}
+                            <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
                         {% endfor %}
                     </div>
                     {% endif %}
 
-                    <!-- Drag and Drop Area -->
+                    <!-- Drag & Drop Zone -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">Select or Drop Document File</label>
-                        <div class="upload-zone" id="upload-zone">
-                            <div class="upload-icon">
-                                <i class="bi bi-cloud-arrow-up"></i>
+                        <label class="form-label fw-bold text-dark mb-2">Select or Drag Your Document</label>
+                        <div class="upload-zone py-5" id="upload-zone">
+                            <div class="upload-icon mb-3">
+                                <i class="bi bi-cloud-arrow-up" style="font-size: 3rem; color: #4f46e5;"></i>
                             </div>
-                            <div class="upload-title">Drag & drop your file here, or click to browse</div>
-                            <div class="upload-subtitle">Supported formats: PDF, DOCX, TXT, PPTX &bull; Maximum file size: 25 MB</div>
+                            <div class="upload-title fs-5 fw-bold text-dark mb-1">Drag & drop your file here, or click to browse</div>
+                            <div class="upload-subtitle text-muted small">
+                                Accepted formats: <strong>PDF</strong>, <strong>DOCX</strong>, <strong>TXT</strong>, <strong>PPTX</strong> &bull; Max 25 MB &bull; Up to 500 pages
+                            </div>
                         </div>
                         <div class="d-none">
                             {{ form.file }}
                         </div>
                         {% if form.file.errors %}
-                            <div class="text-danger small mt-2">{{ form.file.errors.0 }}</div>
+                            <div class="text-danger small mt-2 fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>{{ form.file.errors.0 }}</div>
                         {% endif %}
                     </div>
 
-                    <!-- Supported Badges -->
-                    <div class="d-flex gap-2 mb-4">
-                        <span class="file-type-badge pdf">PDF</span>
-                        <span class="file-type-badge docx">DOCX</span>
-                        <span class="file-type-badge txt">TXT</span>
-                        <span class="file-type-badge pptx">PPTX</span>
-                        <span class="text-muted small ms-auto align-self-center">Up to 500 pages &bull; 100k words</span>
+                    <!-- Supported Format Badges -->
+                    <div class="d-flex flex-wrap gap-2 mb-4 pb-3 border-bottom">
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-semibold">
+                            <i class="bi bi-filetype-pdf me-1"></i> Adobe PDF
+                        </span>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fw-semibold">
+                            <i class="bi bi-filetype-docx me-1"></i> Microsoft Word (.docx)
+                        </span>
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 fw-semibold">
+                            <i class="bi bi-filetype-txt me-1"></i> Plain Text (.txt)
+                        </span>
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 fw-semibold">
+                            <i class="bi bi-filetype-pptx me-1"></i> PowerPoint (.pptx)
+                        </span>
+                        <span class="text-muted small ms-auto align-self-center">
+                            <i class="bi bi-check2-circle text-success me-1"></i> Auto-sanitized text stream
+                        </span>
                     </div>
 
-                    <!-- Title -->
-                    <div class="mb-3">
-                        <label for="doc-title" class="form-label fw-semibold">Document Title</label>
-                        {{ form.title }}
-                        <div class="form-text">Give your document a descriptive academic title.</div>
-                        {% if form.title.errors %}
-                            <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
+                    <!-- Document Metadata Fields -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label for="doc-title" class="form-label fw-bold text-dark">Document Title <span class="text-danger">*</span></label>
+                            {{ form.title }}
+                            <div class="form-text small">Provide a descriptive title for citation references and Turnitin digital receipts.</div>
+                            {% if form.title.errors %}
+                                <div class="text-danger small mt-1 fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Assignment Select -->
+                        {% if form.assignment %}
+                        <div class="col-md-12">
+                            <label for="doc-assignment" class="form-label fw-bold text-dark">Associated Course Assignment</label>
+                            {{ form.assignment }}
+                            <div class="form-text small">Optionally associate with an instructor assignment to apply course thresholds.</div>
+                            {% if form.assignment.errors %}
+                                <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ form.assignment.errors.0 }}</div>
+                            {% endif %}
+                        </div>
                         {% endif %}
                     </div>
 
-                    <!-- Assignment (if present) -->
-                    {% if form.assignment %}
-                    <div class="mb-3">
-                        <label for="doc-assignment" class="form-label fw-semibold">Course Assignment (Optional)</label>
-                        {{ form.assignment }}
-                        <div class="form-text">Associate this check with an instructor-created assignment.</div>
-                        {% if form.assignment.errors %}
-                            <div class="text-danger small mt-1">{{ form.assignment.errors.0 }}</div>
-                        {% endif %}
+                    <!-- Pre-Check & Analysis Exclusion Preferences -->
+                    <div class="card mb-4 bg-light border">
+                        <div class="card-header bg-transparent border-bottom fw-bold text-dark py-3">
+                            <i class="bi bi-sliders2 text-primary me-2"></i>Default Pre-Check Exclusions
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch p-3 bg-white border rounded-3 h-100">
+                                        <input class="form-check-input ms-0 me-3" type="checkbox" id="precheck_bib" checked disabled>
+                                        <label class="form-check-label fw-semibold text-dark" for="precheck_bib">
+                                            Auto-Exclude Bibliography
+                                        </label>
+                                        <div class="text-muted small mt-1">Ignores Works Cited, References, and Bibliography sections automatically.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch p-3 bg-white border rounded-3 h-100">
+                                        <input class="form-check-input ms-0 me-3" type="checkbox" id="precheck_quotes" checked disabled>
+                                        <label class="form-check-label fw-semibold text-dark" for="precheck_quotes">
+                                            Auto-Exclude Direct Quotes
+                                        </label>
+                                        <div class="text-muted small mt-1">Filters out text enclosed in quotation marks from similarity scores.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                <i class="bi bi-info-circle me-1"></i> You can adjust fine-grained word count thresholds on the document details page after extraction.
+                            </small>
+                        </div>
                     </div>
-                    {% endif %}
 
-                    <!-- Reference Repository Option (for Teachers/Admins) -->
+                    <!-- Reference Repository Option (For Teachers/Admins) -->
                     {% if form.is_reference %}
                     <div class="mb-4">
-                        <div class="form-check form-switch p-3 bg-light rounded-3">
+                        <div class="form-check form-switch p-3 bg-light border rounded-3">
                             {{ form.is_reference }}
-                            <label class="form-check-label fw-semibold ms-2" for="doc-is-reference">
+                            <label class="form-check-label fw-bold text-dark ms-2" for="doc-is-reference">
                                 Add to Institutional Reference Index
                             </label>
                             <div class="small text-muted ms-2 mt-1">
-                                Check this to make this document an authoritative reference source against which future student papers are matched.
+                                Check this to store this document as an authoritative institutional master reference against which future student papers will be checked.
                             </div>
                         </div>
                     </div>
                     {% endif %}
 
+                    <!-- Privacy & Submission Notice -->
+                    <div class="alert alert-info py-3 mb-4 small border-0 bg-info-subtle text-info-emphasis">
+                        <div class="d-flex gap-2">
+                            <i class="bi bi-shield-check fs-5 mt-n1"></i>
+                            <div>
+                                <strong>Academic Privacy Guarantee:</strong> Your submission is analyzed securely in accordance with FERPA and GDPR regulations. Documents are never sold or added to public search engine indexes.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
                     <div class="d-flex justify-content-between align-items-center pt-2">
-                        <a href="{% url 'documents:list' %}" class="btn btn-outline-secondary">
+                        <a href="{% url 'documents:list' %}" class="btn btn-outline-secondary px-4">
                             Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold" id="submit-upload-btn">
-                            <i class="bi bi-arrow-right-circle me-1"></i> Upload & Extract Text
+                        <button type="submit" class="btn btn-primary px-5 py-2 fw-bold shadow-sm" id="submit-upload-btn">
+                            <i class="bi bi-arrow-right-circle me-2"></i> Submit & Extract Text
                         </button>
                     </div>
                 </form>
@@ -100,3 +207,4 @@
     </div>
 </div>
 {% endblock %}
+

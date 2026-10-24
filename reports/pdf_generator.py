@@ -287,9 +287,9 @@ def _build_database_source_icon(db):
 
 
 def _build_arrow_bullet():
-    """Draws a crisp 8x8 right-pointing vector triangle for filtered items."""
-    d = Drawing(8, 8)
-    d.add(Polygon([1.5, 6.5, 6.0, 4.0, 1.5, 1.5], fillColor=colors.HexColor('#191919'), strokeColor=None))
+    """Draws a crisp authentic right-pointing vector triangle for filtered items matching Turnitin's geometry."""
+    d = Drawing(10, 8)
+    d.add(Polygon([2.5, 2.0, 6.0, 4.0, 2.5, 6.0], fillColor=colors.HexColor('#191919'), strokeColor=None))
     return d
 
 
@@ -366,25 +366,25 @@ def generate_pdf_report(report):
 
     overview_score_style = ParagraphStyle(
         'OverviewScore', parent=styles['Normal'],
-        fontName=f_bold, fontSize=17.0, leading=22.0,
-        textColor=colors.HexColor('#191919'), spaceAfter=4
+        fontName=f_bold, fontSize=17.0, leading=21.0,
+        textColor=colors.HexColor('#191919'), spaceAfter=3.0
     )
 
     overview_sub_style = ParagraphStyle(
         'OverviewSub', parent=styles['Normal'],
-        fontName=f_reg, fontSize=7.8, leading=10.5,
-        textColor=colors.HexColor('#636363'), spaceAfter=12
+        fontName=f_reg, fontSize=7.0, leading=10.0,
+        textColor=colors.HexColor('#636363'), spaceAfter=18.0
     )
 
     filtered_hdr_style = ParagraphStyle(
         'FilteredHdr', parent=styles['Normal'],
-        fontName=f_bold, fontSize=10.5, leading=14.0,
-        textColor=colors.HexColor('#191919'), spaceAfter=4
+        fontName=f_bold, fontSize=10.0, leading=13.0,
+        textColor=colors.HexColor('#191919'), spaceAfter=6.0
     )
 
     filtered_item_style = ParagraphStyle(
         'FilteredItem', parent=styles['Normal'],
-        fontName=f_reg, fontSize=7.8, leading=11.5,
+        fontName=f_reg, fontSize=7.0, leading=10.0,
         textColor=colors.HexColor('#191919')
     )
 
@@ -486,13 +486,13 @@ def generate_pdf_report(report):
     for item in criteria['filtered_from_report']:
         bullet_d = _build_arrow_bullet()
         item_p = Paragraph(item, filtered_item_style)
-        item_t = Table([[bullet_d, item_p]], colWidths=[10, 513.28])
+        item_t = Table([[bullet_d, item_p]], colWidths=[12, 511.28])
         item_t.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
             ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
         ]))
         story.append(item_t)
 

@@ -148,7 +148,8 @@ def report_detail_view(request, report_id):
         engine = AIDetectionEngine()
         ai_report = engine.analyze_document(report.document, user=request.user)
 
-    overall_ai_display = f"{int(ai_report.overall_ai_score)}%" if ai_report else "0%"
+    is_zero_ai = ai_report.is_zero_ai if ai_report else True
+    overall_ai_display = ai_report.display_score if ai_report else "*%"
     ai_total_pages = (report.document.page_count or 1) + 2
 
     return render(request, 'reports/detail.html', {
@@ -159,6 +160,7 @@ def report_detail_view(request, report_id):
         'excluded_passages': excluded_passages,
         'source_groups': source_groups,
         'ai_report': ai_report,
+        'is_zero_ai': is_zero_ai,
         'overall_ai_display': overall_ai_display,
         'ai_total_pages': ai_total_pages,
         'logo_data_uri': criteria.get('logo_data_uri', ''),
@@ -213,7 +215,7 @@ def download_pdf_view(request, report_id):
     )
 
     pdf_buffer = generate_pdf_report(report)
-    filename = f"similarity_report_{str(report.id)[:8]}.pdf"
+    filename = report.document.plag_report_filename
 
     response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -237,7 +239,7 @@ def download_docx_view(request, report_id):
     )
 
     docx_buffer = generate_docx_report(report)
-    filename = f"similarity_report_{str(report.id)[:8]}.docx"
+    filename = f"{report.document.clean_basename}-plag report.docx"
 
     response = HttpResponse(
         docx_buffer.getvalue(),
@@ -255,7 +257,7 @@ def download_json_view(request, report_id):
         return HttpResponseForbidden()
 
     data = generate_json_report(report)
-    filename = f"similarity_report_{str(report.id)[:8]}.json"
+    filename = f"{report.document.clean_basename}-plag report.json"
 
     response = HttpResponse(
         json.dumps(data, indent=2, default=str),
@@ -263,6 +265,7 @@ def download_json_view(request, report_id):
     )
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
 
 
 def _can_view_report(user, report):
@@ -337,8 +340,8 @@ def ai_report_view(request, doc_id):
     author_name = uploaded_by.get_full_name() or uploaded_by.username or "Student Author"
     inst_name = getattr(uploaded_by.institution, 'name', 'Academic Institute') if getattr(uploaded_by, 'institution', None) else 'Academic Institute'
 
-    score = ai_report.overall_ai_score
-    overall_ai_display = "*" if score == 0 else f"{score:.0f}%"
+    is_zero_ai = ai_report.is_zero_ai
+    overall_ai_display = ai_report.display_score
 
     file_size_display = "0 KB"
     if document.file_size:
@@ -363,6 +366,7 @@ def ai_report_view(request, doc_id):
         'submission_id': submission_id,
         'submission_date': (document.uploaded_at or ai_report.created_at).strftime('%b %d, %Y, %I:%M %p GMT+1'),
         'download_date': datetime.now().strftime('%b %d, %Y, %I:%M %p GMT+1'),
+        'is_zero_ai': is_zero_ai,
         'overall_ai_display': overall_ai_display,
         'file_size_display': file_size_display,
         'page_count': page_count,
@@ -395,10 +399,10 @@ def download_ai_pdf_view(request, ai_report_id):
     )
 
     pdf_buffer = generate_ai_pdf_report(ai_report)
-    safe_title = "".join(c for c in ai_report.document.title if c.isalnum() or c in (' ', '-', '_')).strip()[:35]
-    filename = f"turnitin_ai_report_{safe_title}_{str(ai_report.id)[:8]}.pdf"
+    filename = ai_report.document.ai_report_filename
 
     response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
 

@@ -2,14 +2,16 @@
 Core similarity analysis engine.
 Orchestrates all comparison methods, applies exclusions, and generates reports.
 """
+import re
 import time
 import logging
 from django.conf import settings
 from django.utils import timezone
 
 from .comparators import ExactMatchComparator, NGramComparator, FuzzyComparator, TFIDFComparator
+from .winnowing import WinnowingEngine
 from .exclusions import ExclusionEngine
-from .scoring import SimilarityScorer
+from .scoring import AcademicSimilarityScorer, SimilarityScorer
 from .models import SimilarityReport, MatchedPassage, ProcessingJob
 from documents.models import Document, ExtractedText, ReferenceSource
 
@@ -20,8 +22,9 @@ class AnalysisEngine:
     """
     Main similarity analysis engine.
     
-    Coordinates multiple comparison methods, applies exclusion rules,
-    calculates scores without double-counting, and persists results.
+    Coordinates multiple comparison methods (Exact, Winnowing, Fuzzy, TF-IDF),
+    applies exclusion rules, calculates word-level scores without double-counting,
+    and persists auditable results.
     """
 
     def __init__(self, exclusion_settings=None):
@@ -40,6 +43,7 @@ class AnalysisEngine:
         min_words = self.exclusion_settings.get('min_match_words', 5)
         ngram_size = getattr(settings, 'NGRAM_SIZE', 5)
 
+        self.winnowing_engine = WinnowingEngine(k=min_words, w=4)
         self.exact_comparator = ExactMatchComparator(min_word_count=min_words)
         self.ngram_comparator = NGramComparator(n=ngram_size)
         self.fuzzy_comparator = FuzzyComparator(threshold=0.75)
@@ -124,10 +128,23 @@ class AnalysisEngine:
                 document.save(update_fields=['status'])
                 return report
 
-            # Initialize scorer
-            scorer = SimilarityScorer(len(full_text), total_words)
+            # Step 1: Tokenize submitted document with offsets and compute Winnowing fingerprints
+            sub_fps, sub_tokens = self.winnowing_engine.compute_fingerprints(full_text)
+            total_words = len(sub_tokens) if sub_tokens else (document.word_count or len(full_text.split()))
 
-            # Step 1: TF-IDF pre-filtering for efficiency
+            # Initialize academic word-position scorer
+            scorer = AcademicSimilarityScorer(total_word_count=total_words, full_text=full_text)
+            min_words = self.exclusion_settings.get('min_match_words', 5)
+
+            # Detect document-level exclusion regions (e.g. bibliography sections)
+            if self.exclusion_settings.get('exclude_bibliography'):
+                bib_match = re.search(r'\b(?:References|Bibliography|Works Cited)\b', full_text, re.IGNORECASE)
+                if bib_match:
+                    bib_char_start = bib_match.start()
+                    bib_w_start, bib_w_end = self._char_span_to_word_span(sub_tokens, bib_char_start, len(full_text))
+                    scorer.add_exclusion_span(bib_w_start, bib_w_end)
+
+            # Step 2: TF-IDF candidate pre-filtering
             source_texts = []
             source_refs = []
             for src in sources:
@@ -139,8 +156,8 @@ class AnalysisEngine:
             # Get candidate sources by TF-IDF similarity
             candidates = self.tfidf_comparator.compare_batch(full_text, source_texts)
 
-            # Limit to top candidates for detailed analysis
-            max_candidates = 20
+            # Limit to top candidates for detailed multi-method analysis
+            max_candidates = 25
             top_candidates = candidates[:max_candidates]
 
             all_matches = []
@@ -149,6 +166,7 @@ class AnalysisEngine:
             exact_count = 0
             phrase_count = 0
             fuzzy_count = 0
+            winnow_count = 0
 
             for src_idx, tfidf_score in top_candidates:
                 if src_idx >= len(source_refs):
@@ -164,12 +182,23 @@ class AnalysisEngine:
                     'tfidf_similarity': round(tfidf_score * 100, 2),
                 })
 
-                # Get source pages if available
-                source_pages = None
-                if source.document:
-                    source_pages = self._get_document_pages(source.document)
+                # Source page mapping if available
+                source_pages = self._get_document_pages(source.document) if source.document else None
 
-                # Run exact matching
+                # Method A: Winnowing Fingerprint Matching
+                src_fps, src_tokens = self.winnowing_engine.compute_fingerprints(source_text)
+                winnow_passages = self.winnowing_engine.match_fingerprints(
+                    sub_fps, src_fps, full_text, source_text, min_words=min_words
+                )
+                for wp in winnow_passages:
+                    wp['source'] = source
+                    wp['source_index'] = source_index
+                    wp['match_type'] = 'exact'
+                    all_matches.append(wp)
+                    winnow_count += 1
+                    exact_count += 1
+
+                # Method B: Exact String Matching
                 exact_result = self.exact_comparator.compare(
                     full_text, source_text, pages, source_pages
                 )
@@ -180,7 +209,7 @@ class AnalysisEngine:
                     all_matches.append(match)
                     exact_count += 1
 
-                # Run n-gram matching
+                # Method C: N-Gram Phrase Matching
                 ngram_result = self.ngram_comparator.compare(
                     full_text, source_text, pages, source_pages
                 )
@@ -191,7 +220,7 @@ class AnalysisEngine:
                     all_matches.append(match)
                     phrase_count += 1
 
-                # Run fuzzy matching
+                # Method D: Near-Duplicate / Fuzzy Matching
                 fuzzy_result = self.fuzzy_comparator.compare(
                     full_text, source_text, pages, source_pages
                 )
@@ -202,63 +231,78 @@ class AnalysisEngine:
                     all_matches.append(match)
                     fuzzy_count += 1
 
-            # Apply exclusions and save matches
+            # Deduplicate matching spans and apply exclusions
             for match in all_matches:
                 should_exclude, reason, uncertain = self.exclusion_engine.should_exclude(
                     match, full_text
                 )
 
-                # Estimate character positions from word positions
-                char_start = self._estimate_char_position(
-                    full_text, match['submitted_text'], start=True
-                )
-                char_end = char_start + len(match['submitted_text'])
+                # Character positions
+                char_start = match.get('submitted_start')
+                if char_start is None:
+                    char_start = self._estimate_char_position(full_text, match['submitted_text'], start=True)
+                char_end = match.get('submitted_end') or (char_start + len(match['submitted_text']))
 
-                # Save to database
+                # Map character positions to discrete word indices
+                w_start, w_end = self._char_span_to_word_span(sub_tokens, char_start, char_end)
+
+                # Save match record to database
+                source_obj = match.get('source')
+                source_id = str(source_obj.id) if source_obj else None
+                source_title = source_obj.title if source_obj else ''
+
                 mp = MatchedPassage.objects.create(
                     report=report,
-                    submitted_text=match['submitted_text'][:5000],  # Limit size
+                    submitted_text=match['submitted_text'][:5000],
                     source_text=match.get('source_text', '')[:5000],
                     submitted_page=match.get('submitted_page', 1),
                     submitted_paragraph=match.get('submitted_para', 1),
                     submitted_char_start=char_start,
                     submitted_char_end=char_end,
-                    source=match.get('source'),
+                    source=source_obj,
                     source_page=match.get('source_page'),
                     source_paragraph=match.get('source_para'),
                     match_type=match['match_type'],
-                    similarity_score=match.get('similarity', 0.0),
+                    similarity_score=match.get('similarity', 1.0),
                     word_count=len(match['submitted_text'].split()),
                     source_index=match.get('source_index', 0),
                     is_excluded=should_exclude,
                     exclusion_reason=reason,
                 )
 
-                # Add non-excluded matches to scorer
+                # Register non-excluded verified spans with word position scorer
                 if not should_exclude:
-                    source_id = str(match['source'].id) if match.get('source') else None
                     scorer.add_match_span(
-                        char_start, char_end,
+                        word_start=w_start,
+                        word_end=w_end,
                         source_id=source_id,
+                        source_name=source_title,
+                        source_category=source_obj.get_source_type_display() if source_obj else 'Submitted Document',
+                        source_url=getattr(source_obj, 'url', ''),
                         match_type=match['match_type'],
+                        similarity=match.get('similarity', 1.0),
                     )
 
-            # Calculate final scores
-            score_result = scorer.calculate_overall_similarity()
+            # Calculate word-level non-overlapping similarity
+            score_result = scorer.calculate()
 
-            # Update report
+            # Persist comprehensive report metrics
             report.overall_similarity = score_result['overall_similarity']
+            report.unfiltered_similarity = score_result['unfiltered_similarity']
+            report.exact_similarity = score_result['exact_similarity']
+            report.near_duplicate_similarity = score_result['near_duplicate_similarity']
             report.total_words = total_words
-            report.matched_words = score_result['matched_words_estimate']
-            report.source_count = len(set(
-                str(m['source'].id) for m in all_matches
-                if m.get('source') and not self.exclusion_engine.should_exclude(m, full_text)[0]
-            ))
+            report.eligible_words = score_result['eligible_words']
+            report.excluded_words = score_result['excluded_words']
+            report.matched_words = score_result['matched_words']
+            report.source_breakdown = score_result['sources']
+            report.source_count = len(score_result['sources'])
+
             report.exact_match_count = exact_count
             report.phrase_match_count = phrase_count
             report.fuzzy_match_count = fuzzy_count
             report.status = SimilarityReport.Status.COMPLETED
-            report.processing_time_seconds = time.time() - start_time
+            report.processing_time_seconds = round(time.time() - start_time, 2)
             report.sources_checked = sources_checked
             report.save()
 
@@ -371,3 +415,21 @@ class AnalysisEngine:
         """Estimate character position of a match in the full text."""
         pos = full_text.lower().find(match_text.lower()[:100])
         return max(pos, 0)
+
+    def _char_span_to_word_span(self, tokens, char_start, char_end):
+        """Maps character offsets [char_start, char_end] to word indices [w_start, w_end]."""
+        if not tokens:
+            return 0, 0
+        w_start = 0
+        w_end = len(tokens) - 1
+        for idx, t in enumerate(tokens):
+            if t.start_char <= char_start <= t.end_char or t.start_char >= char_start:
+                w_start = idx
+                break
+        for idx in range(w_start, len(tokens)):
+            if tokens[idx].end_char >= char_end:
+                w_end = idx
+                break
+            w_end = idx
+        return w_start, max(w_start, w_end)
+

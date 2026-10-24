@@ -155,6 +155,12 @@ class AICanvas(canvas.Canvas):
         # Header (Top of A4: height 841.89 pt): baseline y = 806.0 pt, logo y = 801.0 pt
         draw_brand_decor(806.0, 801.0)
 
+        # Underline below header for Overview & Submission pages (y = 794.0 pt) matching Turnitin screenshot
+        if section != "AI Writing Cover Page":
+            self.setStrokeColor(colors.HexColor('#cbd5e1'))
+            self.setLineWidth(0.5)
+            self.line(36.0, 794.0, 559.28, 794.0)
+
         # Footer (Bottom of A4): baseline y = 32.5 pt, logo y = 27.52 pt
         draw_brand_decor(32.5, 27.52)
 
@@ -331,7 +337,8 @@ def generate_ai_pdf_report(ai_report):
     story.append(PageBreak())
     story.append(SetSection("AI Writing Overview"))
 
-    score_display = f"{int(ai_report.overall_ai_score)}%"
+    is_zero_ai = (ai_report.overall_ai_score == 0 or ai_report.overall_ai_score < 1)
+    score_display = "*%" if is_zero_ai else f"{int(ai_report.overall_ai_score)}%"
 
     # Top Section: Left Score + Subtext (261.64 pt), Right Caution Box (261.64 pt)
     score_heading_style = ParagraphStyle(
@@ -345,13 +352,21 @@ def generate_ai_pdf_report(ai_report):
         textColor=colors.HexColor('#191919')
     )
 
+    if is_zero_ai:
+        subtext_desc = (
+            "AI detection includes the possibility of false positives. Although some text in this "
+            "submission is likely AI generated, scores below the 20% threshold are not surfaced "
+            "because they have a higher likelihood of false positives."
+        )
+    else:
+        subtext_desc = (
+            "The percentage indicates the combined amount of likely AI-generated text as "
+            "well as likely AI-generated text that was also likely revised by AI."
+        )
+
     left_cells = [
         [Paragraph(f"<b>{score_display} detected as AI</b>", score_heading_style)],
-        [Paragraph(
-            "The percentage indicates the combined amount of likely AI-generated text as "
-            "well as likely AI-generated text that was also likely revised by AI.",
-            score_desc_style
-        )]
+        [Paragraph(subtext_desc, score_desc_style)]
     ]
     left_table = Table(left_cells, colWidths=[261.64])
     left_table.setStyle(TableStyle([
@@ -364,13 +379,13 @@ def generate_ai_pdf_report(ai_report):
 
     caution_title_style = ParagraphStyle(
         'AICautionTitle', parent=styles['Normal'],
-        fontName=f_bold, fontSize=10.5, leading=14.0,
-        textColor=colors.HexColor('#2d2d2d'), spaceAfter=4
+        fontName=f_bold, fontSize=8.5, leading=12.0,
+        textColor=colors.HexColor('#191919'), spaceAfter=4
     )
     caution_body_style = ParagraphStyle(
         'AICautionBody', parent=styles['Normal'],
-        fontName=f_reg, fontSize=7.8, leading=10.5,
-        textColor=colors.HexColor('#2d2d2d')
+        fontName=f_reg, fontSize=7.5, leading=10.0,
+        textColor=colors.HexColor('#191919')
     )
 
     caution_cells = [
@@ -384,13 +399,12 @@ def generate_ai_pdf_report(ai_report):
     ]
     caution_table = Table(caution_cells, colWidths=[255.0])
     caution_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#dbeafe')),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#bae6fd')),
-        ('ROUNDEDCORNERS', [6, 6, 6, 6]),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('LEFTPADDING', (0, 0), (-1, -1), 10),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#e2f0fb')),
+        ('ROUNDEDCORNERS', [10, 10, 10, 10]),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 12),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
@@ -404,46 +418,47 @@ def generate_ai_pdf_report(ai_report):
     ]))
     story.append(overview_top_table)
 
-    story.append(Spacer(1, 10))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=12))
+    story.append(Spacer(1, 14))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=14))
 
-    # Middle Section: AI-generated group row with icon
-    ai_icon = Drawing(15, 15)
-    ai_icon.add(Rect(0, 0, 15, 15, rx=3.5, ry=3.5, fillColor=colors.HexColor('#0084ff'), strokeColor=None))
-    # Sparkle / AI vector star inside
-    ai_icon.add(Circle(7.5, 7.5, 3.0, fillColor=colors.white, strokeColor=None))
+    if not is_zero_ai:
+        # Middle Section: AI-generated group row with icon
+        ai_icon = Drawing(15, 15)
+        ai_icon.add(Rect(0, 0, 15, 15, rx=3.5, ry=3.5, fillColor=colors.HexColor('#0084ff'), strokeColor=None))
+        # Sparkle / AI vector star inside
+        ai_icon.add(Circle(7.5, 7.5, 3.0, fillColor=colors.white, strokeColor=None))
 
-    ai_grp_title = Paragraph(
-        f"<b>{ai_report.ai_sentence_count} AI-generated &nbsp;{score_display}</b>",
-        ParagraphStyle('AIGrpTitle', fontName=f_bold, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919'))
-    )
-    ai_grp_desc = Paragraph(
-        "Likely generated or likely generated and revised by AI.",
-        ParagraphStyle('AIGrpDesc', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363'))
-    )
+        ai_grp_title = Paragraph(
+            f"<b>{ai_report.ai_sentence_count} AI-generated &nbsp;{score_display}</b>",
+            ParagraphStyle('AIGrpTitle', fontName=f_bold, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919'))
+        )
+        ai_grp_desc = Paragraph(
+            "Likely generated or likely generated and revised by AI.",
+            ParagraphStyle('AIGrpDesc', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363'))
+        )
 
-    ai_grp_table = Table([[ai_icon, [ai_grp_title, ai_grp_desc]]], colWidths=[20, 503.28])
-    ai_grp_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    story.append(ai_grp_table)
+        ai_grp_table = Table([[ai_icon, [ai_grp_title, ai_grp_desc]]], colWidths=[20, 503.28])
+        ai_grp_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        story.append(ai_grp_table)
 
-    story.append(Spacer(1, 10))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=12))
+        story.append(Spacer(1, 14))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=14))
 
     # Bottom Section: Disclaimer
     disclaimer_title_style = ParagraphStyle(
         'AIDisclaimerTitle', parent=styles['Normal'],
-        fontName=f_bold, fontSize=10.5, leading=14.0,
+        fontName=f_bold, fontSize=8.5, leading=12.0,
         textColor=colors.HexColor('#191919'), spaceAfter=4
     )
     disclaimer_body_style = ParagraphStyle(
         'AIDisclaimerBody', parent=styles['Normal'],
-        fontName=f_reg, fontSize=7.8, leading=10.5,
+        fontName=f_reg, fontSize=7.5, leading=10.0,
         textColor=colors.HexColor('#636363')
     )
 
@@ -456,6 +471,8 @@ def generate_ai_pdf_report(ai_report):
         "to determine whether any academic misconduct has occurred."
     )
     story.append(Paragraph(disclaimer_text, disclaimer_body_style))
+    story.append(Spacer(1, 14))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=14))
 
     # =========================================================================
     # PAGES 3+: AI HIGHLIGHTED SUBMISSION

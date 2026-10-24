@@ -184,41 +184,41 @@
 .turnitin-overview-score-line {
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    margin-bottom: 2px;
+    gap: 7px;
+    margin-bottom: 3px;
     font-family: 'Inter', Arial, sans-serif;
 }
 .turnitin-score-num {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 23px; /* 22–23 px Bold/Semibold */
-    font-weight: 700;
+    font-size: 22.5px; /* 22–23 px Semibold/Medium */
+    font-weight: 600;
     color: #191919;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
     line-height: 1.15;
 }
 .turnitin-score-title {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 22px; /* 22–23 px Bold/Semibold */
-    font-weight: 700;
+    font-size: 22.5px; /* 22–23 px Semibold/Medium */
+    font-weight: 600;
     color: #191919;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
     line-height: 1.15;
 }
 .turnitin-score-subtext {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 10.5px; /* 10–11 px Regular */
+    font-size: 10px; /* 10 px Regular */
     font-weight: 400;
     color: #636363;
-    line-height: 1.45;
-    margin-bottom: 16px;
+    line-height: 1.4;
+    margin-bottom: 22px;
 }
 
 .turnitin-section-header {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 14px; /* 14 px Semibold */
+    font-size: 13.5px; /* ~13.5–14 px Semibold */
     font-weight: 600;
     color: #191919;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     letter-spacing: -0.01em;
 }
 
@@ -230,21 +230,25 @@
 }
 .turnitin-filtered-list li {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 10.5px; /* 10–11 px Regular */
+    font-size: 10px; /* 10 px Regular */
     font-weight: 400;
     color: #191919;
-    line-height: 1.6;
+    line-height: 1.4;
     display: flex;
     align-items: center;
-    margin-bottom: 2px;
+    margin-bottom: 6px;
 }
 .filtered-arrow {
-    font-size: 8px;
-    color: #191919;
-    margin-right: 8px;
     display: inline-block;
-    line-height: 1;
+    width: 0;
+    height: 0;
+    border-top: 3.5px solid transparent;
+    border-bottom: 3.5px solid transparent;
+    border-left: 5px solid #191919;
+    margin-right: 8px;
+    flex-shrink: 0;
 }
+
 
 /* Divider Line */
 .turnitin-sheet-divider {
@@ -574,8 +578,9 @@ mark.turnitin-highlight:hover {
         <div class="d-flex flex-wrap align-items-center gap-2">
             <!-- Dynamic Download PDF Button: downloads current active report -->
             <a href="{% url 'reports:download_pdf' report.id %}" class="btn btn-danger fw-semibold px-3 py-2 shadow-sm" id="btn-download-pdf">
-                <i class="bi bi-file-earmark-pdf-fill me-1"></i> <span id="btn-download-pdf-label">Download PDF Report</span>
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> <span id="btn-download-pdf-label">Download {{ report.document.plag_report_filename }}</span>
             </a>
+
 
             <!-- 1-Click Toggle: Plagiarism vs AI Report -->
             <div class="btn-group shadow-sm" role="group" aria-label="Report View Selector">
@@ -744,14 +749,15 @@ mark.turnitin-highlight:hover {
         <div class="turnitin-section-header">Filtered from the Report</div>
         <ul class="turnitin-filtered-list">
             {% for item in criteria.filtered_from_report %}
-            <li><span class="filtered-arrow">&#9656;</span> {{ item }}</li>
+            <li><span class="filtered-arrow"></span>{{ item }}</li>
             {% empty %}
-            <li><span class="filtered-arrow">&#9656;</span> Bibliography</li>
-            <li><span class="filtered-arrow">&#9656;</span> Quoted Text</li>
-            <li><span class="filtered-arrow">&#9656;</span> Cited Text</li>
+            <li><span class="filtered-arrow"></span>Bibliography</li>
+            <li><span class="filtered-arrow"></span>Quoted Text</li>
+            <li><span class="filtered-arrow"></span>Cited Text</li>
             {% endfor %}
         </ul>
     </div>
+
 
     <div class="turnitin-sheet-divider"></div>
 
@@ -1284,7 +1290,7 @@ function switchMainReport(mode) {
             {% endif %}
         }
         if (btnDownloadLabel) {
-            btnDownloadLabel.innerText = "Download AI PDF Report";
+            btnDownloadLabel.innerText = "Download {{ report.document.ai_report_filename }}";
         }
         if (simContainer) simContainer.style.display = 'none';
         if (aiContainer) aiContainer.style.display = 'block';
@@ -1309,7 +1315,7 @@ function switchMainReport(mode) {
             btnDownload.href = "{% url 'reports:download_pdf' report.id %}";
         }
         if (btnDownloadLabel) {
-            btnDownloadLabel.innerText = "Download PDF Report";
+            btnDownloadLabel.innerText = "Download {{ report.document.plag_report_filename }}";
         }
         if (simContainer) simContainer.style.display = 'block';
         if (aiContainer) aiContainer.style.display = 'none';
@@ -1317,6 +1323,7 @@ function switchMainReport(mode) {
         if (switcherAi) switcherAi.style.display = 'none';
         history.replaceState(null, null, '#plag');
     }
+
 }
 
 function showReportSection(sectionId, btn) {

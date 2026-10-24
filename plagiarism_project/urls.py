@@ -7,6 +7,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
 from plagiarism_project.views import (
+    landing_page_view,
     health_check,
     custom_page_not_found,
     custom_server_error,
@@ -15,6 +16,9 @@ from plagiarism_project.views import (
 )
 
 urlpatterns = [
+    # Marketing Homepage
+    path('', landing_page_view, name='landing'),
+
     # Infrastructure & Monitoring
     path('health/', health_check, name='health_check'),
     path('healthz/', health_check, name='healthz'),
@@ -27,7 +31,6 @@ urlpatterns = [
     path('reports/', include('reports.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('sources/', include('sources.urls')),
-    path('', lambda request: redirect('dashboard:home')),
 ]
 
 if settings.DEBUG:

@@ -166,3 +166,55 @@ def _get_client_ip(request):
     if x_forwarded:
         return x_forwarded.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR')
+
+
+@login_required
+def api_ai_analyze_view(request):
+    """
+    REST API endpoint for real-time AI writing detection analysis.
+    Accepts: JSON payload with 'text' or 'doc_id'.
+    Returns: Calibrated metrics, segment-level classifications, confidence, and disclaimers.
+    """
+    import json
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8')) if request.body else {}
+    except Exception:
+        data = request.POST
+
+    from .ai_detector import AIDetectionEngine
+    engine = AIDetectionEngine()
+
+    doc_id = data.get('doc_id')
+    raw_text = data.get('text', '')
+
+    if doc_id:
+        document = get_object_or_404(Document, id=doc_id, is_deleted=False)
+        if document.uploaded_by != request.user and not request.user.is_admin and not request.user.is_teacher:
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        ai_report = engine.analyze_document(document, user=request.user)
+        return JsonResponse({
+            'document_id': str(document.id),
+            'document_title': document.title,
+            'report_id': str(ai_report.id),
+            'overall_ai_score': ai_report.overall_ai_score,
+            'is_below_threshold': ai_report.overall_ai_score == 0.0,
+            'display_score': ai_report.display_score,
+            'model_version': ai_report.model_version,
+            'model_confidence': ai_report.model_confidence,
+            'uncertain_percentage': ai_report.uncertain_percentage,
+            'ai_sentence_count': ai_report.ai_sentence_count,
+            'total_sentences': ai_report.total_sentences,
+            'linguistic_features': ai_report.linguistic_features,
+            'segments': ai_report.segments_data,
+            'limitations': ai_report.limitations,
+        })
+
+    if not raw_text.strip():
+        return JsonResponse({'error': 'Parameter "text" or "doc_id" is required'}, status=400)
+
+    result = engine.evaluate_text_snippet(raw_text)
+    return JsonResponse(result)
+
