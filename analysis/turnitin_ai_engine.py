@@ -240,7 +240,7 @@ class TurnitinAIDetector:
         ppl_cv = float(np.std(sent_ppls) / (np.mean(sent_ppls) + 1e-5))
         burstiness_score = float((0.5 * length_cv) + (0.5 * min(ppl_cv, 1.5)))
 
-        # 2. Score overlapping windows
+        # 2. Score overlapping windows with calibrated classifier weighting
         windows = self.create_overlapping_windows(sentences)
         sentence_window_scores: List[List[float]] = [[] for _ in sentences]
 
@@ -248,16 +248,15 @@ class TurnitinAIDetector:
             clf_prob = self.classify_window_transformer(win_text)
             win_ppl, _ = self.compute_perplexity_and_spikes(win_text)
 
-            # Convert perplexity into a [0, 1] predictability score (PPL < 20 -> ~0.9, PPL > 60 -> ~0.1)
-            ppl_ai_signal = float(1.0 / (1.0 + np.exp((win_ppl - 32.0) / 8.0)))
-
-            # Convert low burstiness into an AI penalty
-            burst_ai_signal = float(np.clip(1.0 - (burstiness_score / 0.65), 0.0, 1.0))
-
-            # Hybrid Window Score: 55% Classifier + 30% Perplexity + 15% Burstiness Uniformity
-            window_ai_score = (
-                (0.55 * clf_prob) + (0.30 * ppl_ai_signal) + (0.15 * burst_ai_signal)
-            )
+            # High-accuracy calibrated scoring:
+            # When classifier probability indicates potential AI (>=0.52), corroborate with perplexity & burstiness
+            if clf_prob >= 0.52:
+                ppl_ai_signal = float(1.0 / (1.0 + np.exp((win_ppl - 28.0) / 8.0)))
+                burst_ai_signal = float(np.clip(1.0 - (burstiness_score / 0.55), 0.0, 1.0))
+                window_ai_score = (0.75 * clf_prob) + (0.15 * ppl_ai_signal) + (0.10 * burst_ai_signal)
+            else:
+                # Natural human variance suppresses false accusations
+                window_ai_score = clf_prob * 0.75
 
             for idx in sent_indices:
                 sentence_window_scores[idx].append(window_ai_score)
@@ -274,15 +273,20 @@ class TurnitinAIDetector:
             s_spike = sent_spikes[idx]
             word_count = sent_lengths[idx]
 
+            lower_sent = sent.lower().strip()
+            is_meta = any(lower_sent.startswith(h) for h in [
+                'keywords', 'key words', 'author', 'table', 'fig', 'figure',
+                'correspondence', 'department', 'university', 'doi:', 'received', 'accepted', 'abstract'
+            ])
+
             # Boost slightly if sentence starts with repetitive AI transition connectors
-            lower_sent = sent.lower()
             if any(lower_sent.startswith(t) for t in self.ai_transitions):
                 pooled_score = min(1.0, pooled_score + 0.06)
 
             category = "Human"
             highlight_color = "none"
 
-            if pooled_score >= 0.65:
+            if not is_meta and pooled_score >= 0.72:
                 # Paraphraser detection: AI context + low burstiness, but elevated local synonym spikes
                 if s_spike > 2.65 and 22.0 <= s_ppl <= 65.0:
                     category = "AI-Paraphrased"
@@ -309,8 +313,14 @@ class TurnitinAIDetector:
         total_ai_pct = round(ai_only_pct + ai_paraphrased_pct, 1)
 
         # Turnitin False-Positive Suppression Rule (<20% masked as *%)
-        if 0 < total_ai_pct < 20.0 or total_ai_pct == 0.0:
+        if total_ai_pct < 20.0:
             turnitin_display_score = "*%"
+            # Suppress sentence highlights when document is below threshold as per Turnitin standard
+            for s in sentence_reports:
+                s['highlight_color'] = 'none'
+                s['category'] = 'Human'
+            ai_only_pct = 0.0
+            ai_paraphrased_pct = 0.0
         else:
             turnitin_display_score = f"{int(round(total_ai_pct))}%"
 
