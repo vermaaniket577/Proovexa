@@ -18,6 +18,7 @@ from .classifier import CalibratedAIClassifier, RuleBasedBaselineDetector
 from .segments import SegmentAnalyzer
 
 from .turnitin_ai_engine import TurnitinAIDetector
+from .ai_api_client import AIAPIClient
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class AIDetectionEngine:
     """
     Modular AI writing detection engine orchestrating preprocessing,
     feature extraction, multi-model classification, and segment aggregation.
+    Supports live Google Gemini / OpenAI API verification with calibrated offline fallback.
     """
 
     def __init__(self):
@@ -39,6 +41,7 @@ class AIDetectionEngine:
             feature_extractor=self.feature_extractor,
         )
         self.turnitin_detector = TurnitinAIDetector()
+        self.ai_api_client = AIAPIClient()
 
     def analyze_document(self, document, user=None):
         """
@@ -107,7 +110,26 @@ class AIDetectionEngine:
                     else:
                         es['highlight_color'] = 'none'
 
-            # 6. Populate and Persist AIReport
+            # 6. Optional Live AI API Cross-Validation (Google Gemini / OpenAI)
+            active_provider = "TurnitinStyle-AI-V2.5-SlidingWindow"
+            if self.ai_api_client.is_api_available():
+                try:
+                    api_eval = self.ai_api_client.detect_ai_writing(raw_full_text)
+                    if api_eval and 'overall_ai_score' in api_eval:
+                        # Blend external API score with calibrated sliding window
+                        api_score = float(api_eval.get('overall_ai_score', 0.0))
+                        raw_ai_score = round(0.5 * raw_ai_score + 0.5 * api_score, 1)
+                        if 'ai_generated_pct' in api_eval:
+                            turnitin_result['ai_generated_only_cyan_pct'] = round(0.5 * turnitin_result.get('ai_generated_only_cyan_pct', 0.0) + 0.5 * float(api_eval.get('ai_generated_pct', 0.0)), 1)
+                        if 'ai_paraphrased_pct' in api_eval:
+                            turnitin_result['ai_paraphrased_purple_pct'] = round(0.5 * turnitin_result.get('ai_paraphrased_purple_pct', 0.0) + 0.5 * float(api_eval.get('ai_paraphrased_pct', 0.0)), 1)
+                        active_provider = f"TurnitinStyle-AI-V2.5 + {api_eval.get('provider', 'AI API')}"
+                        if api_eval.get('summary'):
+                            summary['limitations'] = f"AI API Analysis: {api_eval.get('summary')} | " + summary.get('limitations', '')
+                except Exception as api_err:
+                    logger.warning(f"External AI API validation skipped: {api_err}")
+
+            # 7. Populate and Persist AIReport
             # If Turnitin dual-category pipeline ran, use its raw score and metrics
             raw_ai_score = turnitin_result.get('raw_total_ai_pct', summary['overall_ai_score'])
             ai_report.overall_ai_score = raw_ai_score
@@ -123,7 +145,7 @@ class AIDetectionEngine:
             ai_report.burstiness_score = turnitin_result.get('document_metrics', {}).get('burstiness_index', doc_features['burstiness'])
             ai_report.sentences_data = evaluated_sentences
             ai_report.segments_data = segments
-            ai_report.model_version = 'TurnitinStyle-AI-V2.5-SlidingWindow'
+            ai_report.model_version = active_provider
             ai_report.model_confidence = summary['model_confidence']
             ai_report.uncertain_percentage = summary['uncertain_percentage']
             ai_report.linguistic_features = doc_features

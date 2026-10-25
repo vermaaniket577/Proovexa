@@ -232,3 +232,10 @@ if not DEBUG:
     if SECURE_HSTS_SECONDS > 0:
         SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True)
         SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=True)
+
+# External AI API Configuration (Google Gemini & OpenAI for Paraphrase & AI Writing Validation)
+GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
+OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
+AI_API_PROVIDER = env('AI_API_PROVIDER', default='auto')
+AI_API_TIMEOUT_SECONDS = env.int('AI_API_TIMEOUT_SECONDS', default=15)
+

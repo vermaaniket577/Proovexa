@@ -13,6 +13,7 @@ from .winnowing import WinnowingEngine
 from .hybrid_checker import TurnitinStyleChecker
 from .exclusions import ExclusionEngine
 from .scoring import AcademicSimilarityScorer, SimilarityScorer
+from .ai_api_client import AIAPIClient
 from .models import SimilarityReport, MatchedPassage, ProcessingJob
 from documents.models import Document, ExtractedText, ReferenceSource
 
@@ -50,6 +51,7 @@ class AnalysisEngine:
         self.fuzzy_comparator = FuzzyComparator(threshold=0.75)
         self.tfidf_comparator = TFIDFComparator()
         self.hybrid_checker = TurnitinStyleChecker(shingle_size=min_words, semantic_threshold=0.75)
+        self.ai_api_client = AIAPIClient()
 
         self.exclusion_engine = ExclusionEngine(self.exclusion_settings)
 
@@ -259,6 +261,22 @@ class AnalysisEngine:
                         'source': source,
                         'source_index': source_index,
                     })
+
+                # Optional live AI API semantic paraphrase audit (Google Gemini / OpenAI)
+                if self.ai_api_client.is_api_available() and composite_sim > 0.15:
+                    try:
+                        ai_para = self.ai_api_client.detect_semantic_plagiarism(full_text, source_text)
+                        for ai_pair in ai_para.get('matched_pairs', []):
+                            all_matches.append({
+                                'submitted_text': ai_pair.get('sub_passage', ''),
+                                'source_text': ai_pair.get('src_passage', ''),
+                                'similarity': float(ai_pair.get('similarity', 0.8)),
+                                'match_type': 'fuzzy',
+                                'source': source,
+                                'source_index': source_index,
+                            })
+                    except Exception as ai_e:
+                        logger.debug(f"AI API semantic plagiarism check skipped: {ai_e}")
 
                 # Register hybrid metrics with scorer for source-level breakdown
                 scorer.set_source_hybrid_metrics(
