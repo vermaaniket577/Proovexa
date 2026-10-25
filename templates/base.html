@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
 <head>
@@ -13,7 +14,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="{% load static %}{% static 'css/main.css' %}" rel="stylesheet">
+    <link href="{% static 'css/main.css' %}?v=2.2" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
