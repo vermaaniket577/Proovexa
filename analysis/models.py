@@ -326,3 +326,152 @@ class AIReport(models.Model):
     def __str__(self):
         return f"AI Report for {self.document.title} - {self.display_score} AI"
 
+
+class AIAPISettings(models.Model):
+    """
+    Dynamic configuration for external AI APIs (Google Gemini, OpenAI).
+    Configurable via the Proovexa Admin Panel without code redeployments or server restarts.
+    """
+    class Provider(models.TextChoices):
+        AUTO = 'auto', 'Auto (Gemini -> OpenAI -> Local Fallback)'
+        GEMINI = 'gemini', 'Google Gemini API Only'
+        OPENAI = 'openai', 'OpenAI API Only'
+        LOCAL = 'local', 'Calibrated Local AI Engine Only (Offline)'
+
+    is_enabled = models.BooleanField(
+        default=True,
+        help_text="Master switch to enable or disable external AI API calls."
+    )
+    provider = models.CharField(
+        max_length=20,
+        choices=Provider.choices,
+        default=Provider.AUTO,
+        help_text="Active external AI provider preference."
+    )
+    gemini_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text="Google Gemini API Key (e.g. AIzaSy...)"
+    )
+    gemini_model = models.CharField(
+        max_length=64,
+        default='gemini-2.5-flash',
+        help_text="Gemini model name (e.g. gemini-2.5-flash, gemini-flash-latest, gemini-2.5-pro)"
+    )
+    openai_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text="OpenAI API Key (e.g. sk-proj-...)"
+    )
+    openai_model = models.CharField(
+        max_length=64,
+        default='gpt-4o-mini',
+        help_text="OpenAI model identifier (e.g. gpt-4o-mini, gpt-4o, o3-mini)"
+    )
+    timeout_seconds = models.PositiveIntegerField(
+        default=15,
+        help_text="Timeout in seconds for API HTTP requests (5 - 60)."
+    )
+    temperature = models.FloatField(
+        default=0.1,
+        help_text="Sampling temperature for deterministic classification (0.0 - 1.0)."
+    )
+    max_tokens = models.PositiveIntegerField(
+        default=2048,
+        help_text="Maximum output tokens requested from LLM APIs."
+    )
+    enable_ai_writing_detection = models.BooleanField(
+        default=True,
+        help_text="Enable live AI writing analysis cross-validation via external API."
+    )
+    enable_paraphrase_detection = models.BooleanField(
+        default=True,
+        help_text="Enable semantic paraphrase cross-examination during similarity checks."
+    )
+    blend_weight = models.FloatField(
+        default=0.5,
+        help_text="Blend weight for external AI score vs calibrated local sliding window (0.0 to 1.0, default 0.5)."
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ai_settings_updates'
+    )
+
+    class Meta:
+        verbose_name = "AI API Settings"
+        verbose_name_plural = "AI API Settings"
+
+    def __str__(self):
+        status_text = "Enabled" if self.is_enabled else "Disabled"
+        return f"AI API Configuration ({self.get_provider_display()} - {status_text})"
+
+    @classmethod
+    def get_settings(cls):
+        """
+        Singleton retrieval method.
+        Gets existing configuration, or creates one populated from Django settings / .env.
+        Gracefully falls back to mock object if table is not yet migrated.
+        """
+        try:
+            instance, _ = cls.objects.get_or_create(
+                id=1,
+                defaults={
+                    'is_enabled': True,
+                    'provider': getattr(settings, 'AI_API_PROVIDER', 'auto'),
+                    'gemini_api_key': getattr(settings, 'GEMINI_API_KEY', ''),
+                    'gemini_model': getattr(settings, 'GEMINI_MODEL', 'gemini-1.5-flash'),
+                    'openai_api_key': getattr(settings, 'OPENAI_API_KEY', ''),
+                    'openai_model': getattr(settings, 'OPENAI_MODEL', 'gpt-4o-mini'),
+                    'timeout_seconds': getattr(settings, 'AI_API_TIMEOUT_SECONDS', 15),
+                }
+            )
+            return instance
+        except Exception:
+            class MockSettings:
+                is_enabled = True
+                provider = getattr(settings, 'AI_API_PROVIDER', 'auto')
+                gemini_api_key = getattr(settings, 'GEMINI_API_KEY', '')
+                gemini_model = getattr(settings, 'GEMINI_MODEL', 'gemini-1.5-flash')
+                openai_api_key = getattr(settings, 'OPENAI_API_KEY', '')
+                openai_model = getattr(settings, 'OPENAI_MODEL', 'gpt-4o-mini')
+                timeout_seconds = getattr(settings, 'AI_API_TIMEOUT_SECONDS', 15)
+                temperature = 0.1
+                max_tokens = 2048
+                enable_ai_writing_detection = True
+                enable_paraphrase_detection = True
+                blend_weight = 0.5
+                updated_at = None
+                updated_by = None
+
+                def masked_gemini_key(self):
+                    k = (self.gemini_api_key or '').strip()
+                    return f"{k[:4]}••••••••{k[-4:]}" if len(k) > 8 else ('••••••••' if k else '')
+
+                def masked_openai_key(self):
+                    k = (self.openai_api_key or '').strip()
+                    return f"{k[:4]}••••••••{k[-4:]}" if len(k) > 8 else ('••••••••' if k else '')
+
+            return MockSettings()
+
+    def masked_gemini_key(self):
+        k = (self.gemini_api_key or '').strip()
+        if not k:
+            return ''
+        if len(k) <= 8:
+            return '••••••••'
+        return f"{k[:4]}••••••••{k[-4:]}"
+
+    def masked_openai_key(self):
+        k = (self.openai_api_key or '').strip()
+        if not k:
+            return ''
+        if len(k) <= 8:
+            return '••••••••'
+        return f"{k[:4]}••••••••{k[-4:]}"
+

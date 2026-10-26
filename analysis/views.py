@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 
-from .models import SimilarityReport, MatchedPassage, ExclusionRule
+from .models import SimilarityReport, MatchedPassage, ExclusionRule, AIAPISettings
 from .engine import AnalysisEngine
 from documents.models import Document
 from accounts.models import AuditLog
@@ -25,8 +25,11 @@ def start_analysis_view(request, doc_id):
         return HttpResponseForbidden("You don't have permission to analyze this document.")
 
     if document.status not in [Document.Status.EXTRACTED, Document.Status.COMPLETED]:
-        messages.error(request, 'Document text must be extracted before analysis can begin.')
-        return redirect('documents:detail', doc_id=doc_id)
+        from .services import ensure_document_extracted
+        ok, err = ensure_document_extracted(document)
+        if not ok:
+            messages.error(request, f'Document text extraction required: {err}')
+            return redirect('documents:detail', doc_id=doc_id)
 
     if request.method == 'POST':
         # Get exclusion settings from form
@@ -217,4 +220,155 @@ def api_ai_analyze_view(request):
 
     result = engine.evaluate_text_snippet(raw_text)
     return JsonResponse(result)
+
+
+@login_required
+@role_required(['admin'])
+def ai_settings_view(request):
+    """
+    Admin control panel to configure external AI API settings dynamically.
+    Controls Gemini & OpenAI keys, model selections, parameters, and feature toggles.
+    """
+    ai_settings = AIAPISettings.get_settings()
+
+    if request.method == 'POST':
+        try:
+            # Master toggles
+            ai_settings.is_enabled = 'is_enabled' in request.POST
+            ai_settings.provider = request.POST.get('provider', 'auto').strip().lower()
+
+            # Gemini settings
+            new_gemini_key = request.POST.get('gemini_api_key', '').strip()
+            clear_gemini = request.POST.get('clear_gemini_key') == '1'
+            if clear_gemini:
+                ai_settings.gemini_api_key = ''
+            elif new_gemini_key and not new_gemini_key.startswith('•'):
+                ai_settings.gemini_api_key = new_gemini_key
+
+            gemini_model = request.POST.get('gemini_model', '').strip()
+            custom_gemini_model = request.POST.get('custom_gemini_model', '').strip()
+            ai_settings.gemini_model = custom_gemini_model or gemini_model or 'gemini-1.5-flash'
+
+            # OpenAI settings
+            new_openai_key = request.POST.get('openai_api_key', '').strip()
+            clear_openai = request.POST.get('clear_openai_key') == '1'
+            if clear_openai:
+                ai_settings.openai_api_key = ''
+            elif new_openai_key and not new_openai_key.startswith('•'):
+                ai_settings.openai_api_key = new_openai_key
+
+            openai_model = request.POST.get('openai_model', '').strip()
+            custom_openai_model = request.POST.get('custom_openai_model', '').strip()
+            ai_settings.openai_model = custom_openai_model or openai_model or 'gpt-4o-mini'
+
+            # Parameters & Limits
+            try:
+                ai_settings.timeout_seconds = max(5, min(120, int(request.POST.get('timeout_seconds', 15))))
+            except (ValueError, TypeError):
+                ai_settings.timeout_seconds = 15
+
+            try:
+                ai_settings.temperature = max(0.0, min(1.0, float(request.POST.get('temperature', 0.1))))
+            except (ValueError, TypeError):
+                ai_settings.temperature = 0.1
+
+            try:
+                ai_settings.max_tokens = max(256, min(8192, int(request.POST.get('max_tokens', 2048))))
+            except (ValueError, TypeError):
+                ai_settings.max_tokens = 2048
+
+            try:
+                ai_settings.blend_weight = max(0.0, min(1.0, float(request.POST.get('blend_weight', 0.5))))
+            except (ValueError, TypeError):
+                ai_settings.blend_weight = 0.5
+
+            # Feature Toggles
+            ai_settings.enable_ai_writing_detection = 'enable_ai_writing_detection' in request.POST
+            ai_settings.enable_paraphrase_detection = 'enable_paraphrase_detection' in request.POST
+
+            # Audit Metadata
+            ai_settings.updated_by = request.user
+            ai_settings.save()
+
+            # Record Audit Trail
+            try:
+                AuditLog.objects.create(
+                    user=request.user,
+                    action=AuditLog.Action.SETTINGS_CHANGE,
+                    resource_type='AIAPISettings',
+                    resource_id=str(ai_settings.id),
+                    details={
+                        'provider': ai_settings.provider,
+                        'is_enabled': ai_settings.is_enabled,
+                        'gemini_model': ai_settings.gemini_model,
+                        'openai_model': ai_settings.openai_model,
+                        'enable_ai_writing': ai_settings.enable_ai_writing_detection,
+                        'enable_paraphrase': ai_settings.enable_paraphrase_detection,
+                    },
+                    ip_address=_get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                )
+            except Exception:
+                pass
+
+            messages.success(request, "AI API and Engine settings updated successfully! Changes take effect immediately.")
+            return redirect('analysis:ai_settings')
+
+        except Exception as e:
+            messages.error(request, f"Failed to save AI API settings: {str(e)}")
+
+    context = {
+        'settings': ai_settings,
+        'gemini_masked_key': ai_settings.masked_gemini_key(),
+        'openai_masked_key': ai_settings.masked_openai_key(),
+        'has_gemini_key': bool(ai_settings.gemini_api_key),
+        'has_openai_key': bool(ai_settings.openai_api_key),
+        'recommended_gemini_models': [
+            {'id': 'gemini-2.5-flash', 'name': 'Gemini 2.5 Flash (Recommended: Fast & High Throughput)'},
+            {'id': 'gemini-flash-latest', 'name': 'Gemini Flash Latest (Auto-Updating)'},
+            {'id': 'gemini-2.5-pro', 'name': 'Gemini 2.5 Pro (Deep Forensic Reasoning)'},
+        ],
+        'recommended_openai_models': [
+            {'id': 'gpt-4o-mini', 'name': 'GPT-4o Mini (Recommended: Fast & Cost-Efficient)'},
+            {'id': 'gpt-4o', 'name': 'GPT-4o (Flagship Multimodal & Forensic Accuracy)'},
+            {'id': 'gpt-4-turbo', 'name': 'GPT-4 Turbo (High Precision)'},
+            {'id': 'o3-mini', 'name': 'o3-mini (Reasoning Focused Engine)'},
+        ],
+    }
+    return render(request, 'analysis/ai_settings.html', context)
+
+
+@login_required
+@role_required(['admin'])
+def api_test_ai_connection_view(request):
+    """
+    AJAX endpoint to test AI API credentials and connectivity in real time.
+    Supports testing unsaved keys directly from form inputs.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST method required'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8')) if request.body else {}
+    except Exception:
+        data = request.POST
+
+    provider = data.get('provider', 'gemini').lower()
+    input_key = (data.get('api_key') or '').strip()
+    input_model = (data.get('model') or '').strip()
+
+    # If the user left key blank or it's masked, fall back to stored DB key
+    ai_settings = AIAPISettings.get_settings()
+    if not input_key or input_key.startswith('•'):
+        if provider == 'gemini':
+            input_key = ai_settings.gemini_api_key
+        elif provider == 'openai':
+            input_key = ai_settings.openai_api_key
+
+    from .ai_api_client import AIAPIClient
+    client = AIAPIClient(ai_settings=ai_settings)
+    result = client.test_connection(provider=provider, api_key=input_key, model=input_model)
+
+    return JsonResponse(result)
+
 

@@ -290,24 +290,36 @@ class FuzzyComparator:
         if not sub_sentences or not src_sentences:
             return result
 
+        # Precompute tokens and token sets for source sentences
+        src_data = []
+        for src_sent in src_sentences:
+            tokens = re.sub(r'[^\w\s]', '', src_sent.lower()).split()
+            if len(tokens) >= self.min_sentence_length:
+                src_data.append((src_sent, tokens, len(tokens), set(tokens)))
+
         matched_count = 0
         for sub_sent in sub_sentences:
-            if len(sub_sent.split()) < self.min_sentence_length:
+            sub_tokens_clean = re.sub(r'[^\w\s]', '', sub_sent.lower()).split()
+            sub_len = len(sub_tokens_clean)
+            if sub_len < self.min_sentence_length:
                 continue
 
+            sub_set = set(sub_tokens_clean)
             best_match = None
             best_ratio = 0
 
-            sub_tokens_clean = re.sub(r'[^\w\s]', '', sub_sent.lower()).split()
-            for src_sent in src_sentences:
-                if len(src_sent.split()) < self.min_sentence_length:
+            for src_sent, src_tokens, src_len, src_set in src_data:
+                # Upper bound check: theoretical maximum ratio based on lengths
+                if (2.0 * min(sub_len, src_len)) / (sub_len + src_len) < self.threshold:
+                    continue
+                # Upper bound check: theoretical maximum ratio based on shared vocabulary
+                common_tokens = len(sub_set & src_set)
+                if (2.0 * common_tokens) / (sub_len + src_len) < self.threshold:
                     continue
 
-                src_tokens_clean = re.sub(r'[^\w\s]', '', src_sent.lower()).split()
-                ratio = SequenceMatcher(None, sub_tokens_clean, src_tokens_clean).ratio()
+                ratio = SequenceMatcher(None, sub_tokens_clean, src_tokens).ratio()
 
                 if ratio > best_ratio and ratio >= self.threshold and ratio < 1.0:
-                    # Exclude exact matches (handled by ExactMatchComparator)
                     best_ratio = ratio
                     best_match = src_sent
 

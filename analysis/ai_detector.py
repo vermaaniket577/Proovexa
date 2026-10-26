@@ -60,7 +60,7 @@ class AIDetectionEngine:
         try:
             # 1. Ingestion: Extract text from document
             extracted_qs = document.extracted_texts.all().order_by('page_number', 'paragraph_number')
-            raw_full_text = " ".join(t.content for t in extracted_qs) if extracted_qs.exists() else ""
+            raw_full_text = "\n\n".join(t.content for t in extracted_qs) if extracted_qs.exists() else ""
 
             if not raw_full_text.strip():
                 ai_report.status = AIReport.Status.COMPLETED
@@ -110,19 +110,27 @@ class AIDetectionEngine:
                     else:
                         es['highlight_color'] = 'none'
 
-            # 6. Optional Live AI API Cross-Validation (Google Gemini / OpenAI)
+            # 6. Baseline Scoring from Calibrated Engine
+            raw_ai_score = turnitin_result.get('raw_total_ai_pct', summary['overall_ai_score'])
             active_provider = "TurnitinStyle-AI-V2.5-SlidingWindow"
-            if self.ai_api_client.is_api_available():
+
+            # Optional Live AI API Cross-Validation (Google Gemini / OpenAI)
+            if self.ai_api_client.is_api_available(task_type='ai_writing'):
                 try:
                     api_eval = self.ai_api_client.detect_ai_writing(raw_full_text)
-                    if api_eval and 'overall_ai_score' in api_eval:
-                        # Blend external API score with calibrated sliding window
+                    if api_eval and 'overall_ai_score' in api_eval and not api_eval.get('is_fallback', False):
+                        # Blend external API score with calibrated sliding window using configured blend_weight
                         api_score = float(api_eval.get('overall_ai_score', 0.0))
-                        raw_ai_score = round(0.5 * raw_ai_score + 0.5 * api_score, 1)
+                        blend_w = getattr(self.ai_api_client, 'blend_weight', 0.5)
+                        raw_ai_score = round((1.0 - blend_w) * raw_ai_score + blend_w * api_score, 1)
                         if 'ai_generated_pct' in api_eval:
-                            turnitin_result['ai_generated_only_cyan_pct'] = round(0.5 * turnitin_result.get('ai_generated_only_cyan_pct', 0.0) + 0.5 * float(api_eval.get('ai_generated_pct', 0.0)), 1)
+                            turnitin_result['ai_generated_only_cyan_pct'] = round(
+                                (1.0 - blend_w) * turnitin_result.get('ai_generated_only_cyan_pct', 0.0) + blend_w * float(api_eval.get('ai_generated_pct', 0.0)), 1
+                            )
                         if 'ai_paraphrased_pct' in api_eval:
-                            turnitin_result['ai_paraphrased_purple_pct'] = round(0.5 * turnitin_result.get('ai_paraphrased_purple_pct', 0.0) + 0.5 * float(api_eval.get('ai_paraphrased_pct', 0.0)), 1)
+                            turnitin_result['ai_paraphrased_purple_pct'] = round(
+                                (1.0 - blend_w) * turnitin_result.get('ai_paraphrased_purple_pct', 0.0) + blend_w * float(api_eval.get('ai_paraphrased_pct', 0.0)), 1
+                            )
                         active_provider = f"TurnitinStyle-AI-V2.5 + {api_eval.get('provider', 'AI API')}"
                         if api_eval.get('summary'):
                             summary['limitations'] = f"AI API Analysis: {api_eval.get('summary')} | " + summary.get('limitations', '')
@@ -130,8 +138,6 @@ class AIDetectionEngine:
                     logger.warning(f"External AI API validation skipped: {api_err}")
 
             # 7. Populate and Persist AIReport
-            # If Turnitin dual-category pipeline ran, use its raw score and metrics
-            raw_ai_score = turnitin_result.get('raw_total_ai_pct', summary['overall_ai_score'])
             ai_report.overall_ai_score = raw_ai_score
             ai_report.ai_generated_only_cyan_pct = turnitin_result.get('ai_generated_only_cyan_pct', raw_ai_score)
             ai_report.ai_paraphrased_purple_pct = turnitin_result.get('ai_paraphrased_purple_pct', 0.0)
@@ -167,12 +173,32 @@ class AIDetectionEngine:
     def evaluate_text_snippet(self, text: str) -> Dict[str, Any]:
         """
         Direct API inference method for raw text snippets.
-        Useful for microservice calls and interactive validation.
+        Useful for microservice calls, CLI scanner, and interactive validation.
+        Executes full Turnitin-style calibrated engine and blends with live AI API if configured.
         """
         paragraphs, sentences, stats = self.preprocessor.process(text)
         if not sentences:
-            return {'overall_ai_score': 0.0, 'status': 'Empty', 'sentences': []}
+            return {
+                'overall_ai_score': 0.0,
+                'turnitin_display_score': '*%',
+                'is_below_threshold': True,
+                'status': 'Empty',
+                'sentences': [],
+                'segments': [],
+                'model_confidence': 0.0,
+                'uncertain_percentage': 0.0,
+                'ai_generated_only_cyan_pct': 0.0,
+                'ai_paraphrased_purple_pct': 0.0,
+                'document_metrics': {},
+                'linguistic_features': {},
+                'limitations': 'No qualifying prose to analyze.',
+                'provider': 'TurnitinStyle-AI-V2.5-SlidingWindow',
+            }
 
+        # 1. Turnitin AI Detection Pipeline
+        turnitin_result = self.turnitin_detector.evaluate_document(text)
+
+        # 2. Extract features & segments
         doc_features = self.feature_extractor.extract_document_features(sentences, text)
         evaluated_sentences, segments, summary = self.segment_analyzer.analyze_document_segments(
             paragraphs=paragraphs,
@@ -180,13 +206,61 @@ class AIDetectionEngine:
             doc_features=doc_features,
         )
 
+        # Merge Turnitin Dual-Category highlights (Cyan vs Purple) into evaluated sentences
+        tb_lookup = {
+            re.sub(r'\s+', ' ', s_item['sentence'].lower().strip()[:40]): s_item
+            for s_item in turnitin_result.get('sentence_breakdown', [])
+        }
+        for es in evaluated_sentences:
+            clean_s = re.sub(r'\s+', ' ', es.get('sentence', '').lower().strip()[:40])
+            if clean_s in tb_lookup:
+                tb_match = tb_lookup[clean_s]
+                es['highlight_color'] = tb_match.get('highlight_color', 'none')
+                es['category'] = tb_match.get('category', es.get('category', 'Human'))
+                es['perplexity'] = tb_match.get('perplexity', doc_features.get('perplexity_score', 50.0))
+            else:
+                if es.get('is_ai', False):
+                    es['highlight_color'] = 'cyan'
+                else:
+                    es['highlight_color'] = 'none'
+
+        raw_ai_score = turnitin_result.get('raw_total_ai_pct', summary['overall_ai_score'])
+        active_provider = "TurnitinStyle-AI-V2.5-SlidingWindow"
+
+        # Optional Live AI API Cross-Validation (Google Gemini / OpenAI)
+        if self.ai_api_client.is_api_available(task_type='ai_writing'):
+            try:
+                api_eval = self.ai_api_client.detect_ai_writing(text)
+                if api_eval and 'overall_ai_score' in api_eval and not api_eval.get('is_fallback', False):
+                    api_score = float(api_eval.get('overall_ai_score', 0.0))
+                    blend_w = getattr(self.ai_api_client, 'blend_weight', 0.5)
+                    raw_ai_score = round((1.0 - blend_w) * raw_ai_score + blend_w * api_score, 1)
+                    if 'ai_generated_pct' in api_eval:
+                        turnitin_result['ai_generated_only_cyan_pct'] = round(
+                            (1.0 - blend_w) * turnitin_result.get('ai_generated_only_cyan_pct', 0.0) + blend_w * float(api_eval.get('ai_generated_pct', 0.0)), 1
+                        )
+                    if 'ai_paraphrased_pct' in api_eval:
+                        turnitin_result['ai_paraphrased_purple_pct'] = round(
+                            (1.0 - blend_w) * turnitin_result.get('ai_paraphrased_purple_pct', 0.0) + blend_w * float(api_eval.get('ai_paraphrased_pct', 0.0)), 1
+                        )
+                    active_provider = f"TurnitinStyle-AI-V2.5 + {api_eval.get('provider', 'AI API')}"
+            except Exception as api_err:
+                logger.warning(f"External AI API validation skipped: {api_err}")
+
+        display_score = "*%" if raw_ai_score < 20.0 else f"{int(round(raw_ai_score))}%"
+
         return {
-            'overall_ai_score': summary['overall_ai_score'],
-            'is_below_threshold': summary['is_below_threshold'],
-            'model_confidence': summary['model_confidence'],
-            'uncertain_percentage': summary['uncertain_percentage'],
+            'overall_ai_score': raw_ai_score,
+            'turnitin_display_score': display_score,
+            'is_below_threshold': raw_ai_score < 20.0,
+            'ai_generated_only_cyan_pct': turnitin_result.get('ai_generated_only_cyan_pct', raw_ai_score),
+            'ai_paraphrased_purple_pct': turnitin_result.get('ai_paraphrased_purple_pct', 0.0),
+            'document_metrics': turnitin_result.get('document_metrics', {}),
+            'model_confidence': summary.get('model_confidence', 0.95),
+            'uncertain_percentage': summary.get('uncertain_percentage', 0.0),
             'linguistic_features': doc_features,
             'segments': segments,
             'sentences': evaluated_sentences,
-            'limitations': summary['limitations'],
+            'limitations': summary.get('limitations', ''),
+            'provider': active_provider,
         }

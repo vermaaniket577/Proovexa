@@ -108,6 +108,9 @@ else:
             'default': {
                 'ENGINE': db_engine,
                 'NAME': db_name,
+                'OPTIONS': {
+                    'timeout': 60,
+                },
             }
         }
     else:
@@ -235,7 +238,9 @@ if not DEBUG:
 
 # External AI API Configuration (Google Gemini & OpenAI for Paraphrase & AI Writing Validation)
 GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
+GEMINI_MODEL = env('GEMINI_MODEL', default='gemini-1.5-flash')
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
+OPENAI_MODEL = env('OPENAI_MODEL', default='gpt-4o-mini')
 AI_API_PROVIDER = env('AI_API_PROVIDER', default='auto')
 AI_API_TIMEOUT_SECONDS = env.int('AI_API_TIMEOUT_SECONDS', default=15)
 

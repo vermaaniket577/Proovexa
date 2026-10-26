@@ -7,6 +7,7 @@ import time
 import logging
 from django.conf import settings
 from django.utils import timezone
+from django.db.models import Q
 
 from .comparators import ExactMatchComparator, NGramComparator, FuzzyComparator, TFIDFComparator
 from .winnowing import WinnowingEngine
@@ -142,9 +143,14 @@ class AnalysisEngine:
 
             # Detect document-level exclusion regions (e.g. bibliography sections)
             if self.exclusion_settings.get('exclude_bibliography'):
-                bib_match = re.search(r'\b(?:References|Bibliography|Works Cited)\b', full_text, re.IGNORECASE)
-                if bib_match:
-                    bib_char_start = bib_match.start()
+                bib_matches = list(re.finditer(r'(?:^|\n)\s*(?:References|Bibliography|Works Cited)\s*(?:\n|$)', full_text, re.IGNORECASE))
+                valid_bib = None
+                for m in bib_matches:
+                    if m.start() > 2000 or m.start() > len(full_text) * 0.3:
+                        valid_bib = m
+                        break
+                if valid_bib:
+                    bib_char_start = valid_bib.start()
                     bib_w_start, bib_w_end = self._char_span_to_word_span(sub_tokens, bib_char_start, len(full_text))
                     scorer.add_exclusion_span(bib_w_start, bib_w_end)
 
@@ -263,7 +269,7 @@ class AnalysisEngine:
                     })
 
                 # Optional live AI API semantic paraphrase audit (Google Gemini / OpenAI)
-                if self.ai_api_client.is_api_available() and composite_sim > 0.15:
+                if self.ai_api_client.is_api_available(task_type='paraphrase') and composite_sim > 0.15:
                     try:
                         ai_para = self.ai_api_client.detect_semantic_plagiarism(full_text, source_text)
                         for ai_pair in ai_para.get('matched_pairs', []):
@@ -306,6 +312,11 @@ class AnalysisEngine:
 
                 # Save match record to database
                 source_obj = match.get('source')
+                if source_obj and not ReferenceSource.objects.filter(id=source_obj.id).exists():
+                    try:
+                        source_obj.save()
+                    except Exception:
+                        source_obj = None
                 source_id = str(source_obj.id) if source_obj else None
                 source_title = source_obj.title if source_obj else ''
 
@@ -405,8 +416,20 @@ class AnalysisEngine:
             is_deleted=False,
         ).exclude(id=document.id)
 
-        if exclude_self:
-            other_docs = other_docs.exclude(uploaded_by=document.uploaded_by)
+        # In Turnitin, exclude_self_match applies to the same student author's prior drafts.
+        # It must NEVER exclude reference documents or other test uploads by admins/instructors.
+        is_staff_user = bool(
+            document.uploaded_by and (
+                getattr(document.uploaded_by, 'is_admin', False) or
+                getattr(document.uploaded_by, 'is_teacher', False) or
+                getattr(document.uploaded_by, 'is_superuser', False) or
+                getattr(document.uploaded_by, 'is_staff', False)
+            )
+        )
+        if exclude_self and not is_staff_user:
+            other_docs = other_docs.filter(
+                Q(is_reference=True) | ~Q(uploaded_by=document.uploaded_by)
+            )
 
         # Check assignment-level comparison
         if document.assignment and document.assignment.allow_self_comparison:
@@ -428,13 +451,15 @@ class AnalysisEngine:
         return sources
 
     def _doc_to_reference(self, document):
-        """Convert a Document to a temporary ReferenceSource (not saved)."""
-        ref = ReferenceSource(
-            id=document.id,
-            title=document.title,
-            author=document.uploaded_by.get_full_name() if document.uploaded_by else '',
-            source_type=ReferenceSource.SourceType.UPLOADED,
+        """Convert a Document to a persisted ReferenceSource."""
+        ref, _ = ReferenceSource.objects.get_or_create(
             document=document,
+            defaults={
+                'title': document.title,
+                'author': document.uploaded_by.get_full_name() if document.uploaded_by else '',
+                'source_type': ReferenceSource.SourceType.UPLOADED,
+                'is_active': True,
+            }
         )
         return ref
 

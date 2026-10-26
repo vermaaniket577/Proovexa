@@ -338,6 +338,11 @@
                 </button>
             </div>
 
+            <!-- Customize Scan -->
+            <a href="{% url 'analysis:start' document.id %}" class="btn btn-outline-secondary fw-semibold px-3 py-2 shadow-sm" id="btn-customize-scan" title="Customize Scan Settings & Exclusions">
+                <i class="bi bi-sliders me-1"></i> Customize Scan
+            </a>
+
             <!-- View Document -->
             <a href="{% url 'documents:detail' document.id %}" class="btn btn-outline-dark fw-semibold px-3 py-2" id="btn-view-doc">
                 <i class="bi bi-file-text me-1"></i> Document

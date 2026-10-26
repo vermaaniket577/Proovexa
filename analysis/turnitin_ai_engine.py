@@ -9,8 +9,11 @@ Implements:
 4. Sentence Pooling & *% Thresholding: Overlapping window mean pooling; scores < 20% masked as *%.
 """
 import re
+import logging
 from typing import List, Dict, Tuple, Any, Optional
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class TurnitinAIDetector:
@@ -66,13 +69,22 @@ class TurnitinAIDetector:
     def filter_qualifying_prose(text: str) -> str:
         """
         Stage 1: Strips References/Bibliography and non-prose blocks.
+        Only strips references/bibliography if located in the latter part of the document
+        (not in cover pages, table of contents, or report headers).
         """
-        # Strip bibliography/references section
-        text = re.split(
+        # Find references / bibliography section towards the end of the document
+        matches = list(re.finditer(
             r"\n\s*(?:references|bibliography|works cited)\s*\n",
             text,
             flags=re.IGNORECASE,
-        )[0]
+        ))
+        split_pos = None
+        for m in reversed(matches):
+            if m.start() > 2000 or m.start() > len(text) * 0.25:
+                split_pos = m.start()
+        if split_pos is not None:
+            text = text[:split_pos]
+
         # Remove bullet lines or short header lines (< 4 words)
         lines = [
             line.strip()
@@ -204,7 +216,55 @@ class TurnitinAIDetector:
     def evaluate_document(self, raw_text: str) -> Dict[str, Any]:
         """
         Executes the full Turnitin-style AI detection pipeline.
+        Utilizes TurnitinAIPipeline (5-stage architecture) with live AI API integration
+        (Gemini/OpenAI) and calibrated local fallback.
         """
+        try:
+            from analysis.turnitin_pipeline import TurnitinAIPipeline
+            from analysis.models import AIAPISettings
+
+            settings = AIAPISettings.get_settings()
+            pipeline = TurnitinAIPipeline(
+                provider=settings.provider if settings else 'auto',
+                gemini_api_key=settings.gemini_api_key if settings else '',
+                gemini_model=settings.gemini_model if settings else 'gemini-1.5-flash',
+                openai_api_key=settings.openai_api_key if settings else '',
+                openai_model=settings.openai_model if settings else 'gpt-4o-mini',
+                target_window_words=250,
+                stride_sentences=3,
+                min_prose_words=300,
+            )
+            report = pipeline.analyze_document(raw_text, force_short_text=False)
+
+            if report.status == "completed":
+                sentence_reports = []
+                for s in report.sentences:
+                    sentence_reports.append({
+                        "sentence": s.sentence_text,
+                        "ai_probability_pct": round(s.pooled_ai_probability * 100, 1),
+                        "perplexity": round(report.document_metrics.get("mean_sentence_perplexity", 45.0), 1),
+                        "category": "AI-Generated" if s.classification == "ai_generated" else ("AI-Paraphrased" if s.classification == "ai_paraphrased" else "Human"),
+                        "highlight_color": s.highlight_color,
+                        "word_count": s.word_count,
+                    })
+
+                return {
+                    "turnitin_display_score": report.turnitin_display_score,
+                    "raw_total_ai_pct": report.overall_ai_percentage,
+                    "ai_generated_only_cyan_pct": report.ai_generated_cyan_pct,
+                    "ai_paraphrased_purple_pct": report.ai_paraphrased_purple_pct,
+                    "document_metrics": {
+                        "qualifying_word_count": report.qualifying_word_count,
+                        "below_300_word_minimum": report.qualifying_word_count < 300,
+                        "burstiness_index": report.document_metrics.get("burstiness_index", 0.0),
+                        "mean_sentence_perplexity": report.document_metrics.get("mean_sentence_perplexity", 50.0),
+                    },
+                    "sentence_breakdown": sentence_reports,
+                    "provider": report.provider_used,
+                }
+        except Exception as e:
+            logger.warning(f"TurnitinAIPipeline execution encountered: {e}. Running calibrated fallback.")
+
         clean_prose = self.filter_qualifying_prose(raw_text)
         total_words = len(clean_prose.split())
         min_word_warning = total_words < 300

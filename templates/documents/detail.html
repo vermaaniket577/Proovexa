@@ -17,9 +17,9 @@
                     <a href="{% url 'analysis:quick_scan' document.id %}?type=both" class="btn btn-primary fw-bold shadow-sm">
                         <i class="bi bi-lightning-charge-fill text-warning me-1"></i> 1-Click Both Reports (Similarity + AI)
                     </a>
-                    {% if document.status == 'extracted' or document.status == 'completed' %}
-                    <a href="{% url 'analysis:start' document.id %}" class="btn btn-outline-secondary fw-semibold">
-                        <i class="bi bi-sliders me-1"></i> Custom Check
+                    {% if document.status != 'pending' and document.status != 'extracting' %}
+                    <a href="{% url 'analysis:start' document.id %}" class="btn btn-outline-secondary fw-semibold" id="btn-customize-scan" title="Configure custom exclusion rules, phrase filters, and thresholds">
+                        <i class="bi bi-sliders me-1"></i> Customize Scan
                     </a>
                     {% endif %}
                 </div>
@@ -188,9 +188,9 @@
                 <a href="{% url 'analysis:quick_scan' document.id %}?type=both" class="btn btn-outline-primary fw-bold">
                     <i class="bi bi-arrow-clockwise me-2"></i>Re-Scan Both Reports
                 </a>
-                {% if document.status == 'extracted' or document.status == 'completed' %}
-                <a href="{% url 'analysis:start' document.id %}" class="btn btn-outline-secondary">
-                    <i class="bi bi-sliders me-2"></i>Custom Exclusions Form...
+                {% if document.status != 'pending' and document.status != 'extracting' %}
+                <a href="{% url 'analysis:start' document.id %}" class="btn btn-outline-secondary fw-semibold" id="btn-sidebar-customize">
+                    <i class="bi bi-sliders me-2"></i>Customize Scan & Exclusions
                 </a>
                 {% endif %}
                 <a href="{% url 'documents:download' document.id %}" class="btn btn-outline-dark">

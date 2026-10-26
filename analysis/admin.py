@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
-from .models import SimilarityReport, MatchedPassage, ExclusionRule, ProcessingJob, AIReport
+from .models import SimilarityReport, MatchedPassage, ExclusionRule, ProcessingJob, AIReport, AIAPISettings
 
 
 @admin.register(SimilarityReport)
@@ -77,3 +77,49 @@ class ExclusionRuleAdmin(admin.ModelAdmin):
 class ProcessingJobAdmin(admin.ModelAdmin):
     list_display = ['document', 'job_type', 'status', 'progress', 'created_at']
     list_filter = ['status', 'job_type']
+
+
+@admin.register(AIAPISettings)
+class AIAPISettingsAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'provider', 'status_badge', 'gemini_model', 'openai_model', 'timeout_seconds', 'updated_at']
+    readonly_fields = ['updated_at']
+    fieldsets = (
+        ("Master Activation & Routing", {
+            'fields': ('is_enabled', 'provider', 'blend_weight'),
+            'description': "Configure overall AI API activation, provider priority, and score blending weight."
+        }),
+        ("Google Gemini API Settings", {
+            'fields': ('gemini_api_key', 'gemini_model'),
+            'description': "API key and model for Google Gemini (e.g. gemini-1.5-flash, gemini-2.0-flash)."
+        }),
+        ("OpenAI API Settings", {
+            'fields': ('openai_api_key', 'openai_model'),
+            'description': "API key and model for OpenAI (e.g. gpt-4o-mini, gpt-4o, o3-mini)."
+        }),
+        ("Performance & Feature Toggles", {
+            'fields': (
+                'timeout_seconds',
+                'temperature',
+                'max_tokens',
+                'enable_ai_writing_detection',
+                'enable_paraphrase_detection'
+            ),
+            'description': "Control timeouts, temperature, and specific sub-pipeline toggles."
+        }),
+        ("Audit Tracking", {
+            'fields': ('updated_by', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def status_badge(self, obj):
+        if obj.is_enabled:
+            return format_html('<span style="color:#059669; font-weight:bold;">Active</span>')
+        return format_html('<span style="color:#dc2626; font-weight:bold;">Disabled</span>')
+    status_badge.short_description = "Status"
+
+    def has_add_permission(self, request):
+        if AIAPISettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
+

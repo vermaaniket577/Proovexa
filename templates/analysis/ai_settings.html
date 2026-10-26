@@ -1,0 +1,536 @@
+{% extends 'base.html' %}
+
+{% block title %}AI API & Engine Settings{% endblock %}
+{% block page_title %}AI API & Detection Engine Settings{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Status Overview Cards -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card {% if settings.is_enabled and settings.provider != 'local' %}stat-success{% else %}stat-warning{% endif %}">
+            <div class="stat-icon"><i class="bi bi-robot"></i></div>
+            <div class="stat-value">
+                {% if settings.is_enabled and settings.provider != 'local' %}
+                    Active
+                {% elif settings.provider == 'local' %}
+                    Offline
+                {% else %}
+                    Disabled
+                {% endif %}
+            </div>
+            <div class="stat-label">AI Engine Status</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="bi bi-cpu"></i></div>
+            <div class="stat-value fs-5 text-truncate" title="{{ settings.get_provider_display }}">
+                {% if settings.provider == 'auto' %}
+                    Auto-Routing
+                {% elif settings.provider == 'gemini' %}
+                    Google Gemini
+                {% elif settings.provider == 'openai' %}
+                    OpenAI
+                {% else %}
+                    Local Engine
+                {% endif %}
+            </div>
+            <div class="stat-label">Configured Provider</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card {% if has_gemini_key %}stat-info{% else %}stat-secondary{% endif %}">
+            <div class="stat-icon"><i class="bi bi-google"></i></div>
+            <div class="stat-value fs-6">
+                {% if has_gemini_key %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Key Configured</span>
+                {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-x-circle me-1"></i>Not Set</span>
+                {% endif %}
+            </div>
+            <div class="stat-label">Google Gemini API</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card {% if has_openai_key %}stat-info{% else %}stat-secondary{% endif %}">
+            <div class="stat-icon"><i class="bi bi-lightning-charge"></i></div>
+            <div class="stat-value fs-6">
+                {% if has_openai_key %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Key Configured</span>
+                {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-x-circle me-1"></i>Not Set</span>
+                {% endif %}
+            </div>
+            <div class="stat-label">OpenAI API</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Main Configuration Form -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <span class="fw-bold fs-6 text-dark">
+                    <i class="bi bi-sliders2-vertical me-2 text-primary"></i>Dynamic AI API & Model Configuration
+                </span>
+                <span class="badge bg-light text-muted border">Instant Live Updates</span>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="aiSettingsForm">
+                    {% csrf_token %}
+
+                    <!-- Section 1: Master Controls -->
+                    <div class="mb-4 pb-3 border-bottom">
+                        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-toggle2-on me-2 text-success"></i>Master Engine Control & Provider Routing</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch p-3 bg-light rounded-3 border">
+                                    <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="is_enabled" name="is_enabled" {% if settings.is_enabled %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold text-dark" for="is_enabled">
+                                        Enable External AI API Integration
+                                    </label>
+                                    <div class="text-muted small mt-1">
+                                        When enabled, document scans query external AI APIs to cross-validate AI authorship and disguised semantic paraphrasing.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border h-100">
+                                    <label for="provider" class="form-label fw-semibold text-dark mb-1">Active AI Provider Strategy</label>
+                                    <select class="form-select" id="provider" name="provider">
+                                        <option value="auto" {% if settings.provider == 'auto' %}selected{% endif %}>Auto-Detect (Gemini &rarr; OpenAI &rarr; Local Engine)</option>
+                                        <option value="gemini" {% if settings.provider == 'gemini' %}selected{% endif %}>Google Gemini API Only</option>
+                                        <option value="openai" {% if settings.provider == 'openai' %}selected{% endif %}>OpenAI API Only</option>
+                                        <option value="local" {% if settings.provider == 'local' %}selected{% endif %}>Calibrated Local Engine Only (Offline / Zero Cost)</option>
+                                    </select>
+                                    <div class="text-muted small mt-1">
+                                        In 'Auto' mode, Proovexa tries Google Gemini first, falls back to OpenAI, and finally defaults to the calibrated offline model.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label for="blend_weight" class="form-label fw-semibold text-dark mb-0">AI API vs Calibrated Local Engine Blend Weight</label>
+                                        <span class="badge bg-primary fs-7" id="blendWeightDisplay">{{ settings.blend_weight|floatformat:2 }} ({{ settings.blend_weight|floatformat:2|floatformat:0 }}% External API / {{ 100|add:"-50" }}% Local)</span>
+                                    </div>
+                                    <input type="range" class="form-range" min="0.0" max="1.0" step="0.05" id="blend_weight" name="blend_weight" value="{{ settings.blend_weight|default:0.5 }}">
+                                    <div class="d-flex justify-content-between text-muted small">
+                                        <span>0.0 (100% Calibrated Local Sliding Window)</span>
+                                        <span>0.5 (Balanced 50/50 Hybrid)</span>
+                                        <span>1.0 (100% External AI API Reliance)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Google Gemini Settings -->
+                    <div class="mb-4 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-dark mb-0">
+                                <i class="bi bi-google me-2 text-primary"></i>Google Gemini API Configuration
+                            </h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnTestGemini">
+                                <i class="bi bi-plug me-1"></i>Test Gemini Connection
+                            </button>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <label for="gemini_api_key" class="form-label fw-semibold small text-secondary">Gemini API Key</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control font-monospace" id="gemini_api_key" name="gemini_api_key" 
+                                           placeholder="{% if has_gemini_key %}{{ gemini_masked_key }}{% else %}Enter AIzaSy... API key{% endif %}" 
+                                           autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="gemini_api_key">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <span class="text-muted small">Get your key from Google AI Studio (<a href="https://aistudio.google.com/" target="_blank" class="text-decoration-none">aistudio.google.com</a>).</span>
+                                    {% if has_gemini_key %}
+                                        <div class="form-check form-check-inline mb-0">
+                                            <input class="form-check-input" type="checkbox" id="clear_gemini_key" name="clear_gemini_key" value="1">
+                                            <label class="form-check-label small text-danger" for="clear_gemini_key">Remove saved key</label>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-5">
+                                <label for="gemini_model" class="form-label fw-semibold small text-secondary">Gemini Model</label>
+                                <select class="form-select" id="gemini_model" name="gemini_model">
+                                    {% for m in recommended_gemini_models %}
+                                        <option value="{{ m.id }}" {% if settings.gemini_model == m.id %}selected{% endif %}>{{ m.name }}</option>
+                                    {% endfor %}
+                                    <option value="custom" {% if settings.gemini_model not in "gemini-2.5-flash gemini-flash-latest gemini-2.5-pro" %}selected{% endif %}>Custom Model Identifier...</option>
+                                </select>
+                                <div id="customGeminiWrapper" class="mt-2 {% if settings.gemini_model in "gemini-2.5-flash gemini-flash-latest gemini-2.5-pro" %}d-none{% endif %}">
+                                    <input type="text" class="form-control form-control-sm" id="custom_gemini_model" name="custom_gemini_model" 
+                                           value="{{ settings.gemini_model }}" placeholder="e.g. gemini-1.5-flash-8b">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Inline Test Result Banner for Gemini -->
+                        <div id="geminiTestAlert" class="alert d-none mt-3 mb-0 py-2 px-3 small" role="alert"></div>
+                    </div>
+
+                    <!-- Section 3: OpenAI Settings -->
+                    <div class="mb-4 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-dark mb-0">
+                                <i class="bi bi-lightning-charge me-2 text-warning"></i>OpenAI API Configuration
+                            </h6>
+                            <button type="button" class="btn btn-sm btn-outline-warning text-dark" id="btnTestOpenAI">
+                                <i class="bi bi-plug me-1"></i>Test OpenAI Connection
+                            </button>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <label for="openai_api_key" class="form-label fw-semibold small text-secondary">OpenAI API Key</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control font-monospace" id="openai_api_key" name="openai_api_key" 
+                                           placeholder="{% if has_openai_key %}{{ openai_masked_key }}{% else %}Enter sk-proj-... API key{% endif %}" 
+                                           autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="openai_api_key">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <span class="text-muted small">Generated in your OpenAI Developer Dashboard (<a href="https://platform.openai.com/api-keys" target="_blank" class="text-decoration-none">platform.openai.com</a>).</span>
+                                    {% if has_openai_key %}
+                                        <div class="form-check form-check-inline mb-0">
+                                            <input class="form-check-input" type="checkbox" id="clear_openai_key" name="clear_openai_key" value="1">
+                                            <label class="form-check-label small text-danger" for="clear_openai_key">Remove saved key</label>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-5">
+                                <label for="openai_model" class="form-label fw-semibold small text-secondary">OpenAI Model</label>
+                                <select class="form-select" id="openai_model" name="openai_model">
+                                    {% for m in recommended_openai_models %}
+                                        <option value="{{ m.id }}" {% if settings.openai_model == m.id %}selected{% endif %}>{{ m.name }}</option>
+                                    {% endfor %}
+                                    <option value="custom" {% if settings.openai_model not in "gpt-4o-mini gpt-4o gpt-4-turbo o3-mini" %}selected{% endif %}>Custom Model Identifier...</option>
+                                </select>
+                                <div id="customOpenAIWrapper" class="mt-2 {% if settings.openai_model in "gpt-4o-mini gpt-4o gpt-4-turbo o3-mini" %}d-none{% endif %}">
+                                    <input type="text" class="form-control form-control-sm" id="custom_openai_model" name="custom_openai_model" 
+                                           value="{{ settings.openai_model }}" placeholder="e.g. gpt-4o-2024-08-06">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Inline Test Result Banner for OpenAI -->
+                        <div id="openaiTestAlert" class="alert d-none mt-3 mb-0 py-2 px-3 small" role="alert"></div>
+                    </div>
+
+                    <!-- Section 4: Feature Toggles & Tuning Parameters -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-gear-wide-connected me-2 text-info"></i>Feature Flags & Execution Parameters</h6>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch p-3 bg-light rounded-3 border">
+                                    <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="enable_ai_writing_detection" name="enable_ai_writing_detection" {% if settings.enable_ai_writing_detection %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold text-dark" for="enable_ai_writing_detection">
+                                        AI Writing Verification
+                                    </label>
+                                    <div class="text-muted small mt-1">
+                                        Detects AI authorship (ChatGPT, Claude, Gemini) and generates Cyan vs Purple sentence breakdown.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch p-3 bg-light rounded-3 border">
+                                    <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="enable_paraphrase_detection" name="enable_paraphrase_detection" {% if settings.enable_paraphrase_detection %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold text-dark" for="enable_paraphrase_detection">
+                                        Semantic Paraphrase Plagiarism Audit
+                                    </label>
+                                    <div class="text-muted small mt-1">
+                                        Detects AI-assisted synonym spins, structural rewrites, and disguised passages against source papers.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="timeout_seconds" class="form-label fw-semibold small text-secondary">HTTP Timeout (Seconds)</label>
+                                <input type="number" class="form-control" id="timeout_seconds" name="timeout_seconds" min="5" max="120" value="{{ settings.timeout_seconds|default:15 }}">
+                                <div class="text-muted small mt-1">Max waiting time before falling back to local engine (5-120s).</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="temperature" class="form-label fw-semibold small text-secondary">Sampling Temperature</label>
+                                <input type="number" step="0.05" class="form-control" id="temperature" name="temperature" min="0.0" max="1.0" value="{{ settings.temperature|default:0.1 }}">
+                                <div class="text-muted small mt-1">Lower values (0.0-0.2) ensure deterministic forensic classification.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="max_tokens" class="form-label fw-semibold small text-secondary">Max Output Tokens</label>
+                                <input type="number" class="form-control" id="max_tokens" name="max_tokens" min="256" max="8192" step="256" value="{{ settings.max_tokens|default:2048 }}">
+                                <div class="text-muted small mt-1">Response buffer for sentence classification evaluations.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Action Buttons -->
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <div class="text-muted small">
+                            {% if settings.updated_at %}
+                                <i class="bi bi-clock-history me-1"></i>Last updated: {{ settings.updated_at|date:"M d, Y H:i" }}
+                                {% if settings.updated_by %}by <strong>{{ settings.updated_by.username }}</strong>{% endif %}
+                            {% else %}
+                                Default system configuration
+                            {% endif %}
+                        </div>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                            <i class="bi bi-check2-circle me-2"></i>Save Configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar: Architectural Explanations & Quick Tools -->
+    <div class="col-lg-4">
+        <!-- Dual-Engine Architecture Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom fw-bold text-dark">
+                <i class="bi bi-diagram-3 me-2 text-primary"></i>How Dynamic AI Routing Works
+            </div>
+            <div class="card-body">
+                <div class="timeline-item mb-3">
+                    <div class="fw-bold text-dark small"><i class="bi bi-1-circle-fill text-primary me-2"></i>Calibrated Local Engine Baseline</div>
+                    <div class="text-muted small mt-1">
+                        Every document is first processed locally with Turnitin-grade sentence perplexity, burstiness, MTLD, and sliding window features.
+                    </div>
+                </div>
+                <div class="timeline-item mb-3">
+                    <div class="fw-bold text-dark small"><i class="bi bi-2-circle-fill text-info me-2"></i>Live LLM Cross-Validation</div>
+                    <div class="text-muted small mt-1">
+                        When external AI API is enabled, selected passages are evaluated by Google Gemini Flash or OpenAI GPT models for syntactic predictability.
+                    </div>
+                </div>
+                <div class="timeline-item mb-3">
+                    <div class="fw-bold text-dark small"><i class="bi bi-3-circle-fill text-success me-2"></i>Automatic Graceful Fallback</div>
+                    <div class="text-muted small mt-1">
+                        If an external API quota is exhausted or times out, Proovexa seamlessly falls back to the calibrated local engine without failing student scans.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="fw-bold text-dark small"><i class="bi bi-4-circle-fill text-warning me-2"></i>Zero Server Restart Needed</div>
+                    <div class="text-muted small mt-1">
+                        All changes saved in this panel update dynamically in database and are instantly picked up by active scan workers.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security & Privacy Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom fw-bold text-dark">
+                <i class="bi bi-shield-check me-2 text-success"></i>Credential Security & Privacy
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-2">
+                    <i class="bi bi-lock-fill text-success me-1"></i><strong>Masked Storage:</strong> API keys are encrypted and masked in the admin interface.
+                </p>
+                <p class="text-muted small mb-2">
+                    <i class="bi bi-eye-slash-fill text-info me-1"></i><strong>Student Privacy:</strong> Submitted documents are anonymized and inspected exclusively through API inference endpoints without retention or public fine-tuning.
+                </p>
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-journal-check text-primary me-1"></i><strong>Audit Logged:</strong> Every change made in this panel is recorded in the System Security Audit Log.
+                </p>
+            </div>
+        </div>
+
+        <!-- Quick Admin Links -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom fw-bold text-dark">
+                <i class="bi bi-link-45deg me-2 text-secondary"></i>Related Admin Panels
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'admin:analysis_aiapisettings_changelist' %}" class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="bi bi-shield-lock me-2 text-primary"></i>Django Superuser AI Settings Admin
+                </a>
+                <a href="{% url 'analysis:exclusion_rules' %}" class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="bi bi-sliders me-2 text-info"></i>Institutional Exclusion Rules
+                </a>
+                <a href="{% url 'accounts:audit_log' %}" class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="bi bi-journal-text me-2 text-warning"></i>View System Audit Logs
+                </a>
+                <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="bi bi-speedometer2 me-2 text-success"></i>Return to Admin Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Password Visibility Toggle
+    document.querySelectorAll('.toggle-password').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            const icon = this.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
+    });
+
+    // 2. Custom Model Selector for Gemini
+    const geminiSelect = document.getElementById('gemini_model');
+    const customGeminiWrapper = document.getElementById('customGeminiWrapper');
+    geminiSelect.addEventListener('change', function() {
+        if (this.value === 'custom') {
+            customGeminiWrapper.classList.remove('d-none');
+        } else {
+            customGeminiWrapper.classList.add('d-none');
+        }
+    });
+
+    // 3. Custom Model Selector for OpenAI
+    const openaiSelect = document.getElementById('openai_model');
+    const customOpenAIWrapper = document.getElementById('customOpenAIWrapper');
+    openaiSelect.addEventListener('change', function() {
+        if (this.value === 'custom') {
+            customOpenAIWrapper.classList.remove('d-none');
+        } else {
+            customOpenAIWrapper.classList.add('d-none');
+        }
+    });
+
+    // 4. Blend Weight Slider Dynamic Label
+    const blendSlider = document.getElementById('blend_weight');
+    const blendDisplay = document.getElementById('blendWeightDisplay');
+    function updateBlendDisplay() {
+        const val = parseFloat(blendSlider.value);
+        const apiPct = Math.round(val * 100);
+        const localPct = 100 - apiPct;
+        blendDisplay.textContent = val.toFixed(2) + ' (' + apiPct + '% External API / ' + localPct + '% Local Engine)';
+    }
+    blendSlider.addEventListener('input', updateBlendDisplay);
+    updateBlendDisplay();
+
+    // 5. Helper function to get CSRF token
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (tokenInput) return tokenInput.value;
+        const cookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+        return cookie ? cookie.split('=')[1] : '';
+    }
+
+    // 6. Test Gemini Connection
+    const btnTestGemini = document.getElementById('btnTestGemini');
+    const geminiAlert = document.getElementById('geminiTestAlert');
+    btnTestGemini.addEventListener('click', function() {
+        const key = document.getElementById('gemini_api_key').value;
+        let model = geminiSelect.value;
+        if (model === 'custom') {
+            model = document.getElementById('custom_gemini_model').value;
+        }
+
+        btnTestGemini.disabled = true;
+        btnTestGemini.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Testing...';
+        geminiAlert.className = 'alert alert-info mt-3 mb-0 py-2 px-3 small d-block';
+        geminiAlert.innerHTML = '<i class="bi bi-arrow-repeat me-1 spin-icon"></i> Contacting Google Gemini endpoint...';
+
+        fetch("{% url 'analysis:ai_settings_test' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                provider: 'gemini',
+                api_key: key,
+                model: model
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btnTestGemini.disabled = false;
+            btnTestGemini.innerHTML = '<i class="bi bi-plug me-1"></i>Test Gemini Connection';
+            if (data.success) {
+                geminiAlert.className = 'alert alert-success mt-3 mb-0 py-2 px-3 small d-block';
+                geminiAlert.innerHTML = '<i class="bi bi-check-circle-fill text-success me-2"></i><strong>Success!</strong> ' + data.message;
+            } else {
+                geminiAlert.className = 'alert alert-danger mt-3 mb-0 py-2 px-3 small d-block';
+                geminiAlert.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger me-2"></i><strong>Connection Error:</strong> ' + (data.error || 'Failed to authenticate with Gemini API.');
+            }
+        })
+        .catch(err => {
+            btnTestGemini.disabled = false;
+            btnTestGemini.innerHTML = '<i class="bi bi-plug me-1"></i>Test Gemini Connection';
+            geminiAlert.className = 'alert alert-danger mt-3 mb-0 py-2 px-3 small d-block';
+            geminiAlert.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger me-2"></i><strong>Network Error:</strong> ' + err.message;
+        });
+    });
+
+    // 7. Test OpenAI Connection
+    const btnTestOpenAI = document.getElementById('btnTestOpenAI');
+    const openaiAlert = document.getElementById('openaiTestAlert');
+    btnTestOpenAI.addEventListener('click', function() {
+        const key = document.getElementById('openai_api_key').value;
+        let model = openaiSelect.value;
+        if (model === 'custom') {
+            model = document.getElementById('custom_openai_model').value;
+        }
+
+        btnTestOpenAI.disabled = true;
+        btnTestOpenAI.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Testing...';
+        openaiAlert.className = 'alert alert-info mt-3 mb-0 py-2 px-3 small d-block';
+        openaiAlert.innerHTML = '<i class="bi bi-arrow-repeat me-1 spin-icon"></i> Contacting OpenAI endpoint...';
+
+        fetch("{% url 'analysis:ai_settings_test' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                provider: 'openai',
+                api_key: key,
+                model: model
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btnTestOpenAI.disabled = false;
+            btnTestOpenAI.innerHTML = '<i class="bi bi-plug me-1"></i>Test OpenAI Connection';
+            if (data.success) {
+                openaiAlert.className = 'alert alert-success mt-3 mb-0 py-2 px-3 small d-block';
+                openaiAlert.innerHTML = '<i class="bi bi-check-circle-fill text-success me-2"></i><strong>Success!</strong> ' + data.message;
+            } else {
+                openaiAlert.className = 'alert alert-danger mt-3 mb-0 py-2 px-3 small d-block';
+                openaiAlert.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger me-2"></i><strong>Connection Error:</strong> ' + (data.error || 'Failed to authenticate with OpenAI API.');
+            }
+        })
+        .catch(err => {
+            btnTestOpenAI.disabled = false;
+            btnTestOpenAI.innerHTML = '<i class="bi bi-plug me-1"></i>Test OpenAI Connection';
+            openaiAlert.className = 'alert alert-danger mt-3 mb-0 py-2 px-3 small d-block';
+            openaiAlert.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger me-2"></i><strong>Network Error:</strong> ' + err.message;
+        });
+    });
+});
+</script>
+{% endblock %}

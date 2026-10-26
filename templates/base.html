@@ -68,10 +68,9 @@
                     </a>
                 </div>
 
-                {% if user.is_admin or user.is_teacher %}
+                {% if user.is_admin %}
                 <div class="nav-section">
                     <span class="nav-section-title">Administration</span>
-                    {% if user.is_admin %}
                     <a href="{% url 'accounts:user_list' %}" class="nav-link {% if 'users' in request.path %}active{% endif %}">
                         <i class="bi bi-people-fill"></i>
                         <span>User Management</span>
@@ -84,28 +83,16 @@
                         <i class="bi bi-sliders"></i>
                         <span>Exclusion Rules</span>
                     </a>
+                    <a href="{% url 'analysis:ai_settings' %}" class="nav-link {% if 'ai-settings' in request.path %}active{% endif %}">
+                        <i class="bi bi-robot"></i>
+                        <span>AI API & Engine</span>
+                    </a>
                     <a href="{% url 'sources:providers' %}" class="nav-link {% if 'sources' in request.path %}active{% endif %}">
                         <i class="bi bi-database-fill"></i>
                         <span>Source Providers</span>
                     </a>
-                    {% endif %}
                 </div>
                 {% endif %}
-
-                <!-- Monthly Quota Meter Widget -->
-                <div class="sidebar-quota-box">
-                    <div class="sidebar-quota-header">
-                        <span><i class="bi bi-lightning-charge me-1"></i> Monthly Scans</span>
-                        <span>18 / 50</span>
-                    </div>
-                    <div class="sidebar-quota-bar">
-                        <div class="sidebar-quota-fill" style="width: 36%;"></div>
-                    </div>
-                    <div class="sidebar-quota-footer">
-                        <span class="sidebar-quota-text">Academic Pro</span>
-                        <a href="{% url 'landing' %}#pricing" class="sidebar-quota-link">Upgrade</a>
-                    </div>
-                </div>
             </div>
 
             <div class="sidebar-footer">

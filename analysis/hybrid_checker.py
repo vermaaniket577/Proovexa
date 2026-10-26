@@ -286,3 +286,22 @@ class TurnitinStyleChecker:
             "overall_similarity_index_pct": overall_similarity_index,
             "source_breakdown": source_reports,
         }
+
+    def evaluate(self, sub_text: str, src_text: str) -> Dict[str, Any]:
+        """
+        Convenience method to compare a single submission text against a single source text.
+        Returns composite similarity, shingle containment, lexical TF-IDF, and semantic matches.
+        """
+        shingle_score, exact_phrases = self.compute_shingle_containment(sub_text, src_text)
+        lexical_score = self.compute_lexical_similarity(sub_text, src_text)
+        semantic_score, flagged_pairs = self.compute_semantic_matches(sub_text, src_text)
+        composite_score = (0.45 * shingle_score) + (0.20 * lexical_score) + (0.35 * semantic_score)
+
+        return {
+            'composite_similarity_pct': round(composite_score * 100, 1),
+            'exact_shingle_containment_pct': round(shingle_score * 100, 1),
+            'lexical_tfidf_pct': round(lexical_score * 100, 1),
+            'semantic_paraphrase_pct': round(semantic_score * 100, 1),
+            'exact_matched_shingles': exact_phrases,
+            'flagged_sentences': flagged_pairs,
+        }
