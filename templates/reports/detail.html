@@ -766,55 +766,7 @@ mark.turnitin-highlight:hover {
 
     <div class="turnitin-sheet-divider"></div>
 
-    <!-- Integrity Flags (Left) & Soft Blue Advisory Notice (Right) on Page 2 -->
-    <div class="row g-4 align-items-center">
-        <div class="col-md-6">
-            <div class="turnitin-section-header mb-2">Integrity Flags</div>
-            <div class="integrity-flag-count">{{ criteria.flags_count }} Integrity Flags for Review</div>
-            <div class="integrity-flag-desc">
-                {% if criteria.flags_count == 0 %}
-                    No suspicious text manipulations found.
-                {% else %}
-                    Suspicious text manipulations detected.
-                {% endif %}
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="turnitin-advisory-box">
-                <p>Our system's algorithms look deeply at a document for any inconsistencies that would set it apart from a normal submission. If we notice something strange, we flag it for you to review.</p>
-                <p class="mb-0">A flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="turnitin-sheet-footer">
-        <div class="turnitin-brand-mark">
-            <img src="{{ criteria.logo_data_uri }}" alt="turnitin" class="turnitin-header-logo-img" />
-            <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ criteria.submission_id }}
-        </div>
-    </div>
-</div>
-
-<!-- =========================================================================
-     PAGE 3: INTEGRITY OVERVIEW (PART 2 - Match Groups & Top Sources 1-10) [Image 1]
-     ========================================================================= -->
-<div class="turnitin-sheet" id="section-page3">
-    <!-- Header -->
-    <div class="turnitin-sheet-header">
-        <div class="turnitin-brand-mark">
-            <img src="{{ criteria.logo_data_uri }}" alt="turnitin" class="turnitin-header-logo-img" />
-            <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ criteria.submission_id }}
-        </div>
-    </div>
-
-    <!-- Match Groups (Left) & Top Sources Database Breakdown (Right) on Page 3 -->
+    <!-- Match Groups (Left) & Top Sources Database Breakdown (Right) on Page 2 -->
     <div class="row g-4 mb-2">
         <!-- Match Groups -->
         <div class="col-md-7">
@@ -868,7 +820,55 @@ mark.turnitin-highlight:hover {
         </div>
     </div>
 
-    <div class="turnitin-sheet-divider my-2"></div>
+    <div class="turnitin-sheet-divider"></div>
+
+    <!-- Integrity Flags (Left) & Soft Blue Advisory Notice (Right) on Page 2 -->
+    <div class="row g-4 align-items-center">
+        <div class="col-md-6">
+            <div class="turnitin-section-header mb-2">Integrity Flags</div>
+            <div class="integrity-flag-count">{{ criteria.flags_count }} Integrity Flags for Review</div>
+            <div class="integrity-flag-desc">
+                {% if criteria.flags_count == 0 %}
+                    No suspicious text manipulations found.
+                {% else %}
+                    Suspicious text manipulations detected.
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="turnitin-advisory-box">
+                <p>Our system's algorithms look deeply at a document for any inconsistencies that would set it apart from a normal submission. If we notice something strange, we flag it for you to review.</p>
+                <p class="mb-0">A flag is not necessarily an indicator of a problem. However, we'd recommend you focus your attention there for further review.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="turnitin-sheet-footer">
+        <div class="turnitin-brand-mark">
+            <img src="{{ criteria.logo_data_uri }}" alt="turnitin" class="turnitin-header-logo-img" />
+            <span class="turnitin-header-section-title">Page 2 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     PAGE 3: INTEGRITY OVERVIEW (PART 2 - Top Sources 1-10) [Image 2]
+     ========================================================================= -->
+<div class="turnitin-sheet" id="section-page3">
+    <!-- Header -->
+    <div class="turnitin-sheet-header">
+        <div class="turnitin-brand-mark">
+            <img src="{{ criteria.logo_data_uri }}" alt="turnitin" class="turnitin-header-logo-img" />
+            <span class="turnitin-header-section-title">Page 3 of {{ criteria.total_pages|default:25 }} - Integrity Overview</span>
+        </div>
+        <div class="turnitin-header-meta-id">
+            Submission ID &nbsp;{{ criteria.submission_id }}
+        </div>
+    </div>
 
     <!-- Top Sources Title & Subtitle -->
     <div class="mb-2">

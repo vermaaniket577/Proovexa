@@ -622,26 +622,12 @@ def generate_pdf_report(report):
     story.append(flags_split_table)
 
     # =========================================================================
-    # PAGE 3: INTEGRITY OVERVIEW (PART 2 - Match Groups & Database Snapshot & Sources 1-10)
+    # PAGE 3: INTEGRITY OVERVIEW (PART 2 - Top Sources 1-10)
     # =========================================================================
     story.append(PageBreak())
     story.append(SetSection("Integrity Overview"))
 
-    # Top snapshot of Match Groups and Top Sources DB breakdown
-    p3_mg_ts_split = Table([[_create_match_groups_table(), _create_top_sources_db_table()]], colWidths=[261.64, 261.64])
-    p3_mg_ts_split.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    story.append(p3_mg_ts_split)
-
-    story.append(Spacer(1, 8))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=8))
-
-    # Middle of Page 3: Top Sources Section Title & Subtitle
+    # Top Sources Section Title & Subtitle
     story.append(Paragraph("<b>Top Sources</b>", h2_style))
     story.append(Paragraph(
         "The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.",
