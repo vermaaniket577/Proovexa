@@ -35,7 +35,7 @@ class AnalysisEngine:
             'exclude_bibliography': False,
             'exclude_quotations': False,
             'exclude_citations': False,
-            'min_match_words': getattr(settings, 'MIN_MATCH_WORD_COUNT', 5),
+            'min_match_words': getattr(settings, 'MIN_MATCH_WORD_COUNT', 14),
             'exclude_common_phrases': False,
             'common_phrases_list': [],
             'exclude_sources': [],
@@ -43,7 +43,7 @@ class AnalysisEngine:
         }
 
         # Initialize comparators
-        min_words = self.exclusion_settings.get('min_match_words', 5)
+        min_words = self.exclusion_settings.get('min_match_words', 14)
         ngram_size = getattr(settings, 'NGRAM_SIZE', 5)
 
         self.winnowing_engine = WinnowingEngine(k=min_words, w=4)
@@ -139,7 +139,7 @@ class AnalysisEngine:
 
             # Initialize academic word-position scorer
             scorer = AcademicSimilarityScorer(total_word_count=total_words, full_text=full_text)
-            min_words = self.exclusion_settings.get('min_match_words', 5)
+            min_words = self.exclusion_settings.get('min_match_words', 14)
 
             # Detect document-level exclusion regions (e.g. bibliography sections)
             if self.exclusion_settings.get('exclude_bibliography'):

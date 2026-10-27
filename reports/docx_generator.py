@@ -228,7 +228,7 @@ def generate_docx_report(report):
         excl_items.append('Direct quotations excluded')
     if excl.get('exclude_citations'):
         excl_items.append('Formatted citations excluded')
-    excl_items.append(f"Minimum match length: {excl.get('min_match_words', 5)} words")
+    excl_items.append(f"Minimum match length: {excl.get('min_match_words', 14)} words")
     if excl.get('exclude_common_phrases'):
         excl_items.append('Common phrases excluded')
     if excl.get('exclude_self_match'):

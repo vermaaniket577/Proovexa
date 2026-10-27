@@ -157,7 +157,7 @@ class Preprocessor:
         self,
         exclude_quotes: bool = True,
         exclude_bibliography: bool = True,
-        min_word_match: int = 8,
+        min_word_match: int = 14,
     ):
         self.exclude_quotes = exclude_quotes
         self.exclude_bibliography = exclude_bibliography
@@ -288,8 +288,8 @@ class WinnowingFingerprinter:
       picks the minimum hash. Guarantees that any match of length >= t is detected.
     """
 
-    def __init__(self, k_shingle_size: int = 8, window_size: int = 4, base: int = 257, prime: int = 1_000_000_007):
-        self.k = k_shingle_size  # k words per shingle (default: 8 words)
+    def __init__(self, k_shingle_size: int = 14, window_size: int = 4, base: int = 257, prime: int = 1_000_000_007):
+        self.k = k_shingle_size  # k words per shingle (default: 14 words)
         self.w = window_size     # Window size w for minimum selection
         self.base = base
         self.prime = prime
@@ -371,7 +371,7 @@ class WinnowingFingerprinter:
         source_id: str,
         source_title: str,
         source_text: str,
-        min_word_match: int = 8,
+        min_word_match: int = 14,
     ) -> List[MatchedSpan]:
         """
         Compares submitted document against a source document using Winnowing fingerprints.
@@ -859,8 +859,8 @@ class TurnitinSimilarityPipeline:
         self,
         exclude_quotes: bool = True,
         exclude_bibliography: bool = True,
-        min_word_match: int = 8,
-        k_shingle_size: int = 8,
+        min_word_match: int = 14,
+        k_shingle_size: int = 14,
         semantic_threshold: float = 0.78,
         ai_provider: str = "auto",
         openai_api_key: str = "",
@@ -1016,7 +1016,7 @@ if __name__ == "__main__":
     pipeline = TurnitinSimilarityPipeline(
         exclude_quotes=True,
         exclude_bibliography=True,
-        min_word_match=8,
+        min_word_match=14,
         ai_provider="local",  # Can pass 'gemini' or 'openai' with keys
     )
 

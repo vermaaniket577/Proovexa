@@ -37,7 +37,7 @@ def start_analysis_view(request, doc_id):
             'exclude_bibliography': request.POST.get('exclude_bibliography') == 'on',
             'exclude_quotations': request.POST.get('exclude_quotations') == 'on',
             'exclude_citations': request.POST.get('exclude_citations') == 'on',
-            'min_match_words': int(request.POST.get('min_match_words', 5)),
+            'min_match_words': int(request.POST.get('min_match_words', 14)),
             'exclude_common_phrases': request.POST.get('exclude_common_phrases') == 'on',
             'common_phrases_list': request.POST.get('common_phrases', '').strip().split('\n'),
             'exclude_sources': request.POST.getlist('exclude_sources'),

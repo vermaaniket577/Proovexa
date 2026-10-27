@@ -92,9 +92,9 @@
                     <div class="mb-4">
                         <label for="min_match_words" class="form-label fw-semibold d-flex justify-content-between">
                             <span>Minimum Matching Word Count Threshold</span>
-                            <span class="badge bg-primary" id="min-words-badge">5 words</span>
+                            <span class="badge bg-primary" id="min-words-badge">14 words</span>
                         </label>
-                        <input type="range" class="form-range" id="min_match_words" name="min_match_words" min="3" max="25" step="1" value="5" oninput="document.getElementById('min-words-badge').textContent = this.value + ' words';">
+                        <input type="range" class="form-range" id="min_match_words" name="min_match_words" min="3" max="25" step="1" value="14" oninput="document.getElementById('min-words-badge').textContent = this.value + ' words';">
                         <div class="form-text small">
                             Matches shorter than this number of consecutive words will be disregarded to eliminate common phrases and idioms.
                         </div>

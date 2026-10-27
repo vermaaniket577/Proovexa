@@ -123,7 +123,7 @@ class Command(BaseCommand):
             'exclude_bibliography': True,
             'exclude_quotations': True,
             'exclude_citations': True,
-            'min_match_words': 5,
+            'min_match_words': 14,
             'exclude_self_match': True,
         })
         report = engine.analyze_document(doc, user=student)

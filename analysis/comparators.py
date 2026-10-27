@@ -42,7 +42,7 @@ class ExactMatchComparator:
     Uses longest common substring approach.
     """
 
-    def __init__(self, min_word_count=5):
+    def __init__(self, min_word_count=14):
         self.min_word_count = min_word_count
 
     def compare(self, submitted_text, source_text, submitted_pages=None, source_pages=None):
