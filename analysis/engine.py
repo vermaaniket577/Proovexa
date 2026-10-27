@@ -40,6 +40,7 @@ class AnalysisEngine:
             'common_phrases_list': [],
             'exclude_sources': [],
             'exclude_self_match': True,
+            'check_web_sources': True,
         }
 
         # Initialize comparators
@@ -116,8 +117,8 @@ class AnalysisEngine:
 
             total_words = document.word_count or len(full_text.split())
 
-            # Get reference sources to compare against
-            sources = self._get_comparison_sources(document)
+            # Get reference sources to compare against (including Playwright live web search)
+            sources = self._get_comparison_sources(document, full_text=full_text)
 
             if not sources:
                 # No sources to compare - report 0% similarity
@@ -401,13 +402,32 @@ class AnalysisEngine:
 
             return report
 
-    def _get_comparison_sources(self, document):
-        """Get reference sources to compare against."""
+    def _get_comparison_sources(self, document, full_text=""):
+        """Get reference sources to compare against, including Playwright live web search."""
         sources = list(
             ReferenceSource.objects.filter(is_active=True)
             .exclude(document=document)
             .select_related('document', 'institution')
         )
+
+        # Check live internet sources using Playwright headless browser
+        check_web = self.exclusion_settings.get('check_web_sources', True)
+        if check_web and full_text and len(full_text.split()) >= 14:
+            try:
+                from .playwright_scraper import PlaywrightPlagiarismChecker
+                min_words = self.exclusion_settings.get('min_match_words', 14)
+                checker = PlaywrightPlagiarismChecker(headless=True, timeout_ms=10000)
+                web_sources = checker.search_and_retrieve_sources(
+                    full_text=full_text,
+                    min_words=min_words,
+                    max_sources=4,
+                    target_document=document,
+                )
+                for ws in web_sources:
+                    if not any(str(s.id) == str(ws.id) for s in sources):
+                        sources.append(ws)
+            except Exception as pw_e:
+                logger.warning(f"Playwright web plagiarism search skipped: {pw_e}")
 
         # Also compare against other uploaded documents (not self)
         exclude_self = self.exclusion_settings.get('exclude_self_match', True)

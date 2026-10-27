@@ -159,6 +159,20 @@ class MatchedPassage(models.Model):
     def __str__(self):
         return f"{self.get_match_type_display()} on page {self.submitted_page}"
 
+    @property
+    def color_code(self) -> str:
+        """Hexadecimal color code for this matched passage's source."""
+        from analysis.playwright_scraper import get_source_color
+        color, _, _, _ = get_source_color(self.source_index or 1)
+        return color
+
+    @property
+    def bg_color(self) -> str:
+        """Pastel background highlight color for this matched passage."""
+        from analysis.playwright_scraper import get_source_color
+        _, pastel_bg, _, _ = get_source_color(self.source_index or 1)
+        return pastel_bg
+
 
 class ExclusionRule(models.Model):
     """Configurable exclusion rules for similarity analysis."""

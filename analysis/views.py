@@ -42,6 +42,7 @@ def start_analysis_view(request, doc_id):
             'common_phrases_list': request.POST.get('common_phrases', '').strip().split('\n'),
             'exclude_sources': request.POST.getlist('exclude_sources'),
             'exclude_self_match': request.POST.get('exclude_self_match') == 'on',
+            'check_web_sources': request.POST.get('check_web_sources') != 'off',
         }
 
         # Run analysis

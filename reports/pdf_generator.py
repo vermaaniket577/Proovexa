@@ -205,8 +205,15 @@ def _build_source_table_rows(s):
     pill_d.add(Rect(0, 0, 52, 11, rx=5.5, ry=5.5, fillColor=pill_bg, strokeColor=None))
     pill_d.add(String(26, 2.8, s['category'], fontName=f_bold, fontSize=7.0, fillColor=pill_text, textAnchor='middle'))
 
-    # Top line container table: Badge and Pill side by side
-    top_table = Table([[badge_d, pill_d]], colWidths=[20, 60])
+    # 3. Color code label tag
+    color_code = s.get('color_code') or s.get('color', '#1976d2')
+    color_p = Paragraph(
+        f"<font color='{color_code}'><b>[{color_code}]</b></font>",
+        ParagraphStyle('SrcColorTag', fontName=f_bold, fontSize=7.0, leading=9.0, textColor=colors.HexColor(color_code))
+    )
+
+    # Top line container table: Badge, Pill, and Color Code side by side
+    top_table = Table([[badge_d, pill_d, color_p]], colWidths=[20, 58, 80])
     top_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),

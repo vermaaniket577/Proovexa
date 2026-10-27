@@ -244,12 +244,20 @@ class AcademicSimilarityScorer:
             exact_count = sum(1 for sp in spans if sp.match_type in ('exact', 'winnowing', 'phrase'))
             fuzzy_count = sum(1 for sp in spans if sp.match_type in ('fuzzy', 'near_duplicate'))
 
+            from .playwright_scraper import get_source_color
+            color_code, pastel_bg, pill_bg, pill_text = get_source_color(rank)
+
             rankings.append({
                 'source_id': str(sid),
                 'rank': rank,
                 'title': meta.get('title', f"Source #{rank}"),
                 'category': meta.get('category', 'Submitted Document'),
                 'url': meta.get('url', ''),
+                'color': color_code,
+                'color_code': color_code,
+                'bg_color': pastel_bg,
+                'pill_bg': pill_bg,
+                'pill_text': pill_text,
                 'gross_matched_words': gross_words,
                 'gross_percentage': gross_pct,
                 'unique_matched_words': unique_words,

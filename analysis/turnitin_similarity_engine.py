@@ -125,6 +125,7 @@ class SourceBreakdownItem:
     matched_word_count: int
     similarity_percentage: float
     is_primary: bool = False
+    color_code: str = "#E91E63"
 
 
 @dataclass
@@ -736,14 +737,20 @@ class AIReportGenerator:
         matched_non_excluded_chars = len(matched_char_indices)
         similarity_index = round((matched_non_excluded_chars / non_excluded_chars) * 100.0, 1)
 
-        # 4. Source Breakdown (sorted by descending similarity percentage)
+        # 4. Source Breakdown (sorted by descending similarity percentage with Turnitin color codes)
         sources_breakdown: List[SourceBreakdownItem] = []
         is_first = True
-        for src_id, char_set in sorted(source_matched_chars.items(), key=lambda item: len(item[1]), reverse=True):
+        palette = [
+            '#E91E63', '#1976D2', '#2E7D32', '#7B1FA2', '#C2185B',
+            '#0288D1', '#00897B', '#5E35B1', '#D81B60', '#0D47A1',
+            '#EC407A', '#1565C0', '#00695C', '#E65100', '#4E342E', '#37474F'
+        ]
+        for src_rank, (src_id, char_set) in enumerate(sorted(source_matched_chars.items(), key=lambda item: len(item[1]), reverse=True)):
             src_pct = round((len(char_set) / non_excluded_chars) * 100.0, 1)
             info = source_info.get(src_id, {})
             # Approximate words from character count (~5.5 chars/word)
             approx_words = max(1, int(len(char_set) / 5.5))
+            color_code = palette[src_rank % len(palette)]
             sources_breakdown.append(
                 SourceBreakdownItem(
                     source_id=src_id,
@@ -753,6 +760,7 @@ class AIReportGenerator:
                     matched_word_count=approx_words,
                     similarity_percentage=src_pct,
                     is_primary=is_first,
+                    color_code=color_code,
                 )
             )
             is_first = False
@@ -838,12 +846,27 @@ class CorpusRetriever:
         return []
 
     @staticmethod
-    def search_web_sources(queries: List[str], api_key: str = "") -> List[Dict[str, Any]]:
+    def search_web_sources(queries: List[str], api_key: str = "", max_sources: int = 4) -> List[Dict[str, Any]]:
         """
-        Placeholder for external Web Search APIs (Serper.dev, Bing Search, or Tavily).
+        Live Web Search & Scraper using Playwright headless Chromium.
         """
-        # When an external search key is configured, invoke Serper or Bing
-        return []
+        try:
+            from .playwright_scraper import PlaywrightPlagiarismChecker
+            checker = PlaywrightPlagiarismChecker(headless=True, timeout_ms=10000)
+            combined_text = " ".join(queries)
+            refs = checker.search_and_retrieve_sources(combined_text, max_sources=max_sources)
+            return [
+                {
+                    "id": str(r.id),
+                    "title": r.title,
+                    "text": r.retrieved_text,
+                    "category": "Internet",
+                    "url": r.url,
+                }
+                for r in refs if r.retrieved_text
+            ]
+        except Exception:
+            return []
 
 
 # =============================================================================
@@ -1031,7 +1054,7 @@ if __name__ == "__main__":
     print("\n--- PRIMARY SOURCE BREAKDOWN ---")
     for s in report.sources_breakdown:
         badge = "[PRIMARY SOURCE]" if s.is_primary else "[SECONDARY]"
-        print(f" {badge:16} {s.similarity_percentage}% - {s.source_title} ({s.source_category})")
+        print(f" {badge:16} {s.similarity_percentage}% - {s.source_title} ({s.source_category}) [Color: {s.color_code}]")
 
     print("\n--- MATCHED PASSAGES HIGHLIGHT MAP ---")
     for idx, p in enumerate(report.matched_passages, 1):

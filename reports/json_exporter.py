@@ -43,6 +43,7 @@ def generate_json_report(report):
             'source_page': match.source_page,
             'source_paragraph': match.source_paragraph,
             'source_index': match.source_index,
+            'color_code': match.color_code,
             'is_excluded': match.is_excluded,
             'exclusion_reason': match.exclusion_reason,
         })
@@ -72,6 +73,7 @@ def generate_json_report(report):
             'exact_match_count': report.exact_match_count,
             'phrase_match_count': report.phrase_match_count,
             'fuzzy_match_count': report.fuzzy_match_count,
+            'source_breakdown': report.source_breakdown,
         },
         'exclusion_settings': report.exclusion_settings,
         'sources_checked': report.sources_checked,

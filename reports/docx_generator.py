@@ -133,7 +133,8 @@ def generate_docx_report(report):
         src_name = match.source.title if match.source else 'Unknown Source'
         if src_name not in source_groups:
             source_groups[src_name] = {
-                'matches': 0, 'words': 0, 'types': set(), 'index': match.source_index
+                'matches': 0, 'words': 0, 'types': set(), 'index': match.source_index,
+                'color_code': match.color_code, 'source': match.source,
             }
         source_groups[src_name]['matches'] += 1
         source_groups[src_name]['words'] += match.word_count
@@ -142,11 +143,11 @@ def generate_docx_report(report):
     if source_groups:
         doc.add_heading('Source-by-Source Breakdown', level=2)
         src_table = doc.add_table(
-            rows=len(source_groups) + 1, cols=5
+            rows=len(source_groups) + 1, cols=6
         )
         src_table.style = 'Light Grid Accent 1'
 
-        headers = ['#', 'Source', 'Matches', 'Words', 'Match Types']
+        headers = ['#', 'Source', 'Color Code', 'Matches', 'Words', 'Match Types']
         for i, header in enumerate(headers):
             src_table.rows[0].cells[i].text = header
             for para in src_table.rows[0].cells[i].paragraphs:
@@ -158,9 +159,10 @@ def generate_docx_report(report):
         ), 1):
             src_table.rows[row_idx].cells[0].text = str(row_idx)
             src_table.rows[row_idx].cells[1].text = name[:50]
-            src_table.rows[row_idx].cells[2].text = str(data['matches'])
-            src_table.rows[row_idx].cells[3].text = str(data['words'])
-            src_table.rows[row_idx].cells[4].text = ', '.join(data['types'])
+            src_table.rows[row_idx].cells[2].text = data.get('color_code', '')
+            src_table.rows[row_idx].cells[3].text = str(data['matches'])
+            src_table.rows[row_idx].cells[4].text = str(data['words'])
+            src_table.rows[row_idx].cells[5].text = ', '.join(data['types'])
 
     doc.add_paragraph()
 
@@ -188,7 +190,7 @@ def generate_docx_report(report):
             # Source info
             if match.source:
                 src_para = doc.add_paragraph()
-                run = src_para.add_run(f'Source: {match.source.title}')
+                run = src_para.add_run(f'Source: {match.source.title} [Color: {match.color_code}]')
                 run.font.size = Pt(9)
                 run.font.color.rgb = RGBColor(102, 102, 102)
 

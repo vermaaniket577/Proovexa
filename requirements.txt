@@ -36,3 +36,4 @@ xlsxwriter>=3.1.0
 # Security & Sanitization
 bleach>=6.1.0
 requests>=2.31.0
+playwright>=1.40.0
