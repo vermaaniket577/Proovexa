@@ -169,22 +169,15 @@ class TurnitinStyleChecker:
 
             # If dimensions differ between independent encode calls in fallback
             if sub_embeddings.shape[1] != src_embeddings.shape[1]:
-                # Combine fit to shared vocabulary
-                combined_vec = TfidfVectorizer(ngram_range=(1, 3), analyzer="char_wb", sublinear_tf=True)
+                # Combine fit to shared vocabulary using sparse CSR matrix (no dense .toarray())
+                combined_vec = TfidfVectorizer(ngram_range=(1, 3), analyzer="char_wb", sublinear_tf=True, max_features=15000)
                 all_sents = sub_sents + src_sents
-                combined_matrix = combined_vec.fit_transform(all_sents).toarray()
-                sub_embeddings = combined_matrix[:len(sub_sents)]
-                src_embeddings = combined_matrix[len(sub_sents):]
-                # Normalize
-                sub_norms = np.linalg.norm(sub_embeddings, axis=1, keepdims=True)
-                sub_norms[sub_norms == 0] = 1.0
-                sub_embeddings = sub_embeddings / sub_norms
-                src_norms = np.linalg.norm(src_embeddings, axis=1, keepdims=True)
-                src_norms[src_norms == 0] = 1.0
-                src_embeddings = src_embeddings / src_norms
-
-            # Pairwise cosine similarity matrix: shape (num_sub_sents, num_src_sents)
-            sim_matrix = np.matmul(sub_embeddings, src_embeddings.T)
+                combined_matrix = combined_vec.fit_transform(all_sents)
+                sub_sparse = combined_matrix[:len(sub_sents)]
+                src_sparse = combined_matrix[len(sub_sents):]
+                sim_matrix = cosine_similarity(sub_sparse, src_sparse)
+            else:
+                sim_matrix = cosine_similarity(sub_embeddings, src_embeddings)
 
             flagged_sentences = []
             flagged_count = 0

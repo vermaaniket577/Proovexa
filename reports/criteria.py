@@ -6,6 +6,7 @@ Extracts and computes:
 - Top Sources Database Breakdown (Internet, Publications, Submitted works)
 - Integrity Flags (Text manipulation detection, zero-width characters, homoglyphs)
 - Top Sources ranked list with badges, categories, and percentages
+- Authentic Turnitin pagination across Page 3, Page 4, Page 5, etc.
 """
 import base64
 import os
@@ -34,6 +35,39 @@ def get_turnitin_logo_data_uri():
         else:
             _LOGO_DATA_URI = "/static/images/turnitin_header_logo.png"
     return _LOGO_DATA_URI
+
+
+# Standard Turnitin 16-color signature palette: (badge_solid, pastel_bg, pill_bg, pill_text)
+TURNITIN_PALETTE = [
+    ('#e91e63', '#fce4ec', '#fce4ec', '#191919'),  # 1: Magenta / Pink
+    ('#1976d2', '#e3f2fd', '#e0f2fe', '#191919'),  # 2: Royal Blue
+    ('#2e7d32', '#e8f5e9', '#dcfce7', '#191919'),  # 3: Forest Green
+    ('#7b1fa2', '#f3e5f5', '#ede9fe', '#191919'),  # 4: Deep Purple
+    ('#c2185b', '#fce4ec', '#fce7f3', '#191919'),  # 5: Rose
+    ('#0288d1', '#e1f5fe', '#e0f2fe', '#191919'),  # 6: Sky Blue
+    ('#00897b', '#e0f2f1', '#ccfbf1', '#191919'),  # 7: Teal
+    ('#5e35b1', '#ede7f6', '#ede9fe', '#191919'),  # 8: Violet
+    ('#d81b60', '#fce4ec', '#ffe4e6', '#191919'),  # 9: Ruby Magenta
+    ('#0d47a1', '#e8eaf6', '#e0f2fe', '#191919'),  # 10: Navy
+    ('#ec407a', '#f8bbd0', '#fce4ec', '#191919'),  # 11: Soft Pink
+    ('#1565c0', '#bbdefb', '#e0f2fe', '#191919'),  # 12: Classic Blue
+    ('#00695c', '#b2dfdb', '#d1fae5', '#191919'),  # 13: Pine Green
+    ('#e65100', '#fff3e0', '#ffedd5', '#191919'),  # 14: Burnt Orange
+    ('#4e342e', '#efebe9', '#f3f4f6', '#191919'),  # 15: Warm Umber
+    ('#37474f', '#eceff1', '#f1f5f9', '#191919'),  # 16: Slate Grey
+]
+
+
+def _normalize_category(cat_str: str, url: str = '') -> str:
+    """Normalize raw source type into standard Turnitin categories."""
+    c = (cat_str or '').lower()
+    if 'web' in c or 'internet' in c:
+        return 'Internet'
+    elif 'academic' in c or 'publication' in c or 'journal' in c:
+        return 'Publication'
+    elif 'submitted' in c or 'student' in c or 'paper' in c:
+        return 'Submitted works'
+    return 'Internet' if url else 'Publication'
 
 
 def compute_report_criteria(report):
@@ -84,7 +118,7 @@ def compute_report_criteria(report):
         filtered_items = ["Bibliography", "Quoted Text", "Cited Text"]
 
     # 4. Match Passages Analysis & Match Groups Classification
-    passages = report.matched_passages.filter(is_excluded=False).select_related('source')
+    passages = list(report.matched_passages.filter(is_excluded=False).select_related('source'))
     
     group_not_cited = []
     group_missing_quotes = []
@@ -96,7 +130,7 @@ def compute_report_criteria(report):
     publications_words = 0
     submitted_works_words = 0
 
-    # Source groups for top sources table
+    # Source groups for top sources fallback
     source_map = {}
 
     for p in passages:
@@ -118,32 +152,30 @@ def compute_report_criteria(report):
         )
 
         # Classify into Turnitin 4 Match Groups
-        if not has_citation and not has_quotes:
-            group_not_cited.append(p)
-        elif has_citation and not has_quotes:
-            group_missing_quotes.append(p)
-        elif not has_citation and has_quotes:
-            group_missing_citations.append(p)
-        else:
+        if has_quotes and has_citation:
             group_cited_quoted.append(p)
+        elif has_quotes and not has_citation:
+            group_missing_citations.append(p)
+        elif has_citation or p.match_type in ['near_duplicate', 'fuzzy'] or (p.similarity_score and p.similarity_score < 0.98):
+            group_missing_quotes.append(p)
+        else:
+            group_not_cited.append(p)
 
         # Classify source database
         src = p.source
         src_type = getattr(src, 'source_type', 'uploaded') if src else 'uploaded'
         src_title = getattr(src, 'title', 'Reference Document') if src else 'Unknown Reference'
         src_url = getattr(src, 'url', '') if src else ''
+        category = _normalize_category(src_type, src_url)
 
-        if src_type in ['web'] or (src_url and not getattr(src, 'doi', '')):
-            category = 'Internet'
+        if category == 'Internet':
             internet_words += words
-        elif src_type in ['academic', 'open_access'] or (src and getattr(src, 'doi', '')):
-            category = 'Publication'
+        elif category == 'Publication':
             publications_words += words
         else:
-            category = 'Submitted works'
             submitted_works_words += words
 
-        # Group by source for Top Sources
+        # Group by source for Top Sources fallback
         if src_title not in source_map:
             source_map[src_title] = {
                 'title': src_title,
@@ -154,52 +186,55 @@ def compute_report_criteria(report):
             }
         source_map[src_title]['words'] += words
 
-    # Default distribution if all matches belong to general category
-    total_matched_words = max(report.matched_words, sum(p.word_count for p in passages), 1)
-    
-    # Calculate percentages for database categories
-    if report.overall_similarity > 0:
-        if internet_words + publications_words + submitted_works_words == 0:
-            internet_pct = round(report.overall_similarity * 0.4, 0)
-            publications_pct = round(report.overall_similarity * 0.35, 0)
-            submitted_works_pct = round(report.overall_similarity * 0.25, 0)
-        else:
-            factor = report.overall_similarity / max(total_matched_words, 1)
-            internet_pct = round(internet_words * factor, 0)
-            publications_pct = round(publications_words * factor, 0)
-            submitted_works_pct = round(submitted_works_words * factor, 0)
-            # Adjust rounding to match overall
-            diff = report.overall_similarity - (internet_pct + publications_pct + submitted_works_pct)
-            if diff != 0:
-                internet_pct = max(0, internet_pct + diff)
-    else:
-        internet_pct = 0
-        publications_pct = 0
-        submitted_works_pct = 0
+    # Distinct consolidated match counts
+    def get_consolidated_count(plist):
+        if not plist:
+            return 0
+        spans = set()
+        for p in plist:
+            block = (p.submitted_char_start or 0) // 180
+            spans.add((p.submitted_page, p.submitted_paragraph, block, p.source_id))
+        return max(len(spans), 1)
 
-    # Match groups stats
-    def calc_group_stat(group_list):
-        count = len(group_list)
-        words = sum(p.word_count for p in group_list)
-        pct = round((words / word_count) * 100, 1) if word_count > 0 else 0
-        return count, pct
+    nc_count = get_consolidated_count(group_not_cited)
+    mq_count = get_consolidated_count(group_missing_quotes)
+    mc_count = get_consolidated_count(group_missing_citations)
+    cq_count = get_consolidated_count(group_cited_quoted)
 
-    nc_count, nc_pct = calc_group_stat(group_not_cited)
-    mq_count, mq_pct = calc_group_stat(group_missing_quotes)
-    mc_count, mc_pct = calc_group_stat(group_missing_citations)
-    cq_count, cq_pct = calc_group_stat(group_cited_quoted)
-
-    # If no passages existed but report has similarity, populate clean standard groups
+    # If no passages existed but report has similarity, populate clean standard counts
     if len(passages) == 0 and report.overall_similarity > 0:
         nc_count = report.exact_match_count or 1
+
     is_zero_report = (report.overall_similarity == 0 or report.overall_similarity <= 0.0)
-    score_display = "*" if is_zero_report else f"{int(round(report.overall_similarity))}%"
+    total_sim = round(report.overall_similarity, 0)
+    score_display = f"{int(total_sim)}%"
+
+    # Match groups stats scaled to total_sim so sum(match_groups.pct) == total_sim
+    raw_nc = sum(p.word_count for p in group_not_cited)
+    raw_mq = sum(p.word_count for p in group_missing_quotes)
+    raw_mc = sum(p.word_count for p in group_missing_citations)
+    raw_cq = sum(p.word_count for p in group_cited_quoted)
+    total_group_words = raw_nc + raw_mq + raw_mc + raw_cq
+
+    if not is_zero_report and total_group_words > 0:
+        nc_pct = int(round(total_sim * (raw_nc / total_group_words)))
+        mq_pct = int(round(total_sim * (raw_mq / total_group_words)))
+        mc_pct = int(round(total_sim * (raw_mc / total_group_words)))
+        cq_pct = int(round(total_sim * (raw_cq / total_group_words)))
+        diff = int(total_sim) - (nc_pct + mq_pct + mc_pct + cq_pct)
+        if diff != 0:
+            nc_pct = max(0, nc_pct + diff)
+    else:
+        nc_pct = int(total_sim) if not is_zero_report else 0
+        mq_pct = 0
+        mc_pct = 0
+        cq_pct = 0
 
     match_groups = [
         {
             'name': 'Not Cited or Quoted',
             'count': nc_count,
-            'percent': "*" if is_zero_report else f"{int(round(nc_pct))}%",
+            'percent': f"{nc_pct}%",
             'description': 'Matches with neither in-text citation nor quotation marks',
             'color': '#e05d5d',  # Exact Turnitin Coral Red from screenshot
             'icon': 'files',
@@ -209,7 +244,7 @@ def compute_report_criteria(report):
         {
             'name': 'Missing Quotations',
             'count': mq_count,
-            'percent': "*" if is_zero_report else f"{int(round(mq_pct))}%",
+            'percent': f"{mq_pct}%",
             'description': 'Matches that are still very similar to source material',
             'color': '#d96b27',  # Exact Turnitin Burnt Orange from screenshot
             'icon': 'quote',
@@ -219,7 +254,7 @@ def compute_report_criteria(report):
         {
             'name': 'Missing Citation',
             'count': mc_count,
-            'percent': "*" if is_zero_report else f"{int(round(mc_pct))}%",
+            'percent': f"{mc_pct}%",
             'description': 'Matches that have quotation marks, but no in-text citation',
             'color': '#c4a052',  # Exact Turnitin Warm Sand Gold from screenshot
             'icon': 'citation',
@@ -229,7 +264,7 @@ def compute_report_criteria(report):
         {
             'name': 'Cited and Quoted',
             'count': cq_count,
-            'percent': "*" if is_zero_report else f"{int(round(cq_pct))}%",
+            'percent': f"{cq_pct}%",
             'description': 'Matches with in-text citation present, but no quotation marks',
             'color': '#5fa89b',  # Exact Turnitin Sage Teal from screenshot
             'icon': 'mortarboard',
@@ -238,23 +273,36 @@ def compute_report_criteria(report):
         },
     ]
 
-    # Database categories summary matching Turnitin icons & colors
+    # Database categories scaled to total_sim so sum(database_sources.pct) == total_sim
+    total_db_words = internet_words + publications_words + submitted_works_words
+    if not is_zero_report and total_db_words > 0:
+        internet_pct = int(round(total_sim * (internet_words / total_db_words)))
+        publications_pct = int(round(total_sim * (publications_words / total_db_words)))
+        submitted_works_pct = int(round(total_sim * (submitted_works_words / total_db_words)))
+        diff = int(total_sim) - (internet_pct + publications_pct + submitted_works_pct)
+        if diff != 0:
+            internet_pct = max(0, internet_pct + diff)
+    else:
+        internet_pct = int(total_sim) if not is_zero_report else 0
+        publications_pct = 0
+        submitted_works_pct = 0
+
     database_sources = [
         {
             'name': 'Internet sources',
-            'percent': "*" if is_zero_report else f"{int(round(internet_pct))}%",
+            'percent': f"{internet_pct}%",
             'icon': 'globe',
             'icon_class': 'bi-globe2',
         },
         {
             'name': 'Publications',
-            'percent': "*" if is_zero_report else f"{int(round(publications_pct))}%",
+            'percent': f"{publications_pct}%",
             'icon': 'book',
             'icon_class': 'bi-book-half',
         },
         {
             'name': 'Submitted works (Student Papers)',
-            'percent': "*" if is_zero_report else f"{int(round(submitted_works_pct))}%",
+            'percent': f"{submitted_works_pct}%",
             'icon': 'person',
             'icon_class': 'bi-person-fill',
         },
@@ -282,150 +330,120 @@ def compute_report_criteria(report):
 
     flags_count = len(integrity_flags)
 
-    # 6. Top Sources Ordered List (Matching Images 3 & 4)
-    # Vibrant colors & corresponding pill colors from Turnitin palette
-    TURNITIN_PALETTE = [
-        # (badge_solid, pastel_bg, pill_bg, pill_text)
-        ('#e91e63', '#fce4ec', '#fce4ec', '#be185d'),  # 1: Magenta / Pink
-        ('#1976d2', '#e3f2fd', '#e0f2fe', '#0369a1'),  # 2: Blue
-        ('#2e7d32', '#e8f5e9', '#dcfce7', '#15803d'),  # 3: Green
-        ('#7b1fa2', '#f3e5f5', '#f3e8ff', '#7e22ce'),  # 4: Purple
-        ('#c2185b', '#fce4ec', '#fce4ec', '#be185d'),  # 5: Rose
-        ('#0288d1', '#e1f5fe', '#e0f2fe', '#0284c7'),  # 6: Sky Blue
-        ('#00897b', '#e0f2f1', '#ccfbf1', '#0f766e'),  # 7: Teal
-        ('#5e35b1', '#ede7f6', '#ede9fe', '#6d28d9'),  # 8: Deep Purple
-        ('#d81b60', '#fce4ec', '#fce4ec', '#be185d'),  # 9: Magenta
-        ('#0d47a1', '#e8eaf6', '#e0e7ff', '#1d4ed8'),  # 10: Dark Blue
-        ('#ec407a', '#f8bbd0', '#fce4ec', '#be185d'),  # 11: Soft Pink
-        ('#1565c0', '#bbdefb', '#e0f2fe', '#1d4ed8'),  # 12: Royal Blue
-        ('#00695c', '#b2dfdb', '#d1fae5', '#047857'),  # 13: Pine
-    ]
-
-    # Authentic Turnitin sample sources from Image 1 & Image 2 to guarantee exact layout & pagination
-    SAMPLE_SOURCES = [
-        {"title": "ucalgary.scholaris.ca", "url": "https://ucalgary.scholaris.ca", "category": "Internet", "percent": "1%"},
-        {"title": "The Lack of Social Interaction in the Full-time Remote Work Environment and ..", "url": "", "category": "Publication", "percent": "1%"},
-        {"title": "Listen carefully: transgender voices in the workplace", "url": "", "category": "Publication", "percent": "<1%"},
-        {"title": "isletme.yalova.edu.tr", "url": "https://isletme.yalova.edu.tr", "category": "Internet", "percent": "<1%"},
-        {"title": "uwo.scholaris.ca", "url": "https://uwo.scholaris.ca", "category": "Internet", "percent": "<1%"},
-        {"title": "opus.fhv.at", "url": "https://opus.fhv.at", "category": "Internet", "percent": "<1%"},
-        {"title": "iiespace.iie.ac.za", "url": "https://iiespace.iie.ac.za", "category": "Internet", "percent": "<1%"},
-        {"title": "gupea.ub.gu.se", "url": "https://gupea.ub.gu.se", "category": "Internet", "percent": "<1%"},
-        {"title": "mountainscholar.org", "url": "https://mountainscholar.org", "category": "Internet", "percent": "<1%"},
-        {"title": "jyx.jyu.fi", "url": "https://jyx.jyu.fi", "category": "Internet", "percent": "<1%"},
-        {"title": "www.um.edu.mt", "url": "https://www.um.edu.mt", "category": "Internet", "percent": "<1%"},
-        {"title": "Investigating factors influencing demand trends in corporate retailers at un ...", "url": "", "category": "Publication", "percent": "<1%"},
-        {"title": "norma.ncirl.ie", "url": "https://norma.ncirl.ie", "category": "Internet", "percent": "<1%"},
-    ]
-
-    sample_lookup = {item['title']: (i + 1, item) for i, item in enumerate(SAMPLE_SOURCES)}
-
-    def get_source_sort_key(s):
-        if s['title'] in sample_lookup:
-            return (0, sample_lookup[s['title']][0])
-        if s.get('index'):
-            return (1, s['index'])
-        return (2, -s['words'])
-
-    sb_lookup = {}
-    if report.source_breakdown and isinstance(report.source_breakdown, list):
-        for sb in report.source_breakdown:
-            if isinstance(sb, dict):
-                title = sb.get('title') or sb.get('source_name', '')
-                if title:
-                    sb_lookup[title.lower()] = sb
-                if sb.get('source_id'):
-                    sb_lookup[str(sb.get('source_id'))] = sb
-
+    # 6. Top Sources Ordered List (Authentic Detected Sources Only)
     top_sources = []
-    sorted_sources = sorted(source_map.values(), key=get_source_sort_key)
-    
-    for idx, s in enumerate(sorted_sources, 1):
-        color_tuple = TURNITIN_PALETTE[(idx - 1) % len(TURNITIN_PALETTE)]
-        badge_color, pastel_bg, pill_bg, pill_text = color_tuple
-        
-        # If matching sample source, preserve official Turnitin category and percentage
-        if s['title'] in sample_lookup:
-            _, sample_item = sample_lookup[s['title']]
-            pct_display = sample_item['percent']
-            category = sample_item['category']
-        else:
+
+    if report.source_breakdown and isinstance(report.source_breakdown, list) and len(report.source_breakdown) > 0:
+        raw_sources = sorted(report.source_breakdown, key=lambda s: (s.get('rank', 999), -s.get('unique_matched_words', 0), -s.get('gross_matched_words', 0)))
+        for idx, s in enumerate(raw_sources, 1):
+            color_tuple = TURNITIN_PALETTE[(idx - 1) % len(TURNITIN_PALETTE)]
+            badge_color, pastel_bg, pill_bg, pill_text = color_tuple
+            category = _normalize_category(s.get('category'), s.get('url', ''))
+
+            uniq_w = s.get('unique_matched_words') or 0
+            gross_w = s.get('gross_matched_words') or 0
+            uniq_pct = float(s.get('unique_percentage') or 0.0)
+            gross_pct = float(s.get('gross_percentage') or 0.0)
+            effective_pct = max(uniq_pct, gross_pct * 0.7)
+
+            if is_zero_report:
+                pct_display = "*"
+            elif effective_pct >= 0.95:
+                pct_display = f"{min(int(round(effective_pct)), int(total_sim))}%"
+            else:
+                pct_display = "<1%"
+
+            top_sources.append({
+                'index': idx,
+                'title': s.get('title') or s.get('source_name', f'Source {idx}'),
+                'url': s.get('url', ''),
+                'category': category,
+                'words': gross_w or uniq_w,
+                'percent': pct_display,
+                'color': badge_color,
+                'color_code': badge_color,
+                'pastel_bg': pastel_bg,
+                'pill_bg': pill_bg,
+                'pill_text': pill_text,
+                'composite_similarity_pct': s.get('composite_similarity_pct', pct_display.replace('%', '').replace('<', '')),
+                'exact_shingle_containment_pct': s.get('exact_shingle_containment_pct', pct_display.replace('%', '').replace('<', '')),
+                'lexical_tfidf_pct': s.get('lexical_tfidf_pct', pct_display.replace('%', '').replace('<', '')),
+                'semantic_paraphrase_pct': s.get('semantic_paraphrase_pct', 0.0),
+                'exact_matched_shingles': s.get('exact_matched_shingles', []),
+                'flagged_sentences': s.get('flagged_sentences', []),
+            })
+    elif source_map:
+        sorted_sources = sorted(source_map.values(), key=lambda s: -s['words'])
+        for idx, s in enumerate(sorted_sources, 1):
+            color_tuple = TURNITIN_PALETTE[(idx - 1) % len(TURNITIN_PALETTE)]
+            badge_color, pastel_bg, pill_bg, pill_text = color_tuple
             src_pct = (s['words'] / word_count) * 100 if word_count > 0 else 0
-            pct_display = f"{int(round(src_pct))}%" if src_pct >= 1 else "<1%"
-            category = s['category']
 
-        sb_item = sb_lookup.get(s['title'].lower()) or sb_lookup.get(str(s.get('index', ''))) or {}
-        
-        top_sources.append({
-            'index': idx,
-            'title': s['title'],
-            'url': s['url'],
-            'category': category,
-            'words': s['words'],
-            'percent': pct_display,
-            'color': badge_color,
-            'color_code': badge_color,
-            'pastel_bg': pastel_bg,
-            'pill_bg': pill_bg,
-            'pill_text': pill_text,
-            'composite_similarity_pct': sb_item.get('composite_similarity_pct', pct_display.replace('%', '').replace('<', '')),
-            'exact_shingle_containment_pct': sb_item.get('exact_shingle_containment_pct', pct_display.replace('%', '').replace('<', '')),
-            'lexical_tfidf_pct': sb_item.get('lexical_tfidf_pct', pct_display.replace('%', '').replace('<', '')),
-            'semantic_paraphrase_pct': sb_item.get('semantic_paraphrase_pct', 0.0),
-            'exact_matched_shingles': sb_item.get('exact_matched_shingles', []),
-            'flagged_sentences': sb_item.get('flagged_sentences', []),
-        })
+            if is_zero_report:
+                pct_display = "*"
+            elif src_pct >= 0.95:
+                pct_display = f"{min(int(round(src_pct)), int(total_sim))}%"
+            else:
+                pct_display = "<1%"
 
-    # If fewer than 13 sources, supplement with authentic Turnitin sources so Page 3 and Page 4 are always complete
-    if len(top_sources) < 13:
-        existing_titles = {s['title'] for s in top_sources}
-        for item in SAMPLE_SOURCES:
-            if item['title'] not in existing_titles and len(top_sources) < 13:
-                idx = len(top_sources) + 1
-                badge_color, pastel_bg, pill_bg, pill_text = TURNITIN_PALETTE[(idx - 1) % len(TURNITIN_PALETTE)]
-                top_sources.append({
-                    'index': idx,
-                    'title': item['title'],
-                    'url': item.get('url', ''),
-                    'category': item['category'],
-                    'words': 15,
-                    'percent': item['percent'],
-                    'color': badge_color,
-                    'color_code': badge_color,
-                    'pastel_bg': pastel_bg,
-                    'pill_bg': pill_bg,
-                    'pill_text': pill_text,
-                    'composite_similarity_pct': item['percent'].replace('%', '').replace('<', '1'),
-                    'exact_shingle_containment_pct': item['percent'].replace('%', '').replace('<', '1'),
-                    'lexical_tfidf_pct': item['percent'].replace('%', '').replace('<', '1'),
-                    'semantic_paraphrase_pct': 0.0,
-                    'exact_matched_shingles': [],
-                    'flagged_sentences': [],
-                })
+            top_sources.append({
+                'index': idx,
+                'title': s['title'],
+                'url': s['url'],
+                'category': s['category'],
+                'words': s['words'],
+                'percent': pct_display,
+                'color': badge_color,
+                'color_code': badge_color,
+                'pastel_bg': pastel_bg,
+                'pill_bg': pill_bg,
+                'pill_text': pill_text,
+                'composite_similarity_pct': pct_display.replace('%', '').replace('<', ''),
+                'exact_shingle_containment_pct': pct_display.replace('%', '').replace('<', ''),
+                'lexical_tfidf_pct': pct_display.replace('%', '').replace('<', ''),
+                'semantic_paraphrase_pct': 0.0,
+                'exact_matched_shingles': [],
+                'flagged_sentences': [],
+            })
 
-    # Authentic Match Groups counts matching Image 1
-    if not is_zero_report:
-        if nc_count == 0 and mq_count == 0 and mc_count == 0 and cq_count == 0:
-            match_groups[0]['count'] = 11
-            match_groups[0]['percent'] = "2%"
-            match_groups[1]['count'] = 4
-            match_groups[1]['percent'] = "0%"
-            match_groups[2]['count'] = 0
-            match_groups[2]['percent'] = "0%"
-            match_groups[3]['count'] = 0
-            match_groups[3]['percent'] = "0%"
-
-        if internet_pct == 0 and publications_pct == 0 and submitted_works_pct == 0:
-            database_sources[0]['percent'] = "1%"
-            database_sources[1]['percent'] = "1%"
-            database_sources[2]['percent'] = "0%"
-    else:
-        # If report is 0%, replace percent displays with '*'
-        for mg in match_groups:
-            mg['percent'] = "*"
-        for db in database_sources:
-            db['percent'] = "*"
+    if is_zero_report:
         top_sources = []
+
+    # 7. Authentic Turnitin Top Sources Pagination
+    # Page 3: Sources 1 to 10 (with Match Groups & Database summary at top)
+    # Pages 4, 5, 6...: 15 sources per sheet
+    sources_pages = []
+    if top_sources:
+        sources_pages.append({
+            'page_number': 3,
+            'sources': top_sources[0:10],
+            'is_first_page': True,
+        })
+        p_num = 4
+        start_idx = 10
+        while start_idx < len(top_sources):
+            end_idx = min(start_idx + 15, len(top_sources))
+            sources_pages.append({
+                'page_number': p_num,
+                'sources': top_sources[start_idx:end_idx],
+                'is_first_page': False,
+            })
+            p_num += 1
+            start_idx = end_idx
+
+    total_overview_pages = 2 + len(sources_pages)
+    ext_pages = extracted_texts.values('page_number').distinct().count() if extracted_texts.exists() else 0
+    if ext_pages > 1:
+        doc_pages = ext_pages
+    elif doc.page_count and doc.page_count > 1:
+        doc_pages = doc.page_count
+    elif word_count > 300:
+        doc_pages = max(1, round(word_count / 300))
+    else:
+        doc_pages = 1
+
+    submission_pages_count = doc_pages
+    total_pages = total_overview_pages + submission_pages_count
 
     return {
         'submission_id': submission_id,
@@ -435,14 +453,15 @@ def compute_report_criteria(report):
         'file_size_display': file_size_display,
         'submission_date': sub_date_str,
         'download_date': download_date_str,
-        'page_count': page_count,
-        'total_pages': max(25, 4 + (page_count or 1)),
+        'page_count': submission_pages_count,
+        'total_overview_pages': total_overview_pages,
+        'total_pages': total_pages,
         'word_count': word_count,
         'character_count': char_count,
         'is_zero_report': is_zero_report,
         'overall_similarity_display': score_display,
         'score_display': score_display,
-        'overall_similarity': round(report.overall_similarity, 0),
+        'overall_similarity': total_sim,
         'overall_similarity_float': report.overall_similarity,
         'filtered_from_report': filtered_items,
         'match_groups': match_groups,
@@ -450,6 +469,7 @@ def compute_report_criteria(report):
         'integrity_flags': integrity_flags,
         'flags_count': flags_count,
         'top_sources': top_sources,
+        'sources_pages': sources_pages,
         'source_count': len(top_sources),
         'logo_data_uri': get_turnitin_logo_data_uri(),
     }

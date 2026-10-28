@@ -66,18 +66,16 @@ class SegmentAnalyzer:
             # Synthesize ensemble score: 65% Calibrated ML + 35% Heuristic Rule Prior
             composite_score = (ml_prob * 0.65) + (rule_score * 0.35)
 
-            # Strict Academic False-Positive Protection:
-            # If the sentence has no characteristic LLM markers and document-wide marker density is low (<0.15),
-            # prevent false alarms on non-native human writing by capping prior to human baseline
+            # Academic False-Positive Protection for borderline cases:
             has_markers = bool(rule_signals)
-            if not has_markers and doc_features.get('marker_density', 0.0) < 0.15:
-                composite_score = min(composite_score, 0.38)
+            if not has_markers and doc_features.get('marker_density', 0.0) < 0.10 and ml_prob < 0.65:
+                composite_score = min(composite_score, 0.45)
 
             composite_score = min(0.99, max(0.01, composite_score))
 
             # Uncertainty check: Out of distribution, short fragments, or borderline scores
-            is_uncertain = is_ood or (0.42 <= composite_score <= 0.58 and ml_conf < 0.40)
-            is_ai = (composite_score >= 0.58) and not is_uncertain
+            is_uncertain = is_ood or (0.42 <= composite_score <= 0.55 and ml_conf < 0.35)
+            is_ai = (composite_score >= 0.55) and not is_uncertain
             is_human = (composite_score < 0.42) and not is_uncertain
 
             if is_uncertain:
@@ -167,32 +165,26 @@ class SegmentAnalyzer:
         raw_pct = (total_ai_words / max(total_words, 1)) * 100
         uncertain_pct = (total_uncertain_words / max(total_words, 1)) * 100
 
-        # Turnitin False-Positive Suppression Protocol:
-        # If score is below 20%, score is suppressed to 0.0 (*% detected as AI) to avoid false accusations.
+        # Preserve authentic percentage and sentences without artificial zeroing
         is_below_threshold = raw_pct < 20.0
-        final_score = 0.0 if is_below_threshold else round(raw_pct, 1)
+        final_score = round(raw_pct, 1)
 
         summary = {
             'overall_ai_score': final_score,
             'raw_uncalibrated_pct': round(raw_pct, 1),
             'is_below_threshold': is_below_threshold,
             'total_sentences': num_sentences,
-            'ai_sentence_count': 0 if is_below_threshold else ai_sentence_count,
-            'human_sentence_count': num_sentences if is_below_threshold else human_sentence_count,
+            'ai_sentence_count': ai_sentence_count,
+            'human_sentence_count': human_sentence_count,
             'uncertain_sentence_count': uncertain_sentence_count,
             'uncertain_percentage': round(uncertain_pct, 1),
             'model_confidence': round(sum(s['confidence'] for s in evaluated_sentences) / max(num_sentences, 1), 2),
-            'model_version': 'TurnitinStyle-AI-V2.0-Calibrated',
+            'model_version': 'TurnitinStyle-AI-V2.5-Calibrated',
             'limitations': (
                 "AI writing detection is probabilistic and reflects statistical text characteristics. "
-                "Scores below the 20% threshold are suppressed (*%) due to higher likelihood of false positives. "
+                "Scores below the 20% threshold should be interpreted with caution. "
                 "Detection results must not be used as the sole determinant for academic misconduct decisions."
             ),
         }
-
-        # If below threshold, mark sentences as non-surfaced in UI to match Turnitin
-        if is_below_threshold:
-            for s in evaluated_sentences:
-                s['is_ai'] = False
 
         return evaluated_sentences, segments, summary

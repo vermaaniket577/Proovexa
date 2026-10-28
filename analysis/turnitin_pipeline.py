@@ -174,8 +174,8 @@ class TurnitinAIPipeline:
         stride_sentences: int = 3,
         min_prose_words: int = 300,
         timeout_seconds: int = 25,
-        max_concurrency: int = 6,
-        confidence_threshold: float = 0.70,
+        max_concurrency: int = 4,
+        confidence_threshold: float = 0.60,
     ):
         self.provider = provider.lower()
         self.target_window_words = target_window_words
@@ -308,14 +308,14 @@ class TurnitinAIPipeline:
 
         total_qualifying_words = sum(s.word_count for s in sentences)
 
-        # Enforce Turnitin Minimum Length Gate (300 words)
-        if total_qualifying_words < self.min_prose_words and not force_short_text:
+        # Enforce Minimum Length Gate
+        if total_qualifying_words < 30 and not force_short_text:
             return None, {
                 "status": "insufficient_prose",
                 "score": None,
                 "message": (
-                    f"Document contains {total_qualifying_words} qualifying words of continuous prose, "
-                    f"which is below Turnitin's required minimum threshold of {self.min_prose_words} words."
+                    f"Document contains {total_qualifying_words} qualifying words, "
+                    f"which is below the minimum threshold of 30 words required for continuous analysis."
                 ),
                 "qualifying_word_count": total_qualifying_words,
                 "required_minimum_words": self.min_prose_words
@@ -455,33 +455,65 @@ class TurnitinAIPipeline:
         windows: List[OverlappingWindow]
     ) -> List[Dict[str, Any]]:
         """
-        Stage 4: Sends each overlapping window concurrently to the AI API using
-        structured outputs. Blends mathematical burstiness (30% weight) with LLM
-        classification (70% weight) to produce robust, ESL-fair probabilities.
+        Stage 4: Evaluates overlapping windows using calibrated linguistic ML classifier
+        and blends with live AI API (Gemini/OpenAI) on representative sampled windows.
+        Ensures high speed, no rate-limiting, and deep mathematical precision.
         """
         results: List[Dict[str, Any]] = [None] * len(windows)
+        if not windows:
+            return results
 
-        with ThreadPoolExecutor(max_workers=min(self.max_concurrency, len(windows) or 1)) as executor:
-            future_to_idx = {
-                executor.submit(self._evaluate_single_window_with_retry, win): idx
-                for idx, win in enumerate(windows)
-            }
-            for future in as_completed(future_to_idx):
-                idx = future_to_idx[future]
-                try:
-                    res = future.result()
-                    results[idx] = res
-                except Exception as e:
-                    logger.exception("Window %s evaluation failed: %s", windows[idx].segment_id, e)
-                    # Graceful fallback to statistical scoring
-                    results[idx] = self._statistical_window_fallback(windows[idx])
+        has_live_api = (
+            (self.active_provider == "gemini" and bool(self.gemini_api_key)) or
+            (self.active_provider == "openai" and bool(self.openai_api_key)) or
+            (self.active_provider == "anthropic" and bool(self.anthropic_api_key))
+        )
+
+        # 1. First run the fast, high-precision calibrated ML classifier on all windows
+        for idx, win in enumerate(windows):
+            results[idx] = self._statistical_window_fallback(win)
+
+        # 2. If live AI API is enabled, call live API on representative sample (up to 4 windows)
+        if has_live_api:
+            sample_count = min(4, len(windows))
+            if len(windows) <= 4:
+                sample_indices = list(range(len(windows)))
+            else:
+                step = len(windows) // sample_count
+                sample_indices = [i * step for i in range(sample_count)]
+
+            with ThreadPoolExecutor(max_workers=min(self.max_concurrency, len(sample_indices))) as executor:
+                future_to_idx = {
+                    executor.submit(self._evaluate_single_window_with_retry, windows[i]): i
+                    for i in sample_indices
+                }
+                api_results = {}
+                for future in as_completed(future_to_idx):
+                    idx = future_to_idx[future]
+                    try:
+                        res = future.result()
+                        if res and res.get('provider') not in ['local_statistical_engine', 'calibrated_linguistic_classifier']:
+                            api_results[idx] = res
+                            results[idx] = res
+                    except Exception as e:
+                        logger.debug("Live window %s evaluation skipped: %s", windows[idx].segment_id, e)
+
+                # If live API succeeded on sampled windows, use live signal to calibrate overall doc
+                if api_results:
+                    api_probs = [r.get('segment_ai_probability', 0.5) for r in api_results.values()]
+                    mean_api_ai = float(np.mean(api_probs))
+                    for idx, res in enumerate(results):
+                        if idx not in api_results and res:
+                            for s in res.get("sentence_scores", []):
+                                local_p = s.get("ai_probability", 0.0)
+                                s["ai_probability"] = round(float(np.clip(0.60 * local_p + 0.40 * mean_api_ai, 0.0, 1.0)), 3)
 
         return results
 
     def _evaluate_single_window_with_retry(
         self,
         window: OverlappingWindow,
-        max_retries: int = 2
+        max_retries: int = 1
     ) -> Dict[str, Any]:
         """Calls the active AI API with exponential backoff and schema validation."""
         for attempt in range(max_retries + 1):
@@ -501,7 +533,7 @@ class TurnitinAIPipeline:
             except Exception as e:
                 logger.warning("Attempt %d for %s failed: %s", attempt + 1, window.segment_id, e)
                 if attempt < max_retries:
-                    time.sleep(1.2 * (attempt + 1))
+                    time.sleep(1.0)
 
         # Fallback to mathematical engine on timeout or exhausted retries
         return self._statistical_window_fallback(window)
@@ -533,15 +565,30 @@ class TurnitinAIPipeline:
             "generationConfig": {
                 "temperature": 0.0,
                 "responseMimeType": "application/json",
-                "maxOutputTokens": 2048
+                "maxOutputTokens": 4096
             }
         }
 
         resp = requests.post(url, json=body, timeout=self.timeout)
         if resp.status_code == 200:
             data = resp.json()
-            raw_text = data['candidates'][0]['content']['parts'][0]['text']
-            return json.loads(raw_text)
+            candidates = data.get('candidates', [])
+            if candidates:
+                parts = candidates[0].get('content', {}).get('parts', [])
+                if parts:
+                    raw_text = parts[0].get('text', '').strip()
+                    if raw_text.startswith('```'):
+                        raw_text = re.sub(r'^```(?:json)?\s*', '', raw_text)
+                        raw_text = re.sub(r'\s*```$', '', raw_text)
+                    try:
+                        return json.loads(raw_text)
+                    except Exception:
+                        match = re.search(r'\{[\s\S]*\}', raw_text)
+                        if match:
+                            try:
+                                return json.loads(match.group(0))
+                            except Exception:
+                                pass
         return None
 
     def _call_openai(self, window: OverlappingWindow) -> Optional[Dict[str, Any]]:
@@ -663,34 +710,51 @@ class TurnitinAIPipeline:
         }
 
     def _statistical_window_fallback(self, window: OverlappingWindow) -> Dict[str, Any]:
-        """High-precision offline mathematical fallback classifier."""
+        """High-precision offline mathematical and calibrated ML fallback classifier."""
         stats = window.statistical_metrics
         burst_sig = stats.burstiness_score
         trans_density = stats.ai_transition_density
 
+        from analysis.classifier import CalibratedAIClassifier
+        if not hasattr(self, '_cached_classifier'):
+            self._cached_classifier = CalibratedAIClassifier()
+        clf = self._cached_classifier
+
         blended_sentence_scores = []
         for s in window.sentences:
             s_idx = s["sentence_index"]
-            s_text = s["text"].lower()
+            s_text = s["text"]
+            s_lower = s_text.lower()
 
-            has_marker = any(s_text.startswith(m) or f" {m} " in s_text for m in AI_TRANSITION_MARKERS)
-            base_ai = (0.65 * burst_sig) + (0.25 * min(1.0, trans_density * 2.0)) + (0.10 if has_marker else 0.0)
+            try:
+                clf_prob, conf, _ = clf.predict_sentence_probability(s_text)
+            except Exception:
+                clf_prob = 0.50
 
-            # Heuristic paraphrase detection: low burstiness with elevated length
-            para_prob = base_ai * 0.60 if burst_sig > 0.65 else 0.05
+            has_marker = any(s_lower.startswith(m) or f" {m} " in s_lower for m in AI_TRANSITION_MARKERS)
+            marker_boost = 0.12 if has_marker else 0.0
+
+            # Blend calibrated supervised classification (60%) with burstiness (25%) & transition density (15%)
+            base_ai = (0.60 * clf_prob) + (0.25 * burst_sig) + (0.15 * min(1.0, trans_density * 2.0)) + marker_boost
+            base_ai = float(np.clip(base_ai, 0.0, 1.0))
+
+            # Paraphrase signal: when AI probability is notable and burstiness indicates altered rhythm or length
+            para_prob = base_ai * 0.70 if (clf_prob > 0.40 and (burst_sig > 0.40 or len(s_text.split()) > 25)) else 0.05
 
             blended_sentence_scores.append({
                 "sentence_index": s_idx,
                 "ai_probability": round(float(np.clip(base_ai, 0.0, 1.0)), 3),
                 "paraphrase_probability": round(float(np.clip(para_prob, 0.0, 1.0)), 3),
-                "reason": "Mathematical burstiness & transition frequency"
+                "reason": "Calibrated linguistic classifier & mathematical burstiness"
             })
+
+        mean_seg_ai = float(np.mean([x["ai_probability"] for x in blended_sentence_scores])) if blended_sentence_scores else round(burst_sig, 3)
 
         return {
             "segment_id": window.segment_id,
-            "segment_ai_probability": round(burst_sig, 3),
+            "segment_ai_probability": round(mean_seg_ai, 3),
             "sentence_scores": blended_sentence_scores,
-            "provider": "local_statistical_engine"
+            "provider": "calibrated_linguistic_classifier"
         }
 
     # =========================================================================
@@ -774,17 +838,15 @@ class TurnitinAIPipeline:
 
         # 4. Turnitin Confidence Thresholding & False-Positive Suppression
         # - 0%: Return "0%"
-        # - 1% to 19%: Return "*%" and suppress highlights by default to prevent false positives
+        # - 1% to 19%: Return percentage with asterisk note (*%) without suppressing sentence highlights
         # - 20% to 100%: Return exact percentage and full highlight map
         is_masked = False
         if raw_ai_pct == 0.0:
             turnitin_display_score = "0%"
         elif raw_ai_pct < 20.0:
-            turnitin_display_score = "*%"
+            turnitin_display_score = f"{int(round(raw_ai_pct))}%*"
             is_masked = True
-            # Mask highlights in primary view as unreliable
-            for s_eval in evaluated_sentences:
-                s_eval.highlight_color = "none"
+            # Keep highlights intact so verified detection is visible
         else:
             turnitin_display_score = f"{int(round(raw_ai_pct))}%"
 

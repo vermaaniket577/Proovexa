@@ -346,7 +346,7 @@ class TurnitinAIDetector:
             category = "Human"
             highlight_color = "none"
 
-            if not is_meta and pooled_score >= 0.72:
+            if not is_meta and pooled_score >= 0.60:
                 # Paraphraser detection: AI context + low burstiness, but elevated local synonym spikes
                 if s_spike > 2.65 and 22.0 <= s_ppl <= 65.0:
                     category = "AI-Paraphrased"
@@ -372,15 +372,11 @@ class TurnitinAIDetector:
         ai_paraphrased_pct = round((ai_paraphrased_words / total_qualifying_words) * 100, 1)
         total_ai_pct = round(ai_only_pct + ai_paraphrased_pct, 1)
 
-        # Turnitin False-Positive Suppression Rule (<20% masked as *%)
-        if total_ai_pct < 20.0:
-            turnitin_display_score = "*%"
-            # Suppress sentence highlights when document is below threshold as per Turnitin standard
-            for s in sentence_reports:
-                s['highlight_color'] = 'none'
-                s['category'] = 'Human'
-            ai_only_pct = 0.0
-            ai_paraphrased_pct = 0.0
+        # Turnitin False-Positive Suppression Rule (<20% display with asterisk note)
+        if total_ai_pct == 0.0:
+            turnitin_display_score = "0%"
+        elif total_ai_pct < 20.0:
+            turnitin_display_score = f"{int(round(total_ai_pct))}%*"
         else:
             turnitin_display_score = f"{int(round(total_ai_pct))}%"
 

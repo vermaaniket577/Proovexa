@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}AI Writing Overview: {{ ai_report.document.title }}{% endblock %}
@@ -36,6 +36,10 @@
     flex: 1 0 auto;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 @media (max-width: 820px) {
@@ -158,17 +162,27 @@
     color: #0f172a;
     letter-spacing: -0.02em;
     margin-bottom: 4px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
 }
 .cover-doc-filename {
     font-size: 1.45rem;
     font-weight: 700;
     color: #1e293b;
     margin-bottom: 6px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    line-height: 1.35;
 }
 .cover-inst-line {
     font-size: 0.92rem;
     color: #475569;
     margin-bottom: 28px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
 }
 .details-summary-box {
     background: #e0f2fe;
@@ -199,7 +213,7 @@
 }
 .ai-score-num {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 23px; /* 22–23 px Semibold/Bold */
+    font-size: 23px; /* 22â€“23 px Semibold/Bold */
     font-weight: 700;
     color: #191919;
     letter-spacing: -0.015em;
@@ -207,7 +221,7 @@
 }
 .ai-score-title {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 23px; /* 22–23 px Semibold/Bold */
+    font-size: 23px; /* 22â€“23 px Semibold/Bold */
     font-weight: 700;
     color: #191919;
     letter-spacing: -0.015em;
@@ -215,7 +229,7 @@
 }
 .ai-score-subtext {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 10.5px; /* 10–11 px Regular */
+    font-size: 10.5px; /* 10â€“11 px Regular */
     font-weight: 400;
     color: #191919;
     line-height: 1.45;
@@ -280,21 +294,6 @@
     line-height: 1.85;
     color: #1e293b;
     margin-bottom: 20px;
-    position: relative;
-    padding-left: 36px;
-}
-.ai-margin-badge {
-    position: absolute;
-    left: 0;
-    top: 2px;
-    background-color: #0284c7;
-    color: #ffffff;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 0.65rem;
-    font-weight: 800;
-    padding: 2px 5px;
-    border-radius: 3px;
-    line-height: 1;
 }
 .ai-highlight-cyan {
     background-color: #cffafe;
@@ -387,7 +386,7 @@
     <!-- Content -->
     <div class="turnitin-sheet-content">
         <!-- Title Block -->
-        <div class="pt-5 pb-3">
+        <div class="pt-5 pb-3" style="max-width: 100%; min-width: 0; word-break: break-word; overflow-wrap: anywhere;">
             <div class="cover-author-title">{{ author_name }}</div>
             <div class="cover-doc-filename">{{ document.original_filename }}</div>
             <div class="cover-inst-line">
@@ -411,7 +410,7 @@
                     <div class="col-sm-8 fw-semibold">{{ download_date }}</div>
 
                     <div class="col-sm-4 text-muted">File Name</div>
-                    <div class="col-sm-8 fw-semibold">{{ document.original_filename }}</div>
+                    <div class="col-sm-8 fw-semibold" style="word-break: break-word; overflow-wrap: anywhere;">{{ document.original_filename }}</div>
 
                     <div class="col-sm-4 text-muted">File Size</div>
                     <div class="col-sm-8 fw-semibold">{{ file_size_display }}</div>
@@ -501,46 +500,6 @@
         </div>
         {% endif %}
 
-        {% if not is_zero_ai %}
-        <!-- Middle Row: AI-generated group row with Dual-Category Breakdown -->
-        <div class="py-2">
-            <div class="d-flex align-items-center gap-3 mb-2">
-                <div class="d-flex align-items-center justify-content-center rounded" style="width: 20px; height: 20px; background-color: #0084ff; color: #fff;">
-                    <i class="bi bi-robot" style="font-size: 11px;"></i>
-                </div>
-                <div>
-                    <div class="fw-bold text-dark small">{{ ai_report.ai_sentence_count }} AI-generated &nbsp;{{ overall_ai_display }}</div>
-                    <div class="text-muted" style="font-size: 0.75rem;">Likely generated or likely generated and revised by AI.</div>
-                </div>
-            </div>
-
-            <!-- Dual-Category Percentage Bars (Cyan vs Purple) -->
-            <div class="row g-2 mt-2 pt-2 border-top">
-                <div class="col-sm-6">
-                    <div class="p-2 rounded bg-light border d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle" style="width: 10px; height: 10px; background-color: #06b6d4;"></span>
-                            <span class="small fw-semibold text-dark">AI-Generated Only</span>
-                        </div>
-                        <span class="badge" style="background-color: #cffafe; color: #083344; font-weight: 700;">{{ ai_report.ai_generated_only_cyan_pct|floatformat:0 }}%</span>
-                    </div>
-                </div>
-                <div class="col-sm-6">
-                    <div class="p-2 rounded bg-light border d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle" style="width: 10px; height: 10px; background-color: #a855f7;"></span>
-                            <span class="small fw-semibold text-dark">AI-Paraphrased</span>
-                        </div>
-                        <span class="badge" style="background-color: #f3e8ff; color: #581c87; font-weight: 700;">{{ ai_report.ai_paraphrased_purple_pct|floatformat:0 }}%</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Divider Line -->
-        <div class="turnitin-sheet-divider my-4"></div>
-        {% endif %}
-
         <!-- Bottom: Disclaimer Section -->
         <div class="pt-1 pb-3">
             <div class="ai-disclaimer-title">Disclaimer</div>
@@ -601,11 +560,9 @@
             <div class="sentence-item mb-3 {% if s.is_ai %}is-ai{% else %}is-human{% endif %}" id="sent-{{ s.index }}">
                 <div class="ai-passage-paragraph">
                     {% if s.highlight_color == 'purple' or s.category == 'AI-Paraphrased' %}
-                        <span class="ai-margin-badge" style="background-color: #9333ea;">[AI-Paraphrased]</span>
-                        <span style="background-color: #f3e8ff; color: #581c87; padding: 2px 4px; border-radius: 3px; font-weight: 500; border-bottom: 2px solid #a855f7;" title="AI Probability: {{ s.ai_probability_pct|default:s.confidence }}% | PPL: {{ s.perplexity }}">{{ s.sentence }}</span>
+                        <span style="background-color: #f3e8ff; color: #581c87; padding: 2px 4px; border-radius: 3px; font-weight: 500;" title="AI Probability: {{ s.ai_probability_pct|default:s.confidence }}% | PPL: {{ s.perplexity }}">{{ s.sentence }}</span>
                     {% elif s.highlight_color == 'cyan' or s.is_ai %}
-                        <span class="ai-margin-badge" style="background-color: #0284c7;">[AI-Generated]</span>
-                        <span class="ai-highlight-cyan" style="border-bottom: 2px solid #06b6d4;" title="AI Probability: {{ s.ai_probability_pct|default:s.confidence }}% | PPL: {{ s.perplexity }}">{{ s.sentence }}</span>
+                        <span class="ai-highlight-cyan" title="AI Probability: {{ s.ai_probability_pct|default:s.confidence }}% | PPL: {{ s.perplexity }}">{{ s.sentence }}</span>
                     {% else %}
                         <span>{{ s.sentence }}</span>
                     {% endif %}

@@ -425,7 +425,7 @@ class TFIDFComparator:
 
             results = []
             for i, sim in enumerate(similarities):
-                if sim > 0.05:  # Only include non-trivial similarities
+                if sim > 0.005:  # Include fine-grained academic and web source overlaps
                     results.append((i, float(sim)))
 
             # Sort by similarity descending

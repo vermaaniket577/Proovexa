@@ -35,7 +35,7 @@ class AnalysisEngine:
             'exclude_bibliography': False,
             'exclude_quotations': False,
             'exclude_citations': False,
-            'min_match_words': getattr(settings, 'MIN_MATCH_WORD_COUNT', 14),
+            'min_match_words': getattr(settings, 'MIN_MATCH_WORD_COUNT', 8),
             'exclude_common_phrases': False,
             'common_phrases_list': [],
             'exclude_sources': [],
@@ -44,7 +44,7 @@ class AnalysisEngine:
         }
 
         # Initialize comparators
-        min_words = self.exclusion_settings.get('min_match_words', 14)
+        min_words = self.exclusion_settings.get('min_match_words', 8)
         ngram_size = getattr(settings, 'NGRAM_SIZE', 5)
 
         self.winnowing_engine = WinnowingEngine(k=min_words, w=4)
@@ -140,7 +140,7 @@ class AnalysisEngine:
 
             # Initialize academic word-position scorer
             scorer = AcademicSimilarityScorer(total_word_count=total_words, full_text=full_text)
-            min_words = self.exclusion_settings.get('min_match_words', 14)
+            min_words = self.exclusion_settings.get('min_match_words', 8)
 
             # Detect document-level exclusion regions (e.g. bibliography sections)
             if self.exclusion_settings.get('exclude_bibliography'):
@@ -158,17 +158,40 @@ class AnalysisEngine:
             # Step 2: TF-IDF candidate pre-filtering
             source_texts = []
             source_refs = []
+            empty_source_count = 0
             for src in sources:
                 text = self._get_source_text(src)
-                if text:
+                if text and len(text.strip()) > 20:
                     source_texts.append(text)
                     source_refs.append(src)
+                else:
+                    empty_source_count += 1
+
+            logger.info(
+                f"Source text retrieval: {len(source_texts)} sources with text, "
+                f"{empty_source_count} empty (skipped) out of {len(sources)} total"
+            )
+
+            if not source_texts:
+                # No sources with text to compare against
+                report.overall_similarity = 0.0
+                report.total_words = total_words
+                report.matched_words = 0
+                report.source_count = 0
+                report.status = SimilarityReport.Status.COMPLETED
+                report.processing_time_seconds = time.time() - start_time
+                report.sources_checked = [f'{len(sources)} reference sources found but none had extractable text']
+                report.save()
+                document.status = Document.Status.COMPLETED
+                document.save(update_fields=['status'])
+                return report
 
             # Get candidate sources by TF-IDF similarity
             candidates = self.tfidf_comparator.compare_batch(full_text, source_texts)
+            logger.info(f"TF-IDF pre-filter: {len(candidates)} candidate sources above threshold")
 
-            # Limit to top candidates for detailed multi-method analysis
-            max_candidates = 25
+            # Limit to top candidates for detailed multi-method analysis (8 is standard for high recall + speed)
+            max_candidates = 60
             top_candidates = candidates[:max_candidates]
 
             all_matches = []
@@ -179,7 +202,7 @@ class AnalysisEngine:
             fuzzy_count = 0
             winnow_count = 0
 
-            for src_idx, tfidf_score in top_candidates:
+            for cand_rank, (src_idx, tfidf_score) in enumerate(top_candidates):
                 if src_idx >= len(source_refs):
                     continue
 
@@ -231,16 +254,17 @@ class AnalysisEngine:
                     all_matches.append(match)
                     phrase_count += 1
 
-                # Method D: Near-Duplicate / Fuzzy Matching
-                fuzzy_result = self.fuzzy_comparator.compare(
-                    full_text, source_text, pages, source_pages
-                )
-                for match in fuzzy_result.matches:
-                    match['source'] = source
-                    match['source_index'] = source_index
-                    match['match_type'] = 'fuzzy'
-                    all_matches.append(match)
-                    fuzzy_count += 1
+                # Method D: Near-Duplicate / Fuzzy Matching (run on top 4 candidates with non-trivial similarity)
+                if cand_rank < 4 and tfidf_score > 0.08:
+                    fuzzy_result = self.fuzzy_comparator.compare(
+                        full_text, source_text, pages, source_pages
+                    )
+                    for match in fuzzy_result.matches:
+                        match['source'] = source
+                        match['source_index'] = source_index
+                        match['match_type'] = 'fuzzy'
+                        all_matches.append(match)
+                        fuzzy_count += 1
 
                 # Method E: Turnitin 3-Tier Hybrid Evaluation (Shingle Containment, Lexical, Semantic Paraphrase)
                 shingle_containment, exact_phrases = self.hybrid_checker.compute_shingle_containment(
@@ -249,9 +273,12 @@ class AnalysisEngine:
                 lexical_sim = self.hybrid_checker.compute_lexical_similarity(
                     full_text, source_text
                 )
-                semantic_cov, flagged_pairs = self.hybrid_checker.compute_semantic_matches(
-                    full_text, source_text
-                )
+                if cand_rank < 4 or shingle_containment > 0.05 or lexical_sim > 0.10:
+                    semantic_cov, flagged_pairs = self.hybrid_checker.compute_semantic_matches(
+                        full_text, source_text
+                    )
+                else:
+                    semantic_cov, flagged_pairs = 0.0, []
 
                 composite_sim = (
                     (0.45 * shingle_containment)
@@ -409,13 +436,14 @@ class AnalysisEngine:
             .exclude(document=document)
             .select_related('document', 'institution')
         )
+        existing_source_doc_ids = {str(s.document_id) for s in sources if s.document_id}
 
         # Check live internet sources using Playwright headless browser
         check_web = self.exclusion_settings.get('check_web_sources', True)
         if check_web and full_text and len(full_text.split()) >= 14:
             try:
                 from .playwright_scraper import PlaywrightPlagiarismChecker
-                min_words = self.exclusion_settings.get('min_match_words', 14)
+                min_words = self.exclusion_settings.get('min_match_words', 8)
                 checker = PlaywrightPlagiarismChecker(headless=True, timeout_ms=10000)
                 web_sources = checker.search_and_retrieve_sources(
                     full_text=full_text,
@@ -430,14 +458,14 @@ class AnalysisEngine:
                 logger.warning(f"Playwright web plagiarism search skipped: {pw_e}")
 
         # Also compare against other uploaded documents (not self)
-        exclude_self = self.exclusion_settings.get('exclude_self_match', True)
         other_docs = Document.objects.filter(
             status__in=[Document.Status.EXTRACTED, Document.Status.COMPLETED],
             is_deleted=False,
         ).exclude(id=document.id)
 
-        # In Turnitin, exclude_self_match applies to the same student author's prior drafts.
-        # It must NEVER exclude reference documents or other test uploads by admins/instructors.
+        # exclude_self_match only applies to same-user STUDENT drafts;
+        # staff/admin/teacher uploads are ALWAYS compared against all documents
+        exclude_self = self.exclusion_settings.get('exclude_self_match', True)
         is_staff_user = bool(
             document.uploaded_by and (
                 getattr(document.uploaded_by, 'is_admin', False) or
@@ -446,7 +474,7 @@ class AnalysisEngine:
                 getattr(document.uploaded_by, 'is_staff', False)
             )
         )
-        if exclude_self and not is_staff_user:
+        if exclude_self and not is_staff_user and document.uploaded_by:
             other_docs = other_docs.filter(
                 Q(is_reference=True) | ~Q(uploaded_by=document.uploaded_by)
             )
@@ -460,14 +488,18 @@ class AnalysisEngine:
             ).exclude(id=document.id)
 
             for doc in assignment_docs:
-                if not ReferenceSource.objects.filter(document=doc).exists():
+                if str(doc.id) not in existing_source_doc_ids:
                     sources.append(self._doc_to_reference(doc))
+                    existing_source_doc_ids.add(str(doc.id))
 
         # Add other institution documents as potential sources
-        for doc in other_docs[:50]:  # Limit to prevent memory issues
-            if not ReferenceSource.objects.filter(document=doc).exists():
+        # Ensure every other document is included even if it already has a ReferenceSource
+        for doc in other_docs[:50]:
+            if str(doc.id) not in existing_source_doc_ids:
                 sources.append(self._doc_to_reference(doc))
+                existing_source_doc_ids.add(str(doc.id))
 
+        logger.info(f"_get_comparison_sources: {len(sources)} sources found for '{document.title}'")
         return sources
 
     def _doc_to_reference(self, document):
@@ -484,7 +516,7 @@ class AnalysisEngine:
         return ref
 
     def _get_source_text(self, source):
-        """Get full text from a reference source."""
+        """Get full text from a reference source, caching to retrieved_text when populated from ExtractedText."""
         if source.retrieved_text:
             return source.retrieved_text
 
@@ -492,7 +524,16 @@ class AnalysisEngine:
             texts = ExtractedText.objects.filter(
                 document=source.document
             ).order_by('page_number', 'paragraph_number')
-            return '\n\n'.join(t.content for t in texts)
+            full_text = '\n\n'.join(t.content for t in texts)
+            if full_text:
+                # Cache back to avoid repeated DB hits
+                try:
+                    source.retrieved_text = full_text
+                    source.word_count = len(full_text.split())
+                    source.save(update_fields=['retrieved_text', 'word_count'])
+                except Exception:
+                    pass
+            return full_text
 
         return ''
 

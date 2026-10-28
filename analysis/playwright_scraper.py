@@ -136,7 +136,7 @@ class PlaywrightPlagiarismChecker:
             return []
 
         # Run Playwright in an isolated thread to keep Django ORM out of Playwright's asyncio loop
-        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
         harvested_pages: List[Dict[str, Any]] = []
         try:
@@ -149,9 +149,12 @@ class PlaywrightPlagiarismChecker:
                     headless=self.headless,
                     user_agent=self.USER_AGENT,
                 )
-                harvested_pages = future.result(timeout=45)
+                # Hard timeout: 30 seconds max to prevent blocking analysis pipeline
+                harvested_pages = future.result(timeout=30)
+        except FuturesTimeoutError:
+            logger.warning("Playwright harvest timed out after 30s — continuing without web sources")
         except Exception as e:
-            logger.warning(f"Playwright harvest thread encountered error or timeout: {e}")
+            logger.warning(f"Playwright harvest thread encountered error: {e}")
 
         # Now safely persist/retrieve ReferenceSource records on the Django thread
         retrieved_sources: List[ReferenceSource] = []

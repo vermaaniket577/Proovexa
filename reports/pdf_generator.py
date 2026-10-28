@@ -190,48 +190,43 @@ def _build_source_table_rows(s):
     """Constructs a 2-line source row matching Turnitin Top Sources list:
        Line 1: [Badge] [Category Pill]
        Line 2: Title/URL (left) and Percentage (right)
-       Total width: 540 pt (colWidths: 490, 50)
+       Total width: 523.28 pt (colWidths: 473.28, 50)
     """
     f_reg, f_bold, _ = _register_turnitin_fonts()
     # 1. Colored number badge (oval pill)
-    badge_d = Drawing(16, 11)
-    badge_d.add(Rect(0, 0, 16, 11, rx=5.5, ry=5.5, fillColor=colors.HexColor(s['color']), strokeColor=None))
-    badge_d.add(String(8, 2.8, str(s['index']), fontName=f_bold, fontSize=7.0, fillColor=colors.white, textAnchor='middle'))
+    badge_d = Drawing(18, 11)
+    badge_d.add(Rect(0, 0, 18, 11, rx=5.5, ry=5.5, fillColor=colors.HexColor(s['color']), strokeColor=None))
+    badge_d.add(String(9, 2.8, str(s['index']), fontName=f_bold, fontSize=7.0, fillColor=colors.white, textAnchor='middle'))
 
-    # 2. Category pill tag (matching source's pastel tone)
+    # 2. Category pill tag (matching source's pastel tone with dark neutral text)
     pill_bg = colors.HexColor(s.get('pill_bg', '#fce4ec'))
-    pill_text = colors.HexColor(s.get('pill_text', '#be185d'))
-    pill_d = Drawing(52, 11)
-    pill_d.add(Rect(0, 0, 52, 11, rx=5.5, ry=5.5, fillColor=pill_bg, strokeColor=None))
-    pill_d.add(String(26, 2.8, s['category'], fontName=f_bold, fontSize=7.0, fillColor=pill_text, textAnchor='middle'))
+    pill_text = colors.HexColor('#191919')
+    cat_text = s['category']
+    pill_w = 46 if len(cat_text) <= 8 else 68
+    pill_d = Drawing(pill_w, 11)
+    pill_d.add(Rect(0, 0, pill_w, 11, rx=5.5, ry=5.5, fillColor=pill_bg, strokeColor=None))
+    pill_d.add(String(pill_w / 2.0, 2.8, cat_text, fontName=f_reg, fontSize=6.5, fillColor=pill_text, textAnchor='middle'))
 
-    # 3. Color code label tag
-    color_code = s.get('color_code') or s.get('color', '#1976d2')
-    color_p = Paragraph(
-        f"<font color='{color_code}'><b>[{color_code}]</b></font>",
-        ParagraphStyle('SrcColorTag', fontName=f_bold, fontSize=7.0, leading=9.0, textColor=colors.HexColor(color_code))
-    )
-
-    # Top line container table: Badge, Pill, and Color Code side by side
-    top_table = Table([[badge_d, pill_d, color_p]], colWidths=[20, 58, 80])
+    # Top line container table: Badge and Pill side by side
+    top_table = Table([[badge_d, pill_d]], colWidths=[22, pill_w + 6])
     top_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
         ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
     ]))
 
-    # Title / Domain (Line 2 Left: width 490 pt)
+    # Title / Domain (Line 2 Left: width 473.28 pt)
     title_p = Paragraph(
         f"<b>{s['title']}</b>",
-        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=8.0, leading=10.5, textColor=colors.HexColor('#191919'))
+        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=8.5, leading=11.0, textColor=colors.HexColor('#191919'))
     )
 
     # Percentage (Line 2 Right: width 50 pt)
     pct_p = Paragraph(
         f"<b>{s['percent']}</b>",
-        ParagraphStyle('SrcPct', fontName=f_bold, fontSize=8.0, leading=10.5, alignment=TA_RIGHT, textColor=colors.HexColor('#191919'))
+        ParagraphStyle('SrcPct', fontName=f_bold, fontSize=8.5, leading=11.0, alignment=TA_RIGHT, textColor=colors.HexColor('#191919'))
     )
 
     return [
@@ -404,7 +399,8 @@ def generate_pdf_report(report):
     story.append(Spacer(1, 280))  # Positions author at y ~ 336 pt from top
 
     story.append(Paragraph(criteria['author_name'], cover_author_style))
-    story.append(Paragraph(criteria['file_name'], cover_title_style))
+    safe_file_name = (criteria.get('file_name', '') or '').replace('_', '_&#8203;')
+    story.append(Paragraph(safe_file_name, cover_title_style))
 
     # Mortarboard graduation cap icon + Institution name
     inst_icon = Drawing(16, 11)
@@ -512,20 +508,20 @@ def generate_pdf_report(report):
         for mg in criteria['match_groups']:
             icon_circle = _build_match_group_icon(mg)
             title_p = Paragraph(
-                f"<b>{mg['count']} {mg['name']}</b> &nbsp;{mg['percent']}",
-                ParagraphStyle('MgTitle', fontName=f_bold, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919'))
+                f"{mg['count']} {mg['name']} &nbsp;{mg['percent']}",
+                ParagraphStyle('MgTitle', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919'))
             )
             desc_p = Paragraph(
                 mg['description'],
-                ParagraphStyle('MgDesc', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363'))
+                ParagraphStyle('MgDesc', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#636363'))
             )
             row_content = Table([[icon_circle, [title_p, desc_p]]], colWidths=[18, 243.64])
             row_content.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-                ('TOPPADDING', (0, 0), (-1, -1), 1),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
             ]))
             mg_left_rows.append([row_content])
 
@@ -542,16 +538,16 @@ def generate_pdf_report(report):
     def _create_top_sources_db_table():
         ts_right_rows = [[Paragraph("<b>Top Sources</b>", h2_style)]]
         for db in criteria['database_sources']:
-            pct_p = Paragraph(f"<b>{db['percent']}</b>", ParagraphStyle('DbPct', fontName=f_bold, fontSize=7.8, textColor=colors.HexColor('#191919')))
+            pct_p = Paragraph(f"{db['percent']}", ParagraphStyle('DbPct', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919')))
             icon_d = _build_database_source_icon(db)
-            name_p = Paragraph(db['name'], ParagraphStyle('DbName', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919')))
+            name_p = Paragraph(db['name'], ParagraphStyle('DbName', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919')))
             row_t = Table([[pct_p, icon_d, name_p]], colWidths=[24, 16, 221.64])
             row_t.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-                ('TOPPADDING', (0, 0), (-1, -1), 1),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
             ]))
             ts_right_rows.append([row_t])
 
@@ -622,76 +618,57 @@ def generate_pdf_report(report):
     story.append(flags_split_table)
 
     # =========================================================================
-    # PAGE 3: INTEGRITY OVERVIEW (PART 2 - Top Sources 1-10)
+    # PAGES 3+: INTEGRITY OVERVIEW (TOP SOURCES PAGINATED)
     # =========================================================================
-    story.append(PageBreak())
-    story.append(SetSection("Integrity Overview"))
+    sources_pages = criteria.get('sources_pages', [])
+    for sp in sources_pages:
+        story.append(PageBreak())
+        story.append(SetSection("Integrity Overview"))
 
-    # Top Sources Section Title & Subtitle
-    story.append(Paragraph("<b>Top Sources</b>", h2_style))
-    story.append(Paragraph(
-        "The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.",
-        overview_sub_style
-    ))
-    story.append(Spacer(1, 4))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=6))
+        if sp.get('is_first_page'):
+            # Match groups & Database sources snapshot (Page 3 top)
+            mg_ts_split_p3 = Table([[_create_match_groups_table(), _create_top_sources_db_table()]], colWidths=[261.64, 261.64])
+            mg_ts_split_p3.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            story.append(mg_ts_split_p3)
+            story.append(Spacer(1, 6))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=6))
 
-    # Sources 1 to 10 on Page 3
-    all_sources = criteria['top_sources']
-    page3_sources = all_sources[:10]
-    page4_sources = all_sources[10:]
+            story.append(Paragraph("<b>Top Sources</b>", h2_style))
+            story.append(Paragraph(
+                "The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.",
+                overview_sub_style
+            ))
+            story.append(Spacer(1, 4))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=6))
 
-    if page3_sources:
-        p3_table_data = []
-        for s in page3_sources:
-            p3_table_data.extend(_build_source_table_rows(s))
+        p_sources = sp.get('sources', [])
+        if p_sources:
+            table_data = []
+            for s in p_sources:
+                table_data.extend(_build_source_table_rows(s))
 
-        p3_table = Table(p3_table_data, colWidths=[473.28, 50.0])
-        p3_style = [
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ]
-        for i in range(len(page3_sources)):
-            p3_style.extend([
-                ('TOPPADDING', (0, 2 * i), (-1, 2 * i), 2),
-                ('BOTTOMPADDING', (0, 2 * i), (-1, 2 * i), 0),
-                ('TOPPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 1),
-                ('BOTTOMPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 3),
-                ('LINEBELOW', (0, 2 * i + 1), (-1, 2 * i + 1), 0.5, colors.HexColor('#e2e8f0')),
-            ])
-        p3_table.setStyle(TableStyle(p3_style))
-        story.append(p3_table)
-
-    # =========================================================================
-    # PAGE 4: INTEGRITY OVERVIEW (PART 3 - Top Sources Continuation 11+)
-    # =========================================================================
-    story.append(PageBreak())
-    story.append(SetSection("Integrity Overview"))
-
-    if page4_sources:
-        p4_table_data = []
-        for s in page4_sources:
-            p4_table_data.extend(_build_source_table_rows(s))
-
-        p4_table = Table(p4_table_data, colWidths=[473.28, 50.0])
-        p4_style = [
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ]
-        for i in range(len(page4_sources)):
-            p4_style.extend([
-                ('TOPPADDING', (0, 2 * i), (-1, 2 * i), 3),
-                ('BOTTOMPADDING', (0, 2 * i), (-1, 2 * i), 0),
-                ('TOPPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 1),
-                ('BOTTOMPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 3),
-                ('LINEBELOW', (0, 2 * i + 1), (-1, 2 * i + 1), 0.5, colors.HexColor('#e2e8f0')),
-            ])
-        p4_table.setStyle(TableStyle(p4_style))
-        story.append(p4_table)
-    else:
-        story.append(Spacer(1, 10))
+            t = Table(table_data, colWidths=[473.28, 50.0])
+            t_style = [
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ]
+            for i in range(len(p_sources)):
+                t_style.extend([
+                    ('TOPPADDING', (0, 2 * i), (-1, 2 * i), 2),
+                    ('BOTTOMPADDING', (0, 2 * i), (-1, 2 * i), 0),
+                    ('TOPPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 1),
+                    ('BOTTOMPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 3),
+                    ('LINEBELOW', (0, 2 * i + 1), (-1, 2 * i + 1), 0.5, colors.HexColor('#e2e8f0')),
+                ])
+            t.setStyle(TableStyle(t_style))
+            story.append(t)
 
     # =========================================================================
     # PAGES 5+: INTEGRITY SUBMISSION

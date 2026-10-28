@@ -334,8 +334,12 @@ class AIReport(models.Model):
 
     @property
     def display_score(self):
-        """Display as '*%' when below 20% threshold, matching Turnitin reference."""
-        return "*%" if self.is_zero_ai else f"{int(round(self.overall_ai_score))}%"
+        """Format AI display score. Shows exact percentage with Turnitin asterisk notation for sub-20%."""
+        if self.overall_ai_score <= 0.0:
+            return "0%"
+        elif self.overall_ai_score < 20.0:
+            return f"{int(round(self.overall_ai_score))}%*"
+        return f"{int(round(self.overall_ai_score))}%"
 
     def __str__(self):
         return f"AI Report for {self.document.title} - {self.display_score} AI"
