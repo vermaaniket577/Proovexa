@@ -697,12 +697,16 @@ def generate_pdf_report(report):
 
     # Pre-map passages to paragraph content
     if extracted_texts.exists():
+        from xml.sax.saxutils import escape as xml_escape
         for et in extracted_texts:
             content = et.content
             # Check which matches overlap with this paragraph
             para_matches = []
             for p in matched_passages:
-                if p.submitted_text and p.submitted_text.strip() in content:
+                p_text = p.submitted_text.strip() if p.submitted_text else ""
+                if not p_text:
+                    continue
+                if p_text in content or (p.submitted_paragraph == et.paragraph_number and p.submitted_page == et.page_number) or (' '.join(p_text.split()[:5]) in ' '.join(content.split())):
                     para_matches.append(p)
 
             if para_matches:
@@ -710,14 +714,27 @@ def generate_pdf_report(report):
                 top_badge_idx = para_matches[0].source_index or 1
                 badge_color_hex, _ = SOURCE_PALETTE[(top_badge_idx - 1) % len(SOURCE_PALETTE)]
 
-                # Highlight the text inside paragraph
-                highlighted_content = content
+                # Highlight the text inside paragraph safely for ReportLab XML parser
+                highlighted_content = xml_escape(content)
                 for m in para_matches:
                     m_idx = m.source_index or 1
                     _, pastel_bg = SOURCE_PALETTE[(m_idx - 1) % len(SOURCE_PALETTE)]
-                    esc_match = re.escape(m.submitted_text.strip())
-                    replacement = f'<font backcolor="{pastel_bg}">{m.submitted_text.strip()}</font>'
-                    highlighted_content = re.sub(esc_match, replacement, highlighted_content, count=1)
+                    m_clean = m.submitted_text.strip()
+                    m_escaped = xml_escape(m_clean)
+                    if m_escaped in highlighted_content:
+                        replacement = f'<font backcolor="{pastel_bg}"><b>{m_escaped}</b></font>'
+                        highlighted_content = highlighted_content.replace(m_escaped, replacement, 1)
+                    else:
+                        m_words = m_clean.split()
+                        if len(m_words) >= 3:
+                            pattern = r'\s+'.join(re.escape(xml_escape(w)) for w in m_words)
+                            highlighted_content = re.sub(
+                                pattern,
+                                lambda mo: f'<font backcolor="{pastel_bg}"><b>{mo.group(0)}</b></font>',
+                                highlighted_content,
+                                count=1,
+                                flags=re.IGNORECASE
+                            )
 
                 badge_d = Drawing(16, 16)
                 badge_d.add(Circle(8, 8, 7, fillColor=colors.HexColor(badge_color_hex), strokeColor=None))

@@ -194,6 +194,12 @@ class AnalysisEngine:
             max_candidates = 60
             top_candidates = candidates[:max_candidates]
 
+            # Ensure all live crawled web sources are explicitly included in top_candidates for full matching
+            cand_indices = {c[0] for c in top_candidates}
+            for s_idx, s_ref in enumerate(source_refs):
+                if getattr(s_ref, 'source_type', '') == ReferenceSource.SourceType.WEB and s_idx not in cand_indices:
+                    top_candidates.append((s_idx, 0.50))
+
             all_matches = []
             source_index = 0
             sources_checked = []
@@ -348,12 +354,25 @@ class AnalysisEngine:
                 source_id = str(source_obj.id) if source_obj else None
                 source_title = source_obj.title if source_obj else ''
 
+                sub_page = match.get('submitted_page')
+                sub_para = match.get('submitted_para')
+                if not sub_page or not sub_para:
+                    et_hit = extracted_texts.filter(char_start__lte=char_start, char_end__gte=char_start).first()
+                    if not et_hit and char_start is not None:
+                        et_hit = extracted_texts.filter(char_start__lte=char_start).order_by('-char_start').first()
+                    if et_hit:
+                        sub_page = et_hit.page_number
+                        sub_para = et_hit.paragraph_number
+                    else:
+                        sub_page = 1
+                        sub_para = 1
+
                 mp = MatchedPassage.objects.create(
                     report=report,
                     submitted_text=match['submitted_text'][:5000],
                     source_text=match.get('source_text', '')[:5000],
-                    submitted_page=match.get('submitted_page', 1),
-                    submitted_paragraph=match.get('submitted_para', 1),
+                    submitted_page=sub_page,
+                    submitted_paragraph=sub_para,
                     submitted_char_start=char_start,
                     submitted_char_end=char_end,
                     source=source_obj,
@@ -382,6 +401,13 @@ class AnalysisEngine:
 
             # Calculate word-level non-overlapping similarity
             score_result = scorer.calculate()
+
+            # Synchronize each MatchedPassage source_index with final ranked Top Sources
+            for s_info in score_result['sources']:
+                s_id = s_info.get('source_id')
+                final_rank = s_info.get('rank', 1)
+                if s_id:
+                    MatchedPassage.objects.filter(report=report, source_id=s_id).update(source_index=final_rank)
 
             # Persist comprehensive report metrics
             report.overall_similarity = score_result['overall_similarity']
@@ -444,11 +470,11 @@ class AnalysisEngine:
             try:
                 from .playwright_scraper import PlaywrightPlagiarismChecker
                 min_words = self.exclusion_settings.get('min_match_words', 8)
-                checker = PlaywrightPlagiarismChecker(headless=True, timeout_ms=10000)
+                checker = PlaywrightPlagiarismChecker(headless=True, timeout_ms=12000)
                 web_sources = checker.search_and_retrieve_sources(
                     full_text=full_text,
                     min_words=min_words,
-                    max_sources=4,
+                    max_sources=6,
                     target_document=document,
                 )
                 for ws in web_sources:

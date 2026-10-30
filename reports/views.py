@@ -2,6 +2,8 @@
 Report views: view, download (PDF/DOCX/JSON), and list reports.
 """
 import json
+import re
+import html
 from datetime import datetime
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -95,7 +97,8 @@ def report_detail_view(request, report_id):
             p for p in passages 
             if p.submitted_text and p.submitted_text.strip() and (
                 p.submitted_text.strip() in raw_content or 
-                (p.submitted_paragraph == et.paragraph_number and p.submitted_page == et.page_number)
+                (p.submitted_paragraph == et.paragraph_number and p.submitted_page == et.page_number) or
+                (' '.join(p.submitted_text.strip().split()[:5]) in ' '.join(raw_content.split()))
             )
         ]
 
@@ -127,6 +130,22 @@ def report_detail_view(request, report_id):
 
                 if m_escaped in escaped_html:
                     escaped_html = escaped_html.replace(m_escaped, replacement, 1)
+                else:
+                    m_words = m_text.split()
+                    if len(m_words) >= 3:
+                        esc_pattern = r'\s+'.join(re.escape(html.escape(w)) for w in m_words)
+                        def _repl(match_obj):
+                            found_text = match_obj.group(0)
+                            return (
+                                f'<mark class="turnitin-highlight source-match-{m_idx}" '
+                                f'data-source-index="{m_idx}" data-source-title="{src_title}" '
+                                f'style="background-color: {pastel_bg}; border-bottom: 2px solid {solid_col}; color: #0f172a; padding: 2px 4px; border-radius: 3px; position: relative; cursor: pointer;" '
+                                f'title="Source [{m_idx}]: {src_title}">'
+                                f'<span class="badge text-white me-1 align-text-top" style="background-color: {solid_col}; font-size: 0.72rem; padding: 2px 5px; border-radius: 3px;">{m_idx}</span>'
+                                f'{found_text}'
+                                f'</mark>'
+                            )
+                        escaped_html = re.sub(esc_pattern, _repl, escaped_html, count=1, flags=re.IGNORECASE)
 
         paragraphs_data.append({
             'page_number': et.page_number,

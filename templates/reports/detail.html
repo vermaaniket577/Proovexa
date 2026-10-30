@@ -981,7 +981,13 @@ mark.turnitin-highlight:hover {
             <!-- Line 2: Title / Domain & Percentage -->
             <div class="d-flex align-items-center justify-content-between pt-1">
                 <div class="source-title-text text-truncate pe-3" style="max-width: 580px;">
+                    {% if s.url %}
+                    <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-dark" style="color: inherit;" onclick="event.stopPropagation();" title="{{ s.url }}">
+                        {{ s.title }} <i class="bi bi-box-arrow-up-right ms-1 text-primary" style="font-size: 0.72rem;"></i>
+                    </a>
+                    {% else %}
                     {{ s.title }}
+                    {% endif %}
                 </div>
                 <div class="source-pct-text text-end flex-shrink-0">
                     {{ s.percent }}
