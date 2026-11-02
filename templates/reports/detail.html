@@ -444,7 +444,7 @@
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
     font-size: 11px;
     font-weight: 500;
-    padding: 2px 14px;
+    padding: 3px 14px;
     border-radius: 999px;
     display: inline-block;
     border: none;
@@ -452,8 +452,8 @@
     color: #191919 !important;
 }
 .source-row-item {
-    padding: 10px 0 10px 0;
-    border-bottom: 1px solid #d1d5db !important;
+    padding: 13px 0 13px 0;
+    border-bottom: 1px solid #e2e8f0 !important;
     background: transparent;
     transition: background 0.15s ease;
 }
@@ -464,6 +464,7 @@
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
     font-weight: 700;
     font-size: 13.5px;
+    line-height: 1.5;
     color: #191919;
     letter-spacing: -0.01em;
 }
@@ -976,7 +977,7 @@ mark.turnitin-highlight:hover {
         {% for s in sp.sources %}
         <div class="list-group-item source-row-item px-0 source-row-clickable" onclick="jumpToSource({{ s.index }})" title="Click to view Source [{{ s.index }}] highlight in text">
             <!-- Line 1: Badge + Category Pill -->
-            <div class="d-flex align-items-center mb-1 flex-wrap gap-1">
+            <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
                 <span class="turnitin-source-badge" style="background-color: {{ s.color }};">
                     {{ s.index }}
                 </span>
@@ -984,7 +985,7 @@ mark.turnitin-highlight:hover {
                     {{ s.category }}
                 </span>
                 {% if s.exact_matched_words %}
-                <span class="badge rounded-pill bg-light text-secondary border px-2 py-0 ms-1" style="font-size: 0.68rem; font-weight: 500;" title="Exact verbatim matched words">
+                <span class="badge rounded-pill bg-light text-secondary border px-2 py-1 ms-1" style="font-size: 0.68rem; font-weight: 500;" title="Exact verbatim matched words">
                     <i class="bi bi-check2-all text-success me-1"></i>Exact: {{ s.exact_matched_words }} words{% if s.exact_percentage > 0 %} ({{ s.exact_percentage }}%){% endif %}
                 </span>
                 {% endif %}

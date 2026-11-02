@@ -188,50 +188,51 @@ class TurnitinReportCanvas(canvas.Canvas):
 
 def _build_source_table_rows(s):
     """Constructs a 2-line source row matching Turnitin Top Sources list:
-       Line 1: [Badge] [Category Pill]
+       Line 1: [Badge] [Category Pill] [Exact: xx w]
        Line 2: Title/URL (left) and Percentage (right)
        Total width: 523.28 pt (colWidths: 473.28, 50)
     """
     f_reg, f_bold, _ = _register_turnitin_fonts()
     # 1. Colored number badge (oval pill)
-    badge_d = Drawing(18, 11)
-    badge_d.add(Rect(0, 0, 18, 11, rx=5.5, ry=5.5, fillColor=colors.HexColor(s['color']), strokeColor=None))
-    badge_d.add(String(9, 2.8, str(s['index']), fontName=f_bold, fontSize=7.0, fillColor=colors.white, textAnchor='middle'))
+    badge_w = 19 if s['index'] < 10 else (24 if s['index'] < 100 else 28)
+    badge_d = Drawing(badge_w, 13)
+    badge_d.add(Rect(0, 0, badge_w, 13, rx=6.5, ry=6.5, fillColor=colors.HexColor(s['color']), strokeColor=None))
+    badge_d.add(String(badge_w / 2.0, 3.8, str(s['index']), fontName=f_bold, fontSize=7.5, fillColor=colors.white, textAnchor='middle'))
 
     # 2. Category pill tag (matching source's pastel tone with dark neutral text)
     pill_bg = colors.HexColor(s.get('pill_bg', '#fce4ec'))
     pill_text = colors.HexColor('#191919')
     cat_text = s['category']
-    pill_w = 46 if len(cat_text) <= 8 else 68
-    pill_d = Drawing(pill_w, 11)
-    pill_d.add(Rect(0, 0, pill_w, 11, rx=5.5, ry=5.5, fillColor=pill_bg, strokeColor=None))
-    pill_d.add(String(pill_w / 2.0, 2.8, cat_text, fontName=f_reg, fontSize=6.5, fillColor=pill_text, textAnchor='middle'))
+    pill_w = 52 if len(cat_text) <= 8 else 74
+    pill_d = Drawing(pill_w, 13)
+    pill_d.add(Rect(0, 0, pill_w, 13, rx=6.5, ry=6.5, fillColor=pill_bg, strokeColor=None))
+    pill_d.add(String(pill_w / 2.0, 3.8, cat_text, fontName=f_reg, fontSize=6.8, fillColor=pill_text, textAnchor='middle'))
 
     # Top line container table: Badge and Pill side by side
     exact_w = s.get('exact_matched_words', 0)
     if exact_w > 0:
-        exact_p = Paragraph(f"<font color='#4b5563'>Exact: {exact_w} w</font>", ParagraphStyle('ExactW', fontName=f_reg, fontSize=6.5, leading=8.0, textColor=colors.HexColor('#4b5563')))
-        top_table = Table([[badge_d, pill_d, exact_p]], colWidths=[22, pill_w + 6, 80])
+        exact_p = Paragraph(f"<font color='#64748b'>Exact: {exact_w} w</font>", ParagraphStyle('ExactW', fontName=f_reg, fontSize=6.8, leading=9.0, textColor=colors.HexColor('#64748b')))
+        top_table = Table([[badge_d, pill_d, exact_p]], colWidths=[badge_w + 5, pill_w + 6, 80])
     else:
-        top_table = Table([[badge_d, pill_d]], colWidths=[22, pill_w + 6])
+        top_table = Table([[badge_d, pill_d]], colWidths=[badge_w + 5, pill_w + 6])
     top_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
         ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
 
     # Title / Domain (Line 2 Left: width 473.28 pt)
     title_p = Paragraph(
         f"<b>{s['title']}</b>",
-        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=8.5, leading=11.0, textColor=colors.HexColor('#191919'))
+        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=8.5, leading=12.5, textColor=colors.HexColor('#191919'))
     )
 
     # Percentage (Line 2 Right: width 50 pt)
     pct_p = Paragraph(
         f"<b>{s['percent']}</b>",
-        ParagraphStyle('SrcPct', fontName=f_bold, fontSize=8.5, leading=11.0, alignment=TA_RIGHT, textColor=colors.HexColor('#191919'))
+        ParagraphStyle('SrcPct', fontName=f_bold, fontSize=8.5, leading=12.5, alignment=TA_RIGHT, textColor=colors.HexColor('#191919'))
     )
 
     return [
@@ -380,7 +381,7 @@ def generate_pdf_report(report):
     overview_sub_style = ParagraphStyle(
         'OverviewSub', parent=styles['Normal'],
         fontName=f_reg, fontSize=7.0, leading=10.0,
-        textColor=colors.HexColor('#636363'), spaceAfter=18.0
+        textColor=colors.HexColor('#636363'), spaceAfter=6.0
     )
 
     filtered_hdr_style = ParagraphStyle(
@@ -642,15 +643,14 @@ def generate_pdf_report(report):
             ]))
             story.append(mg_ts_split_p3)
             story.append(Spacer(1, 6))
-            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=6))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=8))
 
             story.append(Paragraph("<b>Top Sources</b>", h2_style))
             story.append(Paragraph(
                 "The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.",
                 overview_sub_style
             ))
-            story.append(Spacer(1, 4))
-            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=6))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=10))
 
         p_sources = sp.get('sources', [])
         if p_sources:
@@ -664,12 +664,18 @@ def generate_pdf_report(report):
                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 0),
             ]
+            is_first = sp.get('is_first_page', False)
+            top_pad = 8 if is_first else 7
+            mid_pad_1 = 3 if is_first else 2
+            mid_pad_2 = 2 if is_first else 2
+            bot_pad = 9 if is_first else 7
+
             for i in range(len(p_sources)):
                 t_style.extend([
-                    ('TOPPADDING', (0, 2 * i), (-1, 2 * i), 2),
-                    ('BOTTOMPADDING', (0, 2 * i), (-1, 2 * i), 0),
-                    ('TOPPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 1),
-                    ('BOTTOMPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), 3),
+                    ('TOPPADDING', (0, 2 * i), (-1, 2 * i), top_pad),
+                    ('BOTTOMPADDING', (0, 2 * i), (-1, 2 * i), mid_pad_1),
+                    ('TOPPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), mid_pad_2),
+                    ('BOTTOMPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), bot_pad),
                     ('LINEBELOW', (0, 2 * i + 1), (-1, 2 * i + 1), 0.5, colors.HexColor('#e2e8f0')),
                 ])
             t.setStyle(TableStyle(t_style))
@@ -690,8 +696,8 @@ def generate_pdf_report(report):
 
     doc_para_style = ParagraphStyle(
         'DocParaStyle', parent=styles['Normal'],
-        fontName='Times-Roman', fontSize=11.04, leading=14.5,
-        alignment=TA_JUSTIFY, spaceAfter=8
+        fontName='Times-Roman', fontSize=11.04, leading=16.0,
+        alignment=TA_JUSTIFY, spaceAfter=10
     )
 
     extracted_texts = report.document.extracted_texts.all().order_by('page_number', 'paragraph_number')
