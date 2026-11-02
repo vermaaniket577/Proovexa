@@ -40,7 +40,7 @@ class TurnitinAIDetector:
             "furthermore", "moreover", "additionally", "consequently",
             "nonetheless", "nevertheless", "notably", "importantly",
             "in conclusion", "it is important to note", "delve into",
-            "vital role", "testament", "beacon", "intricate dance"
+            "vital role", "testament", "beacon", "intricate dance", "इसके अलावा", "इसके अतिरिक्त", "निष्कर्ष के रूप में", "संक्षेप में", "महत्वपूर्ण भूमिका", "समग्र दृष्टिकोण", "उल्लेखनीय है कि", "आधारशिला", "विभिन्न पहलुओं"
         }
 
         # Lazy transformer initialization flag
@@ -68,10 +68,18 @@ class TurnitinAIDetector:
     @staticmethod
     def filter_qualifying_prose(text: str) -> str:
         """
-        Stage 1: Strips References/Bibliography and non-prose blocks.
+        Stage 1: Strips References/Bibliography, blockquotes, inline quotes, and non-prose blocks.
         Only strips references/bibliography if located in the latter part of the document
         (not in cover pages, table of contents, or report headers).
         """
+        # Strip markdown and HTML blockquotes
+        text = re.sub(r"^\s*>\s+.*$", "", text, flags=re.MULTILINE)
+        text = re.sub(r"<blockquote[\s\S]*?</blockquote>", " ", text, flags=re.IGNORECASE)
+
+        # Strip inline quotes (student-quoted text should not be flagged as student-generated prose)
+        text = re.sub(r'["“][^"”]{15,}["”]', ' ', text)
+        text = re.sub(r'[\'‘][^\'’]{20,}[\'’]', ' ', text)
+
         # Find references / bibliography section towards the end of the document
         matches = list(re.finditer(
             r"\n\s*(?:references|bibliography|works cited)\s*\n",
@@ -85,19 +93,19 @@ class TurnitinAIDetector:
         if split_pos is not None:
             text = text[:split_pos]
 
-        # Remove bullet lines or short header lines (< 4 words)
+        # Remove bullet lines, markdown headers, or short lines (< 4 words)
         lines = [
             line.strip()
             for line in text.splitlines()
             if len(line.strip().split()) >= 4
-            and not re.match(r"^(\*|-|\d+\.)\s+", line.strip())
+            and not re.match(r"^(\*|-|\+|\d+[\.)]|#{1,6})\s+", line.strip())
         ]
         return " ".join(lines)
 
     @staticmethod
     def split_sentences(text: str) -> List[str]:
         """Splits prose into individual grammatical sentences."""
-        raw_sents = re.split(r"(?<=[.!?])\s+", text.strip())
+        raw_sents = re.split(r"(?<=[.!?।॥])\s+", text.strip())
         return [s.strip() for s in raw_sents if len(s.split()) >= 4]
 
     def create_overlapping_windows(
@@ -161,7 +169,7 @@ class TurnitinAIDetector:
                 pass
 
         # High-Fidelity Statistical LM Proxy Fallback
-        tokens = re.sub(r"[^\w\s]", "", text.lower()).split()
+        tokens = re.sub(r"[^\w\u0900-\u097F\s]", "", text.lower()).split()
         if len(tokens) < 2:
             return 80.0, 1.0
 
@@ -373,10 +381,10 @@ class TurnitinAIDetector:
         total_ai_pct = round(ai_only_pct + ai_paraphrased_pct, 1)
 
         # Turnitin False-Positive Suppression Rule (<20% display with asterisk note)
-        if total_ai_pct == 0.0:
+        if total_ai_pct < 1.0:
             turnitin_display_score = "0%"
         elif total_ai_pct < 20.0:
-            turnitin_display_score = f"{int(round(total_ai_pct))}%*"
+            turnitin_display_score = "*%"
         else:
             turnitin_display_score = f"{int(round(total_ai_pct))}%"
 

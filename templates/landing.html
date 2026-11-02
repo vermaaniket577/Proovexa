@@ -557,6 +557,29 @@
     </style>
 </head>
 <body class="landing-body">
+    <!-- Global Page Top Loader Bar -->
+    <div id="page-top-loader" class="page-top-loader"></div>
+
+    <!-- Global Full-Screen Application Loader Modal -->
+    <div id="global-app-loader" class="global-app-loader d-none" aria-live="polite" aria-label="Loading">
+        <div class="loader-glass-card">
+            <div class="loader-spinner-wrapper">
+                <div class="loader-spinner-ring outer-ring"></div>
+                <div class="loader-spinner-ring inner-ring"></div>
+                <div class="loader-spinner-icon">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+            </div>
+            <h4 class="loader-heading" id="loader-heading">Analyzing Academic Integrity</h4>
+            <p class="loader-subheading" id="loader-subheading">Searching Google Scholar, Shodhganga & ShodhGangotri...</p>
+            <div class="loader-progress-track">
+                <div class="loader-progress-fill" id="loader-progress-fill"></div>
+            </div>
+            <div class="loader-footer-hint">
+                <i class="bi bi-shield-lock-fill text-primary me-1"></i> Secure Academic Computing &bull; 256-bit Encryption
+            </div>
+        </div>
+    </div>
 
     <!-- Global SaaS Navigation Bar -->
     <header class="landing-nav">
@@ -1376,5 +1399,6 @@
             }
         }
     </script>
+    <script src="{% static 'js/main.js' %}"></script>
 </body>
 </html>

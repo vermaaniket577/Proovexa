@@ -208,7 +208,12 @@ def _build_source_table_rows(s):
     pill_d.add(String(pill_w / 2.0, 2.8, cat_text, fontName=f_reg, fontSize=6.5, fillColor=pill_text, textAnchor='middle'))
 
     # Top line container table: Badge and Pill side by side
-    top_table = Table([[badge_d, pill_d]], colWidths=[22, pill_w + 6])
+    exact_w = s.get('exact_matched_words', 0)
+    if exact_w > 0:
+        exact_p = Paragraph(f"<font color='#4b5563'>Exact: {exact_w} w</font>", ParagraphStyle('ExactW', fontName=f_reg, fontSize=6.5, leading=8.0, textColor=colors.HexColor('#4b5563')))
+        top_table = Table([[badge_d, pill_d, exact_p]], colWidths=[22, pill_w + 6, 80])
+    else:
+        top_table = Table([[badge_d, pill_d]], colWidths=[22, pill_w + 6])
     top_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),

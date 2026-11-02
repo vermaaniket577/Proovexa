@@ -338,8 +338,13 @@ def generate_ai_pdf_report(ai_report):
     story.append(PageBreak())
     story.append(SetSection("AI Writing Overview"))
 
-    is_zero_ai = (ai_report.overall_ai_score == 0 or ai_report.overall_ai_score < 1)
-    score_display = "*%" if is_zero_ai else f"{int(ai_report.overall_ai_score)}%"
+    is_zero_ai = ai_report.overall_ai_score < 20.0
+    if ai_report.overall_ai_score < 1.0:
+        score_display = "0%"
+    elif ai_report.overall_ai_score < 20.0:
+        score_display = "*%"
+    else:
+        score_display = f"{int(round(ai_report.overall_ai_score))}%"
 
     # Top Section: Left Score + Subtext (261.64 pt), Right Caution Box (261.64 pt)
     score_heading_style = ParagraphStyle(

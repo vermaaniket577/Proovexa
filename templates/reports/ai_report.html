@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}AI Writing Overview: {{ ai_report.document.title }}{% endblock %}
@@ -57,6 +57,13 @@
     }
     body {
         background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .col-xl-8, .col-lg-8, .col-12 {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
         padding: 0 !important;
         margin: 0 !important;
     }
@@ -368,220 +375,383 @@
     </div>
 </div>
 
-<!-- =========================================================================
-     PAGE 1: COVER PAGE
-     ========================================================================= -->
-<div class="turnitin-sheet" id="section-ai-cover">
-    <!-- Header -->
-    <div class="turnitin-sheet-header">
-        <div class="turnitin-brand-mark">
-            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
-            <span class="turnitin-header-section-title">Page 1 of {{ total_pages }} - AI Writing Cover Page</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ submission_id }}
-        </div>
-    </div>
-
-    <!-- Content -->
-    <div class="turnitin-sheet-content">
-        <!-- Title Block -->
-        <div class="pt-5 pb-3" style="max-width: 100%; min-width: 0; word-break: break-word; overflow-wrap: anywhere;">
-            <div class="cover-author-title">{{ author_name }}</div>
-            <div class="cover-doc-filename">{{ document.original_filename }}</div>
-            <div class="cover-inst-line">
-                <i class="bi bi-mortarboard-fill me-1 text-primary"></i> {{ institution_name }}
-            </div>
-        </div>
-
-        <div class="turnitin-sheet-divider"></div>
-
-        <div class="row align-items-center my-3">
-            <div class="col-md-7">
-                <h6 class="fw-bold text-dark mb-3">Document Details</h6>
-                <div class="row g-2 small">
-                    <div class="col-sm-4 text-muted">Submission ID</div>
-                    <div class="col-sm-8 fw-semibold font-monospace">{{ submission_id }}</div>
-
-                    <div class="col-sm-4 text-muted">Submission Date</div>
-                    <div class="col-sm-8 fw-semibold">{{ submission_date }}</div>
-
-                    <div class="col-sm-4 text-muted">Download Date</div>
-                    <div class="col-sm-8 fw-semibold">{{ download_date }}</div>
-
-                    <div class="col-sm-4 text-muted">File Name</div>
-                    <div class="col-sm-8 fw-semibold" style="word-break: break-word; overflow-wrap: anywhere;">{{ document.original_filename }}</div>
-
-                    <div class="col-sm-4 text-muted">File Size</div>
-                    <div class="col-sm-8 fw-semibold">{{ file_size_display }}</div>
+<div class="row g-4 align-items-start">
+    <!-- Left Column: Document Sheets Canvas -->
+    <div class="col-xl-8 col-lg-8">
+        <!-- =========================================================================
+             PAGE 1: COVER PAGE
+             ========================================================================= -->
+        <div class="turnitin-sheet" id="section-ai-cover">
+            <!-- Header -->
+            <div class="turnitin-sheet-header">
+                <div class="turnitin-brand-mark">
+                    <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
+                    <span class="turnitin-header-section-title">Page 1 of {{ total_pages }} - AI Writing Cover Page</span>
+                </div>
+                <div class="turnitin-header-meta-id">
+                    Submission ID &nbsp;{{ submission_id }}
                 </div>
             </div>
-            <div class="col-md-5">
-                <div class="details-summary-box text-start px-4 py-3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px;">
-                    <div class="fw-bold text-dark small mb-2">{{ page_count }} Pages</div>
-                    <div class="fw-bold text-dark small mb-2">{{ word_count }} Words</div>
-                    <div class="fw-bold text-dark small">{{ character_count }} Characters</div>
+
+            <!-- Content -->
+            <div class="turnitin-sheet-content">
+                <!-- Title Block -->
+                <div class="pt-5 pb-3" style="max-width: 100%; min-width: 0; word-break: break-word; overflow-wrap: anywhere;">
+                    <div class="cover-author-title">{{ author_name }}</div>
+                    <div class="cover-doc-filename">{{ document.original_filename }}</div>
+                    <div class="cover-inst-line">
+                        <i class="bi bi-mortarboard-fill me-1 text-primary"></i> {{ institution_name }}
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Footer -->
-    <div class="turnitin-sheet-footer">
-        <div class="turnitin-brand-mark">
-            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
-            <span class="turnitin-header-section-title">Page 1 of {{ total_pages }} - AI Writing Cover Page</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ submission_id }}
-        </div>
-    </div>
-</div>
+                <div class="turnitin-sheet-divider"></div>
 
-<!-- =========================================================================
-     PAGE 2: AI WRITING OVERVIEW (EXACT REFERENCE SCREENSHOT REPLICATION)
-     ========================================================================= -->
-<div class="turnitin-sheet" id="section-ai-overview">
-    <!-- Header -->
-    <div class="turnitin-sheet-header">
-        <div class="turnitin-brand-mark">
-            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
-            <span class="turnitin-header-section-title">Page 2 of {{ total_pages }} - AI Writing Overview</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ submission_id }}
-        </div>
-    </div>
+                <div class="row align-items-center my-3">
+                    <div class="col-md-7">
+                        <h6 class="fw-bold text-dark mb-3">Document Details</h6>
+                        <div class="row g-2 small">
+                            <div class="col-sm-4 text-muted">Submission ID</div>
+                            <div class="col-sm-8 fw-semibold font-monospace">{{ submission_id }}</div>
 
-    <!-- Horizontal Divider Line directly below header matching Turnitin screenshot -->
-    <div class="turnitin-sheet-divider mt-2 mb-4"></div>
+                            <div class="col-sm-4 text-muted">Submission Date</div>
+                            <div class="col-sm-8 fw-semibold">{{ submission_date }}</div>
 
-    <!-- Content -->
-    <div class="turnitin-sheet-content">
-        <!-- Main Two-Column Row matching reference screenshot -->
-        <div class="row g-4 align-items-stretch pt-2 pb-2">
-            <!-- Left: Headline and description -->
-            <div class="col-md-7">
-                <div class="ai-overview-score-line mb-2">
-                    <span class="ai-score-num">{{ overall_ai_display }}</span>
-                    <span class="ai-score-title">detected as AI</span>
-                </div>
-                {% if is_zero_ai %}
-                <div class="ai-score-subtext">
-                    AI detection includes the possibility of false positives. Although some text in this submission is likely AI generated, scores below the 20% threshold are not surfaced because they have a higher likelihood of false positives.
-                </div>
-                {% else %}
-                <div class="ai-score-subtext">
-                    The percentage indicates the combined amount of likely AI-generated text as well as likely AI-generated text that was also likely revised by AI.
-                </div>
-                {% endif %}
-            </div>
+                            <div class="col-sm-4 text-muted">Download Date</div>
+                            <div class="col-sm-8 fw-semibold">{{ download_date }}</div>
 
-            <!-- Right: Light Blue Caution Callout Card -->
-            <div class="col-md-5">
-                <div class="turnitin-ai-caution-box">
-                    <div class="ai-caution-title">Caution: Review required.</div>
-                    <div class="ai-caution-body">
-                        It is essential to understand the limitations of AI detection before making decisions about a student's work. We encourage you to learn more about Turnitin's AI detection capabilities before using the tool.
+                            <div class="col-sm-4 text-muted">File Name</div>
+                            <div class="col-sm-8 fw-semibold" style="word-break: break-word; overflow-wrap: anywhere;">{{ document.original_filename }}</div>
+
+                            <div class="col-sm-4 text-muted">File Size</div>
+                            <div class="col-sm-8 fw-semibold">{{ file_size_display }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="details-summary-box text-start px-4 py-3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px;">
+                            <div class="fw-bold text-dark small mb-2">{{ page_count }} Pages</div>
+                            <div class="fw-bold text-dark small mb-2">{{ word_count }} Words</div>
+                            <div class="fw-bold text-dark small">{{ character_count }} Characters</div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Divider Line -->
-        <div class="turnitin-sheet-divider my-4"></div>
-
-        {% if ai_report.below_300_word_warning %}
-        <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 py-2 px-3 small border-0 shadow-sm" style="background-color: #fffbeb; color: #b45309; border-left: 4px solid #f59e0b !important;">
-            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-            <div>
-                <strong>Short qualifying prose ({{ ai_report.qualifying_word_count }} words):</strong> Turnitin requires a minimum of 300 words of continuous prose to perform confident AI writing analysis without elevated false-positive risk.
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Bottom: Disclaimer Section -->
-        <div class="pt-1 pb-3">
-            <div class="ai-disclaimer-title">Disclaimer</div>
-            <div class="ai-disclaimer-text">
-                Our AI writing assessment is designed to help educators identify text that might be prepared by a generative AI tool. Our AI writing assessment may not always be accurate (it may misidentify writing that is likely human generated as AI generated and likely AI generated as human generated) so it should not be used as the sole basis for adverse actions against a student. It takes further scrutiny and human judgment in conjunction with an organization's application of its specific academic policies to determine whether any academic misconduct has occurred.
-            </div>
-        </div>
-
-        <!-- Divider Line below disclaimer (as seen in screenshot) -->
-        <div class="turnitin-sheet-divider mt-4 mb-2"></div>
-    </div>
-
-    <!-- Footer -->
-    <div class="turnitin-sheet-footer">
-        <div class="turnitin-brand-mark">
-            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
-            <span class="turnitin-header-section-title">Page 2 of {{ total_pages }} - AI Writing Overview</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ submission_id }}
-        </div>
-    </div>
-</div>
-
-<!-- =========================================================================
-     PAGE 3+: AI HIGHLIGHTED SUBMISSION
-     ========================================================================= -->
-<div class="turnitin-sheet" id="section-ai-submission">
-    <!-- Header -->
-    <div class="turnitin-sheet-header">
-        <div class="turnitin-brand-mark">
-            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
-            <span class="turnitin-header-section-title">Page 3 of {{ total_pages }} - AI Writing Submission</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ submission_id }}
-        </div>
-    </div>
-
-    <!-- Content -->
-    <div class="turnitin-sheet-content">
-        <!-- Filter Buttons (Top of submission) -->
-        <div class="d-flex justify-content-between align-items-center mb-4 no-print flex-wrap gap-2">
-            <div>
-                <div class="ai-submission-title">{{ document.title }}</div>
-                <div class="ai-submission-subtitle">Sentences highlighted in cyan reflect linguistic traits characteristic of generative models</div>
-            </div>
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary active" onclick="filterSentences('all', this)">All ({{ ai_report.total_sentences }})</button>
-                <button type="button" class="btn btn-outline-info" onclick="filterSentences('ai', this)">AI Flagged ({{ ai_report.ai_sentence_count }})</button>
-                <button type="button" class="btn btn-outline-success" onclick="filterSentences('human', this)">Human Authored ({{ ai_report.human_sentence_count }})</button>
-            </div>
-        </div>
-
-        <!-- Paragraphs Flow -->
-        <div id="sentence-container">
-            {% for s in ai_report.sentences_data %}
-            <div class="sentence-item mb-3 {% if s.is_ai %}is-ai{% else %}is-human{% endif %}" id="sent-{{ s.index }}">
-                <div class="ai-passage-paragraph">
-                    {% if s.highlight_color == 'purple' or s.category == 'AI-Paraphrased' %}
-                        <span style="background-color: #f3e8ff; color: #581c87; padding: 2px 4px; border-radius: 3px; font-weight: 500;" title="AI Probability: {{ s.ai_probability_pct|default:s.confidence }}% | PPL: {{ s.perplexity }}">{{ s.sentence }}</span>
-                    {% elif s.highlight_color == 'cyan' or s.is_ai %}
-                        <span class="ai-highlight-cyan" title="AI Probability: {{ s.ai_probability_pct|default:s.confidence }}% | PPL: {{ s.perplexity }}">{{ s.sentence }}</span>
-                    {% else %}
-                        <span>{{ s.sentence }}</span>
-                    {% endif %}
+            <!-- Footer -->
+            <div class="turnitin-sheet-footer">
+                <div class="turnitin-brand-mark">
+                    <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
+                    <span class="turnitin-header-section-title">Page 1 of {{ total_pages }} - AI Writing Cover Page</span>
+                </div>
+                <div class="turnitin-header-meta-id">
+                    Submission ID &nbsp;{{ submission_id }}
                 </div>
             </div>
-            {% empty %}
-            <p class="text-muted">No text extracted for submission.</p>
-            {% endfor %}
+        </div>
+
+        <!-- =========================================================================
+             PAGE 2: AI WRITING OVERVIEW (EXACT REFERENCE SCREENSHOT REPLICATION)
+             ========================================================================= -->
+        <div class="turnitin-sheet" id="section-ai-overview">
+            <!-- Header -->
+            <div class="turnitin-sheet-header">
+                <div class="turnitin-brand-mark">
+                    <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
+                    <span class="turnitin-header-section-title">Page 2 of {{ total_pages }} - AI Writing Overview</span>
+                </div>
+                <div class="turnitin-header-meta-id">
+                    Submission ID &nbsp;{{ submission_id }}
+                </div>
+            </div>
+
+            <!-- Horizontal Divider Line directly below header matching Turnitin screenshot -->
+            <div class="turnitin-sheet-divider mt-2 mb-4"></div>
+
+            <!-- Content -->
+            <div class="turnitin-sheet-content">
+                <!-- Main Two-Column Row matching reference screenshot -->
+                <div class="row g-4 align-items-stretch pt-2 pb-2">
+                    <!-- Left: Headline and description -->
+                    <div class="col-md-7">
+                        <div class="ai-overview-score-line mb-2">
+                            <span class="ai-score-num">{{ overall_ai_display }}</span>
+                            <span class="ai-score-title">detected as AI</span>
+                        </div>
+                        {% if is_zero_ai %}
+                        <div class="ai-score-subtext">
+                            AI detection includes the possibility of false positives. Although some text in this submission is likely AI generated, scores below the 20% threshold are not surfaced because they have a higher likelihood of false positives.
+                        </div>
+                        {% else %}
+                        <div class="ai-score-subtext">
+                            The percentage indicates the combined amount of likely AI-generated text as well as likely AI-generated text that was also likely revised by AI.
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Right: Light Blue Caution Callout Card -->
+                    <div class="col-md-5">
+                        <div class="turnitin-ai-caution-box">
+                            <div class="ai-caution-title">Caution: Review required.</div>
+                            <div class="ai-caution-body">
+                                It is essential to understand the limitations of AI detection before making decisions about a student's work. We encourage you to learn more about Turnitin's AI detection capabilities before using the tool.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Divider Line -->
+                <div class="turnitin-sheet-divider my-4"></div>
+
+                {% if ai_report.below_300_word_warning %}
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 py-2 px-3 small border-0 shadow-sm" style="background-color: #fffbeb; color: #b45309; border-left: 4px solid #f59e0b !important;">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <div>
+                        <strong>Short qualifying prose ({{ ai_report.qualifying_word_count }} words):</strong> Turnitin requires a minimum of 300 words of continuous prose to perform confident AI writing analysis without elevated false-positive risk.
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Bottom: Disclaimer Section -->
+                <div class="pt-1 pb-3">
+                    <div class="ai-disclaimer-title">Disclaimer</div>
+                    <div class="ai-disclaimer-text">
+                        Our AI writing assessment is designed to help educators identify text that might be prepared by a generative AI tool. Our AI writing assessment may not always be accurate (it may misidentify writing that is likely human generated as AI generated and likely AI generated as human generated) so it should not be used as the sole basis for adverse actions against a student. It takes further scrutiny and human judgment in conjunction with an organization's application of its specific academic policies to determine whether any academic misconduct has occurred.
+                    </div>
+                </div>
+
+                <!-- Divider Line below disclaimer (as seen in screenshot) -->
+                <div class="turnitin-sheet-divider mt-4 mb-2"></div>
+            </div>
+
+            <!-- Footer -->
+            <div class="turnitin-sheet-footer">
+                <div class="turnitin-brand-mark">
+                    <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
+                    <span class="turnitin-header-section-title">Page 2 of {{ total_pages }} - AI Writing Overview</span>
+                </div>
+                <div class="turnitin-header-meta-id">
+                    Submission ID &nbsp;{{ submission_id }}
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================================
+             PAGE 3+: AI HIGHLIGHTED SUBMISSION
+             ========================================================================= -->
+        <div class="turnitin-sheet" id="section-ai-submission">
+            <!-- Header -->
+            <div class="turnitin-sheet-header">
+                <div class="turnitin-brand-mark">
+                    <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
+                    <span class="turnitin-header-section-title">Page 3 of {{ total_pages }} - AI Writing Submission</span>
+                </div>
+                <div class="turnitin-header-meta-id">
+                    Submission ID &nbsp;{{ submission_id }}
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="turnitin-sheet-content">
+                <!-- Filter Buttons (Top of submission) -->
+                <div class="d-flex justify-content-between align-items-center mb-4 no-print flex-wrap gap-2">
+                    <div>
+                        <div class="ai-submission-title">{{ document.title }}</div>
+                        <div class="ai-submission-subtitle">
+                            <span class="badge me-1" style="background:#cffafe; color:#083344; border:1px solid #a5f3fc;">Cyan</span> AI-Generated &bull; 
+                            <span class="badge ms-2 me-1" style="background:#f3e8ff; color:#581c87; border:1px solid #e9d5ff;">Purple</span> AI-Paraphrased
+                        </div>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" onclick="filterSentences('all', this)">All ({{ ai_report.total_sentences }})</button>
+                        <button type="button" class="btn btn-outline-info" onclick="filterSentences('ai', this)">AI Flagged ({{ ai_report.ai_sentence_count }})</button>
+                        <button type="button" class="btn btn-outline-success" onclick="filterSentences('human', this)">Human Authored ({{ ai_report.human_sentence_count }})</button>
+                    </div>
+                </div>
+
+                <!-- Paragraphs Flow -->
+                <div id="sentence-container">
+                    {% for s in ai_report.sentences_data %}
+                    <div class="sentence-item mb-3 {% if s.is_ai %}is-ai{% else %}is-human{% endif %}" id="sent-{{ s.index }}">
+                        <div class="ai-passage-paragraph">
+                            {% if s.highlight_color == 'purple' or s.category == 'AI-Paraphrased' %}
+                                <span style="background-color: #f3e8ff; color: #581c87; padding: 2px 4px; border-radius: 3px; font-weight: 500; border-bottom: 2px solid #a855f7;" title="AI-Paraphrased | Confidence: {{ s.ai_probability_pct|default:s.confidence }}% | PPL: {{ s.perplexity }}">{{ s.sentence }}</span>
+                            {% elif s.highlight_color == 'cyan' or s.is_ai %}
+                                <span class="ai-highlight-cyan" style="background-color: #cffafe; color: #083344; padding: 2px 4px; border-radius: 3px; font-weight: 500; border-bottom: 2px solid #06b6d4;" title="AI-Generated | Confidence: {{ s.ai_probability_pct|default:s.confidence }}% | PPL: {{ s.perplexity }}">{{ s.sentence }}</span>
+                            {% else %}
+                                <span>{{ s.sentence }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No text extracted for submission.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="turnitin-sheet-footer">
+                <div class="turnitin-brand-mark">
+                    <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
+                    <span class="turnitin-header-section-title">Page 3 of {{ total_pages }} - AI Writing Submission</span>
+                </div>
+                <div class="turnitin-header-meta-id">
+                    Submission ID &nbsp;{{ submission_id }}
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <div class="turnitin-sheet-footer">
-        <div class="turnitin-brand-mark">
-            <img src="{{ logo_data_uri|default:'/static/images/turnitin_header_logo.png' }}" alt="turnitin" class="turnitin-header-logo-img" />
-            <span class="turnitin-header-section-title">Page 3 of {{ total_pages }} - AI Writing Submission</span>
-        </div>
-        <div class="turnitin-header-meta-id">
-            Submission ID &nbsp;{{ submission_id }}
+    <!-- Right Column: Turnitin AI Writing Sticky Sidebar -->
+    <div class="col-xl-4 col-lg-4 no-print">
+        <div class="card border shadow-sm sticky-top" style="top: 20px; z-index: 100; max-height: calc(100vh - 40px); overflow-y: auto; border-radius: 8px;">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <span class="fw-bold fs-6 text-dark">
+                    <i class="bi bi-robot text-primary me-2"></i>AI Writing Report
+                </span>
+                <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.72rem;">Turnitin 4-Stage</span>
+            </div>
+            <div class="card-body p-3">
+                <!-- Overall Score Card -->
+                <div class="text-center p-3 bg-light rounded-3 mb-3 border">
+                    <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Overall AI Score</div>
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        <span class="display-5 fw-bold text-dark">{{ overall_ai_display }}</span>
+                        {% if 0 < ai_report.overall_ai_score and ai_report.overall_ai_score < 20 %}
+                        <span class="badge bg-warning text-dark border border-warning" title="Masked below 20% to prevent false positives">
+                            <i class="bi bi-shield-exclamation me-1"></i>Masked
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="small text-muted mt-1">detected as AI</div>
+                </div>
+
+                {% if 0 < ai_report.overall_ai_score and ai_report.overall_ai_score < 20 %}
+                <!-- Asterisk Masking Tooltip Banner -->
+                <div class="alert alert-warning small py-2 px-3 mb-3 border-0" style="background-color: #fffbeb; color: #b45309; border-left: 4px solid #f59e0b !important;">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    <strong>*% Masking Rule:</strong> Turnitin suppresses AI writing scores between 1% and 19% as <code>*%</code> to ensure the document false-positive rate remains strictly below 1% and prevent false accusations.
+                </div>
+                {% endif %}
+
+                <!-- Dual-Category Highlights & Progress Bars -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-bold text-dark text-uppercase tracking-wider">Classification Categories</span>
+                    </div>
+
+                    <!-- Cyan: AI-Generated Only -->
+                    <div class="p-2.5 rounded-3 border mb-2" style="background: #f0fdfa; border-color: #99f6e4 !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold text-dark d-flex align-items-center">
+                                <span class="d-inline-block rounded-circle me-2" style="width:10px; height:10px; background:#06b6d4;"></span>
+                                AI-Generated Text
+                            </span>
+                            <span class="badge fw-bold" style="background:#cffafe; color:#083344; font-size: 0.8rem;">
+                                {{ ai_report.ai_generated_only_cyan_pct|default:"0.0" }}%
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 6px; background: #e0f2fe;">
+                            <div class="progress-bar" style="width: {{ ai_report.ai_generated_only_cyan_pct }}%; background-color: #06b6d4;"></div>
+                        </div>
+                        <div class="text-muted mt-1" style="font-size: 0.72rem; line-height: 1.35;">
+                            Direct LLM prose (ChatGPT, Claude, Gemini) with low token perplexity and uniform sentence length. Highlighted in <strong>Cyan</strong>.
+                        </div>
+                    </div>
+
+                    <!-- Purple: AI-Paraphrased -->
+                    <div class="p-2.5 rounded-3 border mb-3" style="background: #faf5ff; border-color: #e9d5ff !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold text-dark d-flex align-items-center">
+                                <span class="d-inline-block rounded-circle me-2" style="width:10px; height:10px; background:#a855f7;"></span>
+                                AI-Paraphrased Text
+                            </span>
+                            <span class="badge fw-bold" style="background:#f3e8ff; color:#581c87; font-size: 0.8rem;">
+                                {{ ai_report.ai_paraphrased_purple_pct|default:"0.0" }}%
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 6px; background: #f3e8ff;">
+                            <div class="progress-bar" style="width: {{ ai_report.ai_paraphrased_purple_pct }}%; background-color: #a855f7;"></div>
+                        </div>
+                        <div class="text-muted mt-1" style="font-size: 0.72rem; line-height: 1.35;">
+                            AI text altered through word spinners or humanizers (e.g. QuillBot) with rigid syntax and local synonym entropy spikes. Highlighted in <strong>Purple</strong>.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage 1 Qualifying Prose & Minimum Gate -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small fw-bold text-dark text-uppercase tracking-wider">Qualifying Prose Gate</span>
+                    </div>
+                    {% if ai_report and ai_report.below_300_word_warning %}
+                    <div class="alert alert-warning small py-2 px-3 mb-2 border-0" style="background-color: #fffbeb; color: #b45309; border-left: 4px solid #f59e0b !important;">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        <strong>Short Prose Warning:</strong> Only {{ ai_report.qualifying_word_count }} qualifying words found (&lt; 300 words). Short formulaic text is masked to minimize false positives.
+                    </div>
+                    {% else %}
+                    <div class="p-2 rounded bg-light border small text-muted mb-2 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-check-circle-fill text-success me-1"></i> Qualifying Prose Words</span>
+                        <span class="fw-bold text-dark">{{ ai_report.qualifying_word_count }} words</span>
+                    </div>
+                    {% endif %}
+                    <div class="text-muted" style="font-size: 0.7rem;">
+                        <i class="bi bi-funnel me-1"></i>Exclusions: Quotes, Bibliographies, Bullet Lists & Headers stripped.
+                    </div>
+                </div>
+
+                <!-- Linguistic Diagnostics -->
+                <div class="row g-2 mb-3 text-center">
+                    <div class="col-6">
+                        <div class="p-2 border rounded bg-light">
+                            <div class="text-muted" style="font-size: 0.7rem;">Perplexity (PPL)</div>
+                            <div class="fw-bold text-dark fs-6">{{ ai_report.perplexity_score|floatformat:1 }}</div>
+                            <div class="text-muted" style="font-size: 0.65rem;">&lt; 25 indicates AI</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 border rounded bg-light">
+                            <div class="text-muted" style="font-size: 0.7rem;">Burstiness (CV)</div>
+                            <div class="fw-bold text-dark fs-6">{{ ai_report.burstiness_score|floatformat:3 }}</div>
+                            <div class="text-muted" style="font-size: 0.65rem;">&lt; 0.30 indicates AI</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flagged Sentences Navigator -->
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-bold text-dark text-uppercase tracking-wider">
+                            Flagged Sentences ({{ ai_report.ai_sentence_count }})
+                        </span>
+                        <small class="text-muted">Click to locate</small>
+                    </div>
+                    <div class="list-group list-group-flush border rounded-3" style="max-height: 280px; overflow-y: auto;">
+                        {% for s in ai_report.sentences_data %}
+                        {% if s.highlight_color != 'none' or s.is_ai %}
+                        <a href="javascript:void(0)" class="list-group-item list-group-item-action p-2 small border-bottom" onclick="jumpToAiSentence({{ s.index }})">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                {% if s.highlight_color == 'purple' or s.category == 'AI-Paraphrased' %}
+                                <span class="badge rounded-pill fw-bold" style="background:#f3e8ff; color:#581c87; font-size:0.68rem;">
+                                    <i class="bi bi-shuffle me-1"></i>AI-Paraphrased
+                                </span>
+                                {% else %}
+                                <span class="badge rounded-pill fw-bold" style="background:#cffafe; color:#083344; font-size:0.68rem;">
+                                    <i class="bi bi-robot me-1"></i>AI-Generated
+                                </span>
+                                {% endif %}
+                                <span class="text-muted font-monospace" style="font-size: 0.68rem;">{{ s.ai_probability_pct|default:s.confidence }}% AI</span>
+                            </div>
+                            <div class="text-truncate text-dark" style="font-size: 0.78rem;">{{ s.sentence }}</div>
+                        </a>
+                        {% endif %}
+                        {% empty %}
+                        <div class="p-3 text-center text-muted small">
+                            <i class="bi bi-check2-circle text-success fs-5 d-block mb-1"></i>
+                            No AI-generated or AI-paraphrased sentences flagged.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -632,6 +802,18 @@ function filterSentences(type, btn) {
             el.style.display = el.classList.contains('is-human') ? 'block' : 'none';
         }
     });
+}
+
+function jumpToAiSentence(sentenceIndex) {
+    showAiSection('submission');
+    setTimeout(() => {
+        const el = document.getElementById('sent-' + sentenceIndex);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('pulse-highlight');
+            setTimeout(() => el.classList.remove('pulse-highlight'), 2200);
+        }
+    }, 150);
 }
 </script>
 {% endblock %}

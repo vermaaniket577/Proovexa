@@ -58,16 +58,22 @@ TURNITIN_PALETTE = [
 ]
 
 
-def _normalize_category(cat_str: str, url: str = '') -> str:
+def _normalize_category(cat_str: str, url: str = '', title: str = '') -> str:
     """Normalize raw source type into standard Turnitin categories."""
     c = (cat_str or '').lower()
+    t = (title or '').lower().strip()
+    u = (url or '').lower()
+
+    if 'submitted' in c or 'student' in c or ('university' in t and ('on 20' in t or 'submitted' in t)):
+        return 'Submitted works'
+    if 'open access' in c or 'open_access' in c or 'academic' in c or 'publication' in c or 'journal' in c or 'doi.org' in u:
+        return 'Publication'
     if 'web' in c or 'internet' in c:
         return 'Internet'
-    elif 'academic' in c or 'publication' in c or 'journal' in c:
-        return 'Publication'
-    elif 'submitted' in c or 'student' in c or 'paper' in c:
-        return 'Submitted works'
-    return 'Internet' if url else 'Publication'
+    # If title has domain extension, it's an Internet repository source
+    if re.search(r'\.(?:org|edu|ac|com|net|gov|io|ai|dz|ke|za|uk|ph|my|np|th|hk|us|et|lk|gh|nz)\b', t):
+        return 'Internet'
+    return 'Publication'
 
 
 def compute_report_criteria(report):
@@ -166,7 +172,7 @@ def compute_report_criteria(report):
         src_type = getattr(src, 'source_type', 'uploaded') if src else 'uploaded'
         src_title = getattr(src, 'title', 'Reference Document') if src else 'Unknown Reference'
         src_url = getattr(src, 'url', '') if src else ''
-        category = _normalize_category(src_type, src_url)
+        category = _normalize_category(src_type, src_url, src_title)
 
         if category == 'Internet':
             internet_words += words
@@ -338,10 +344,13 @@ def compute_report_criteria(report):
         for idx, s in enumerate(raw_sources, 1):
             color_tuple = TURNITIN_PALETTE[(idx - 1) % len(TURNITIN_PALETTE)]
             badge_color, pastel_bg, pill_bg, pill_text = color_tuple
-            category = _normalize_category(s.get('category'), s.get('url', ''))
+            s_title = s.get('title') or s.get('source_name', f'Source {idx}')
+            category = _normalize_category(s.get('category'), s.get('url', ''), s_title)
 
             uniq_w = s.get('unique_matched_words') or 0
             gross_w = s.get('gross_matched_words') or 0
+            exact_w = s.get('exact_matched_words') or 0
+            exact_pct = float(s.get('exact_percentage') or 0.0)
             uniq_pct = float(s.get('unique_percentage') or 0.0)
             gross_pct = float(s.get('gross_percentage') or 0.0)
             effective_pct = max(uniq_pct, gross_pct * 0.7)
@@ -359,6 +368,9 @@ def compute_report_criteria(report):
                 'url': s.get('url', ''),
                 'category': category,
                 'words': gross_w or uniq_w,
+                'exact_matched_words': exact_w,
+                'exact_percentage': exact_pct,
+                'exact_matches': s.get('exact_matches', 0),
                 'percent': pct_display,
                 'color': badge_color,
                 'color_code': badge_color,
@@ -392,6 +404,9 @@ def compute_report_criteria(report):
                 'url': s['url'],
                 'category': s['category'],
                 'words': s['words'],
+                'exact_matched_words': s.get('exact_words', s['words']),
+                'exact_percentage': round(src_pct, 1),
+                'exact_matches': s.get('exact_matches', 1),
                 'percent': pct_display,
                 'color': badge_color,
                 'color_code': badge_color,

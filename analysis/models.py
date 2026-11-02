@@ -334,11 +334,16 @@ class AIReport(models.Model):
 
     @property
     def display_score(self):
-        """Format AI display score. Shows exact percentage with Turnitin asterisk notation for sub-20%."""
-        if self.overall_ai_score <= 0.0:
+        """
+        Format Turnitin AI display score:
+        - 0% if no AI detected (< 1.0%)
+        - *% if score is between 1% and 19% (masked to suppress false positives)
+        - XX% if score is >= 20%
+        """
+        if self.overall_ai_score < 1.0:
             return "0%"
         elif self.overall_ai_score < 20.0:
-            return f"{int(round(self.overall_ai_score))}%*"
+            return "*%"
         return f"{int(round(self.overall_ai_score))}%"
 
     def __str__(self):

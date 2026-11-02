@@ -31,13 +31,6 @@ class ExclusionEngine:
     def should_exclude(self, match_data, document_text=''):
         """
         Check if a match should be excluded based on configured rules.
-        
-        Args:
-            match_data: dict with match information
-            document_text: full document text for context checking
-        
-        Returns:
-            tuple: (should_exclude: bool, reason: str, uncertain: bool)
         """
         submitted_text = match_data.get('submitted_text', '')
         word_count = len(submitted_text.split())
@@ -49,7 +42,7 @@ class ExclusionEngine:
 
         # Check bibliography exclusion
         if self.settings.get('exclude_bibliography', False):
-            is_bib, certain = self._is_bibliography(submitted_text, document_text)
+            is_bib, certain = self._is_bibliography(submitted_text, document_text, match_data)
             if is_bib:
                 if certain:
                     return True, 'Bibliography/reference section', False
@@ -58,7 +51,7 @@ class ExclusionEngine:
 
         # Check quotation exclusion
         if self.settings.get('exclude_quotations', False):
-            is_quote, certain = self._is_quotation(submitted_text, document_text)
+            is_quote, certain = self._is_quotation(submitted_text, document_text, match_data)
             if is_quote:
                 if certain:
                     return True, 'Direct quotation', False
@@ -88,7 +81,7 @@ class ExclusionEngine:
 
         return False, '', False
 
-    def _is_bibliography(self, text, full_text):
+    def _is_bibliography(self, text, full_text, match_data=None):
         """
         Check if text appears to be in a bibliography/reference section.
         Returns (is_bibliography, is_certain).
@@ -109,39 +102,45 @@ class ExclusionEngine:
 
         # Check if text appears after bibliography headers in the full document
         if full_text:
-            bib_headers = [
-                r'\bReferences\b', r'\bBibliography\b', r'\bWorks\s+Cited\b',
-                r'\bReference\s+List\b', r'\bCited\s+Literature\b',
-            ]
-            for header in bib_headers:
-                header_match = re.search(header, full_text, re.IGNORECASE)
-                if header_match:
-                    bib_start = header_match.start()
+            if getattr(self, '_cached_doc_id', None) != id(full_text):
+                self._cached_doc_id = id(full_text)
+                self._cached_bib_start = None
+                bib_headers = [
+                    r'\bReferences\b', r'\bBibliography\b', r'\bWorks\s+Cited\b',
+                    r'\bReference\s+List\b', r'\bCited\s+Literature\b',
+                ]
+                for header in bib_headers:
+                    hm = re.search(header, full_text, re.IGNORECASE)
+                    if hm:
+                        self._cached_bib_start = hm.start()
+                        break
+
+            bib_start = getattr(self, '_cached_bib_start', None)
+            if bib_start is not None:
+                text_pos = match_data.get('submitted_start') if match_data else None
+                if text_pos is None:
                     text_pos = full_text.find(text)
-                    if text_pos > bib_start:
-                        return True, False  # Uncertain - may have content after refs
+                if text_pos is not None and text_pos > bib_start:
+                    return True, False
 
         return False, False
 
-    def _is_quotation(self, text, full_text):
+    def _is_quotation(self, text, full_text, match_data=None):
         """
         Check if text appears to be a direct quotation.
         Returns (is_quotation, is_certain).
         """
-        # Check for quotation marks around the text
         stripped = text.strip()
-
-        # Direct quotes with proper quotation marks
         if (stripped.startswith('"') and stripped.endswith('"')) or \
            (stripped.startswith('\u201c') and stripped.endswith('\u201d')) or \
            (stripped.startswith("'") and stripped.endswith("'")):
             return True, True
 
-        # Check context in full document
         if full_text:
-            text_pos = full_text.find(text.strip())
-            if text_pos > 0:
-                # Check characters before and after
+            text_pos = match_data.get('submitted_start') if match_data else None
+            if text_pos is None:
+                text_pos = full_text.find(stripped)
+            if text_pos is not None and text_pos > 0:
                 before = full_text[max(0, text_pos - 5):text_pos].strip()
                 after_end = min(len(full_text), text_pos + len(text) + 5)
                 after = full_text[text_pos + len(text):after_end].strip()
@@ -149,7 +148,7 @@ class ExclusionEngine:
                 if before.endswith('"') or before.endswith('\u201c'):
                     if after.startswith('"') or after.startswith('\u201d'):
                         return True, True
-                    return True, False  # Uncertain
+                    return True, False
 
         return False, False
 

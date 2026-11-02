@@ -41,6 +41,20 @@ LLM_DISCOURSE_MARKERS = [
     
     # Predictable repetitive sentence-initial transitions
     r'^(?:furthermore|moreover|additionally|in\s+conclusion|in\s+summary|consequently|ultimately|notably),',
+
+    # Hindi LLM academic markers
+    r'यह\s+(?:समझना|जानना|ध्यान\s+देना)\s+(?:अत्यंत\s+)?महत्वपूर्ण\s+है\s+कि',
+    r'महत्वपूर्ण\s+भूमिका\s+(?:निभाता|निभाती|निभाते)\s+है',
+    r'(?:समग्र|व्यापक)\s+दृष्टिकोण',
+    r'निष्कर्ष\s+के\s+रूप\s+में',
+    r'संक्षेप\s+में\s*[,:]',
+    r'इसके\s+(?:अतिरिक्त|अलावा)\s*[,:]',
+    r'उल्लेखनीय\s+है\s+कि',
+    r'आधारशिला\s+के\s+रूप\s+में',
+    r'गहन\s+(?:अध्ययन|विश्लेषण|समझ)',
+    r'परिवर्तनकारी\s+प्रभाव',
+    r'सुचारू\s+रूप\s+से',
+    r'विभिन्न\s+पहलुओं\s+को',
 ]
 
 
@@ -56,7 +70,7 @@ class FeatureExtractor:
         self.common_transitions = {
             'in order to', 'as a result', 'on the other hand', 'at the same time',
             'in terms of', 'with respect to', 'due to the', 'it is clear that',
-            'can be seen', 'in the context of', 'based on the', 'a wide range of',
+            'can be seen', 'in the context of', 'based on the', 'a wide range of', 'के रूप में', 'के अनुसार', 'के माध्यम से', 'के आधार पर', 'इसके अलावा', 'के संदर्भ में', 'इस प्रकार', 'परिणामस्वरूप',
         }
 
     def extract_document_features(self, sentences: List[Any], full_text: str) -> Dict[str, Any]:
@@ -91,7 +105,7 @@ class FeatureExtractor:
         length_uniformity_ratio = round(mid_range_count / total_sentences, 4)
 
         # 2. Lexical Diversity: MTLD and TTR
-        all_tokens = [w.lower() for w in re.findall(r'\b[a-zA-Z]+\b', full_text)]
+        all_tokens = [w.lower() for w in re.findall(r'[\w\u0900-\u097F]+', full_text)]
         total_tokens = len(all_tokens)
         ttr = round(len(set(all_tokens)) / max(total_tokens, 1), 4)
         mtld = self._calculate_mtld(all_tokens)
@@ -145,7 +159,7 @@ class FeatureExtractor:
         Extract features for an individual sentence relative to document context.
         """
         clean = re.sub(r'\s+', ' ', sentence_text).strip()
-        tokens = [w.lower() for w in re.findall(r'\b[a-zA-Z]+\b', clean)]
+        tokens = [w.lower() for w in re.findall(r'[\w\u0900-\u097F]+', clean)]
         word_count = len(tokens)
 
         if word_count < 4:
@@ -171,7 +185,7 @@ class FeatureExtractor:
 
         # Formulaic transition start
         has_formulaic_start = bool(re.match(
-            r'^(?:furthermore|moreover|additionally|in conclusion|in summary|consequently|notably|importantly),',
+            r'^(?:furthermore|moreover|additionally|in conclusion|in summary|consequently|notably|importantly|इसके\s+अलावा|इसके\s+अतिरिक्त|निष्कर्ष\s+के\s+रूप\s+में|संक्षेप\s+में|उल्लेखनीय\s+है\s+कि|परिणामस्वरूप)[,:\s]',
             clean, re.IGNORECASE
         ))
 

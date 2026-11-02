@@ -244,6 +244,13 @@ class AcademicSimilarityScorer:
             exact_count = sum(1 for sp in spans if sp.match_type in ('exact', 'winnowing', 'phrase'))
             fuzzy_count = sum(1 for sp in spans if sp.match_type in ('fuzzy', 'near_duplicate'))
 
+            exact_indices = set()
+            for sp in spans:
+                if sp.match_type in ('exact', 'winnowing', 'phrase'):
+                    exact_indices.update(sp.indices)
+            exact_matched_words = len(exact_indices & eligible_set)
+            exact_pct = round((exact_matched_words / E_count) * 100, 2)
+
             from .playwright_scraper import get_source_color
             color_code, pastel_bg, pill_bg, pill_text = get_source_color(rank)
 
@@ -262,6 +269,8 @@ class AcademicSimilarityScorer:
                 'gross_percentage': gross_pct,
                 'unique_matched_words': unique_words,
                 'unique_percentage': unique_pct,
+                'exact_matched_words': exact_matched_words,
+                'exact_percentage': exact_pct,
                 'exact_matches': exact_count,
                 'near_duplicate_matches': fuzzy_count,
                 'passage_count': len(spans),

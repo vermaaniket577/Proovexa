@@ -33,7 +33,7 @@ class PreprocessedSentence:
         self.paragraph_index = paragraph_index
         tokens = self.clean_text.split()
         self.word_count = len(tokens)
-        self.token_count = len(re.findall(r'\b\w+\b', self.clean_text))
+        self.token_count = len(re.findall(r'[\w\u0900-\u097F]+', self.clean_text))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -119,9 +119,33 @@ class DocumentPreprocessor:
             'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also'
         }
 
+        # Check for Hindi / Devanagari script (\u0900-\u097F)
+        devanagari_chars = sum(1 for c in text[:5000] if '\u0900' <= c <= '\u097F')
+        total_letters = sum(1 for c in text[:5000] if c.isalpha() or ('\u0900' <= c <= '\u097F'))
+        devanagari_ratio = devanagari_chars / max(total_letters, 1)
+
+        hindi_stopwords = {
+            'के', 'का', 'है', 'की', 'में', 'से', 'को', 'और', 'हैं', 'पर', 'ने', 'हो',
+            'तो', 'भी', 'ही', 'किया', 'इस', 'एक', 'लिए', 'था', 'कर', 'रहा', 'गया',
+            'करने', 'यह', 'थी', 'कहा', 'वाली', 'होता', 'होने', 'वे', 'नहीं', 'द्वारा',
+            'सकता', 'गए', 'तक', 'दिया', 'उन्हें', 'थे', 'अपने', 'कुछ', 'लेकिन', 'जाता'
+        }
+        hindi_words = re.findall(r'[\u0900-\u097F]+', text[:5000])
+        hindi_stop_matches = sum(1 for w in hindi_words if w in hindi_stopwords)
+
+        if devanagari_ratio >= 0.20 or hindi_stop_matches >= 3:
+            conf = min(1.0, max(0.60, round(devanagari_ratio + (hindi_stop_matches / 20.0), 2)))
+            return {
+                'language': 'hi',
+                'is_english': False,
+                'is_hindi': True,
+                'confidence': conf,
+                'devanagari_ratio': round(devanagari_ratio, 4),
+            }
+
         words = [w.lower() for w in re.findall(r'\b[a-zA-Z]{2,}\b', text[:5000])]
         if not words:
-            return {'language': 'unknown', 'is_english': False, 'confidence': 0.0}
+            return {'language': 'unknown', 'is_english': False, 'is_hindi': False, 'confidence': 0.0}
 
         match_count = sum(1 for w in words if w in english_stopwords)
         ratio = match_count / len(words)
@@ -132,6 +156,7 @@ class DocumentPreprocessor:
         return {
             'language': 'en' if is_english else 'other',
             'is_english': is_english,
+            'is_hindi': False,
             'confidence': confidence,
             'stopword_ratio': round(ratio, 4),
         }
@@ -220,7 +245,7 @@ class DocumentPreprocessor:
         masked = re.sub(r'(?<=\d)\.(?=\d)', '§§DOT§§', masked)
 
         # Sentence end pattern: (. or ? or !) followed by whitespace and an uppercase letter or quote
-        pattern = r'([.?!]+["\']?)(?=\s+[A-Z0-9"\'\(\[])'
+        pattern = r'([.?!।॥]+["\']?)(?=\s+[\w\u0900-\u097F0-9"\'\(\[])'
         parts = re.split(pattern, masked)
 
         spans: List[Tuple[str, int, int]] = []

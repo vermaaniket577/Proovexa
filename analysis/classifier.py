@@ -52,6 +52,20 @@ SEED_TRAINING_CORPUS = [
     ("Moreover, the intricate dance between macroeconomic policy and financial regulation continues to shape the trajectory of modern industrial development across global supply chains.", 1),
     ("In summary, adopting a holistic perspective allows researchers to delve into the underlying mechanisms that govern environmental degradation and sustainable resource management.", 1),
     ("Additionally, this framework serves as a beacon of innovation, seamlessly integrating theoretical foundations with practical applications to drive long-term institutional success.", 1),
+
+    # Hindi Human academic writing samples
+    ("इस शोध पत्र में हमने भारतीय कृषि अर्थव्यवस्था पर मानसूनी वर्षा के प्रभाव का सांख्यिकीय विश्लेषण प्रस्तुत किया है।", 0),
+    ("ग्रामीण क्षेत्रों में जल संरक्षण तकनीकों के कार्यान्वयन से भूजल स्तर में उल्लेखनीय सुधार देखा गया।", 0),
+    ("इतिहासकारों के अनुसार मौर्य साम्राज्य के प्रशासनिक ढांचे ने तत्कालीन भारतीय समाज को स्थिरता प्रदान की।", 0),
+    ("प्रयोगशाला में किए गए परीक्षणों से स्पष्ट होता है कि जैविक खाद के प्रयोग से मिट्टी की उर्वरता में वृद्धि होती है।", 0),
+    ("संविधान सभा की बहसों का अध्ययन यह दर्शाता है कि मौलिक अधिकारों पर गहन वैचारिक विमर्श हुआ था।", 0),
+
+    # Hindi AI academic writing samples (Formulaic markers, generic transitions, high predictability)
+    ("इसके अतिरिक्त, यह समझना अत्यंत महत्वपूर्ण है कि आधुनिक युग में कृत्रिम बुद्धिमत्ता महत्वपूर्ण भूमिका निभाती है।", 1),
+    ("निष्कर्ष के रूप में, यह समग्र दृष्टिकोण समाज के समग्र विकास की आधारशिला के रूप में कार्य करता है।", 1),
+    ("संक्षेप में, यह अध्ययन विभिन्न पहलुओं का गहन विश्लेषण प्रस्तुत करते हुए एक परिवर्तनकारी प्रभाव डालता है।", 1),
+    ("उल्लेखनीय है कि सतत विकास की दिशा में यह रूपरेखा एक प्रकाशस्तंभ के रूप में कार्य करती है।", 1),
+    ("इसके अलावा, तकनीकी प्रगति और मानवीय मूल्यों का सुचारू समन्वय आधुनिक नवाचार की दिशा तय करता है।", 1),
 ]
 
 
@@ -90,6 +104,7 @@ class CalibratedAIClassifier:
         # Extract n-grams (1-2 words and 3-5 character n-grams)
         self.vectorizer = TfidfVectorizer(
             ngram_range=(1, 2),
+            token_pattern=r'(?u)[\w\u0900-\u097F]+',
             sublinear_tf=True,
             min_df=1,
             max_features=5000,
@@ -120,7 +135,7 @@ class CalibratedAIClassifier:
             return 0.05, 0.20, True  # Short fragments are marked OOD / low confidence
 
         # OOD Check: Non-prose code, numbers, or excessive symbols
-        alpha_ratio = sum(c.isalpha() for c in text) / max(len(text), 1)
+        alpha_ratio = sum(c.isalpha() or ('\u0900' <= c <= '\u097F') for c in text) / max(len(text), 1)
         if alpha_ratio < 0.60:
             return 0.10, 0.30, True
 
@@ -141,6 +156,7 @@ class CalibratedAIClassifier:
         """
         self.vectorizer = TfidfVectorizer(
             ngram_range=(1, 2),
+            token_pattern=r'(?u)[\w\u0900-\u097F]+',
             sublinear_tf=True,
             min_df=2,
             max_features=15000,

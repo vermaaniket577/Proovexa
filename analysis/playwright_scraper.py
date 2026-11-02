@@ -65,8 +65,13 @@ def _clean_tokens(title: str) -> Set[str]:
         'paper', 'report', 'review', 'study', 'analysis', 'journal', 'com', 'org',
         'edu', 'www', 'http', 'https'
     }
-    words = re.findall(r'[a-zA-Z0-9]+', title.lower())
-    return {w for w in words if w not in STOPWORDS and len(w) > 2}
+    # Add Hindi stopwords
+    HINDI_STOPWORDS = {
+        'का', 'के', 'की', 'को', 'में', 'से', 'पर', 'और', 'या', 'है', 'हैं', 'था',
+        'थी', 'थे', 'एक', 'यह', 'वह', 'इस', 'उस', 'ने', 'भी', 'द्वारा', 'लिए', 'कर'
+    }
+    words = re.findall(r'[\w\u0900-\u097F]+', title.lower())
+    return {w for w in words if w not in STOPWORDS and w not in HINDI_STOPWORDS and len(w) > 1}
 
 
 def _strip_site_suffix(title: str) -> str:
@@ -94,14 +99,14 @@ def _is_title_match(candidate_title: str, paper_titles: List[str]) -> bool:
         return False
 
     clean_candidate = _strip_site_suffix(candidate_title)
-    c_norm = re.sub(r'\s+', ' ', re.sub(r'[^a-zA-Z0-9\s]', '', clean_candidate.lower())).strip()
+    c_norm = re.sub(r'\s+', ' ', re.sub(r'[^\w\u0900-\u097F\s]', '', clean_candidate.lower())).strip()
     c_tokens = _clean_tokens(clean_candidate)
 
     for p in paper_titles:
         if not p:
             continue
         p_clean = _strip_site_suffix(p)
-        p_norm = re.sub(r'\s+', ' ', re.sub(r'[^a-zA-Z0-9\s]', '', p_clean.lower())).strip()
+        p_norm = re.sub(r'\s+', ' ', re.sub(r'[^\w\u0900-\u097F\s]', '', p_clean.lower())).strip()
         # Direct substring containment
         if p_norm and (p_norm in c_norm or c_norm in p_norm):
             return True
@@ -163,7 +168,7 @@ def extract_paper_titles(target_document=None, full_text: str = "") -> List[str]
 
         # Check the first paragraph/lines for the main heading before "Abstract", "Introduction", etc.
         first_chunk = text_for_headings[:4000]
-        abs_split = re.split(r'\b(?:Abstract|Introduction|Keywords|Purpose:)\b', first_chunk, flags=re.IGNORECASE)
+        abs_split = re.split(r'\b(?:Abstract|Introduction|Keywords|Purpose:|सारांश|परिचय|प्रस्तावना)\b', first_chunk, flags=re.IGNORECASE)
         if len(abs_split) > 1 and abs_split[0].strip():
             candidate_line = abs_split[0].strip()
             sub_lines = [l.strip() for l in candidate_line.split('\n') if l.strip()]
@@ -189,7 +194,7 @@ def extract_paper_titles(target_document=None, full_text: str = "") -> List[str]
                 continue
             words = l.split()
             if 3 <= len(words) <= 28 and 12 <= len(l) <= 220:
-                alpha_ratio = sum(c.isalpha() or c.isspace() for c in l) / max(len(l), 1)
+                alpha_ratio = sum(c.isalpha() or c.isspace() or ('\u0900' <= c <= '\u097F') for c in l) / max(len(l), 1)
                 if alpha_ratio >= 0.70:
                     clean_text_title = ' '.join(l.split())
                     if clean_text_title not in titles:
@@ -250,7 +255,7 @@ class PlaywrightPlagiarismChecker:
 
         # Step 2: Distinctive body sentence queries
         if full_text and len(full_text.split()) >= min_words:
-            raw_sentences = re.split(r'(?<=[.!?])\s+', full_text)
+            raw_sentences = re.split(r'(?<=[.!?।॥])\s+', full_text)
             candidates = []
 
             ignore_patterns = [
@@ -266,7 +271,7 @@ class PlaywrightPlagiarismChecker:
                     continue
                 if any(p.search(s_clean) for p in ignore_patterns):
                     continue
-                alpha_ratio = sum(c.isalpha() or c.isspace() for c in s_clean) / max(len(s_clean), 1)
+                alpha_ratio = sum(c.isalpha() or c.isspace() or ('\u0900' <= c <= '\u097F') for c in s_clean) / max(len(s_clean), 1)
                 if alpha_ratio < 0.75:
                     continue
                 candidates.append(s_clean)
@@ -312,22 +317,31 @@ class PlaywrightPlagiarismChecker:
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
         harvested_pages: List[Dict[str, Any]] = []
+        pool = ThreadPoolExecutor(max_workers=1)
         try:
-            with ThreadPoolExecutor(max_workers=1) as pool:
-                future = pool.submit(
-                    self._harvest_pages_worker,
-                    queries=queries,
-                    paper_titles=paper_titles,
-                    max_sources=max_sources,
-                    timeout_ms=self.timeout_ms,
-                    headless=self.headless,
-                    user_agent=self.USER_AGENT,
-                )
-                harvested_pages = future.result(timeout=50)
+            future = pool.submit(
+                self._harvest_pages_worker,
+                queries=queries,
+                paper_titles=paper_titles,
+                max_sources=max_sources,
+                timeout_ms=self.timeout_ms,
+                headless=self.headless,
+                user_agent=self.USER_AGENT,
+            )
+            harvested_pages = future.result(timeout=18)
+            pool.shutdown(wait=False)
         except FuturesTimeoutError:
-            logger.warning("Playwright harvest timed out after 50s — continuing with partial web sources")
+            logger.warning("Playwright harvest timed out after 18s — continuing with partial web sources")
+            try:
+                pool.shutdown(wait=False, cancel_futures=True)
+            except Exception:
+                pass
         except Exception as e:
             logger.warning(f"Playwright harvest thread encountered error: {e}")
+            try:
+                pool.shutdown(wait=False, cancel_futures=True)
+            except Exception:
+                pass
 
         # Now safely persist/retrieve ReferenceSource records on the Django thread
         retrieved_sources: List[ReferenceSource] = []
@@ -349,15 +363,20 @@ class PlaywrightPlagiarismChecker:
                         existing.save(update_fields=['retrieved_text', 'word_count'])
                     retrieved_sources.append(existing)
                 else:
+                    repo_type = (
+                        ReferenceSource.SourceType.OPEN_ACCESS
+                        if any(k in title for k in ['[Shodhganga]', '[ShodhGangotri]', 'inflibnet.ac.in'])
+                        else ReferenceSource.SourceType.WEB
+                    )
                     ref = ReferenceSource.objects.create(
                         title=title[:450],
-                        source_type=ReferenceSource.SourceType.WEB,
+                        source_type=repo_type,
                         url=url[:950],
                         retrieved_text=text,
                         word_count=words,
                         is_active=True,
                         retrieval_timestamp=timezone.now(),
-                        access_limitations="Retrieved live via Google Search Engine Playwright crawler",
+                        access_limitations=item.get('access_limitations', "Retrieved live via Academic Crawler"),
                     )
                     retrieved_sources.append(ref)
                     logger.info(f"Playwright: Saved ReferenceSource '{title}' ({words} words) from {url}")
@@ -396,6 +415,102 @@ class PlaywrightPlagiarismChecker:
                 locale="en-US"
             )
             context.add_init_script("Object.defineProperty(navigator, 'webdriver', { get: () => undefined });")
+
+            # -------------------------------------------------------------
+            # STEP 0: Targeted Academic Search on Google Scholar, Shodhganga, ShodhGangotri
+            # -------------------------------------------------------------
+            for p_title in paper_titles[:2]:
+                clean_t = p_title.strip()
+                if len(clean_t) < 4:
+                    continue
+
+                logger.info(f"Playwright: Executing targeted academic searches for title: '{clean_t}'")
+
+                # 1. ShodhGangotri Direct Search (Indian Research Synopses)
+                try:
+                    sg_page = context.new_page()
+                    sg_url = f"https://shodhgangotri.inflibnet.ac.in/simple-search?query={urllib.parse.quote_plus(clean_t)}"
+                    sg_page.goto(sg_url, timeout=12000, wait_until="domcontentloaded")
+                    sg_page.wait_for_timeout(1500)
+                    sg_items = sg_page.evaluate('''() => {
+                        const list = [];
+                        document.querySelectorAll('table.table tr, div.panel').forEach(row => {
+                            const a = row.querySelector('a[href*="/handle/"]');
+                            if (a) {
+                                list.push({ title: a.innerText.trim(), href: a.href });
+                            }
+                        });
+                        return list;
+                    }''')
+                    for it in sg_items:
+                        href = it.get('href', '')
+                        t = it.get('title', '')
+                        if href and href not in discovered_urls:
+                            discovered_urls[href] = f"[ShodhGangotri] {t}" if not t.startswith('[') else t
+                    sg_page.close()
+                    logger.info(f"Playwright: Discovered {len(sg_items)} synopses handles from ShodhGangotri")
+                except Exception as sg_err:
+                    logger.debug(f"ShodhGangotri search error: {sg_err}")
+
+                # 2. Shodhganga Search (Indian Theses Reservoir via Search & DSpace)
+                try:
+                    sg_search_p = context.new_page()
+                    sg_query = f'site:shodhganga.inflibnet.ac.in "{clean_t}"'
+                    sg_search_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(sg_query)}"
+                    sg_search_p.goto(sg_search_url, timeout=12000, wait_until="domcontentloaded")
+                    sg_search_p.wait_for_timeout(1500)
+                    sg_cards = sg_search_p.query_selector_all("a:has(h3)")
+                    shodh_found = 0
+                    for card in sg_cards:
+                        h3 = card.query_selector("h3")
+                        t = h3.inner_text().strip() if h3 else ""
+                        href = card.get_attribute("href") or ""
+                        if "shodhganga.inflibnet.ac.in" in href and href not in discovered_urls:
+                            discovered_urls[href] = f"[Shodhganga] {t}" if not t.startswith('[') else t
+                            shodh_found += 1
+                    sg_search_p.close()
+                    logger.info(f"Playwright: Discovered {shodh_found} theses handles from Shodhganga")
+                except Exception as shodh_err:
+                    logger.debug(f"Shodhganga search error: {shodh_err}")
+
+                # 3. Google Scholar Search
+                try:
+                    scholar_p = context.new_page()
+                    scholar_query = f'site:scholar.google.com "{clean_t}"'
+                    scholar_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(scholar_query)}"
+                    scholar_p.goto(scholar_url, timeout=12000, wait_until="domcontentloaded")
+                    scholar_p.wait_for_timeout(1500)
+                    s_cards = scholar_p.query_selector_all("a:has(h3)")
+                    gs_found = 0
+                    for card in s_cards:
+                        h3 = card.query_selector("h3")
+                        t = h3.inner_text().strip() if h3 else ""
+                        href = card.get_attribute("href") or ""
+                        if href and "google.com" not in href and href not in discovered_urls:
+                            discovered_urls[href] = f"[Google Scholar] {t}" if not t.startswith('[') else t
+                            gs_found += 1
+                    scholar_p.close()
+                    logger.info(f"Playwright: Discovered {gs_found} candidate articles from Google Scholar")
+                except Exception as gs_err:
+                    logger.debug(f"Google Scholar search error: {gs_err}")
+
+                # 4. Crossref Academic API (Guaranteed Academic Preprint / DOI Fallback)
+                try:
+                    import requests
+                    cr_resp = requests.get(
+                        f"https://api.crossref.org/works?query.bibliographic={urllib.parse.quote_plus(clean_t)}&rows=3",
+                        timeout=5
+                    )
+                    if cr_resp.status_code == 200:
+                        cr_items = cr_resp.json().get('message', {}).get('items', [])
+                        for item in cr_items:
+                            cr_title = (item.get('title') or [''])[0]
+                            cr_url = item.get('URL') or f"https://doi.org/{item.get('DOI', '')}"
+                            if cr_title and _is_title_match(cr_title, paper_titles):
+                                if cr_url and cr_url not in discovered_urls:
+                                    discovered_urls[cr_url] = f"[Google Scholar] {cr_title}"
+                except Exception as cr_err:
+                    logger.debug(f"Crossref lookup error: {cr_err}")
 
             # -------------------------------------------------------------
             # STEP 1: Search Queries across Google (Primary) & Fallback Engines
@@ -563,6 +678,70 @@ class PlaywrightPlagiarismChecker:
                 domain = urllib.parse.urlparse(url).netloc.lower()
                 if domain in crawled_domains and len(crawled_domains) >= 3:
                     continue
+
+                # Check for Shodhganga or ShodhGangotri handle pages with bitstream PDFs
+                if 'inflibnet.ac.in' in url and '/handle/' in url:
+                    try:
+                        scrape_p = context.new_page()
+                        scrape_p.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
+                        scrape_p.wait_for_timeout(1000)
+                        landed_title = scrape_p.title() or initial_title
+                        
+                        bitstream_links = scrape_p.evaluate('''() => {
+                            const links = [];
+                            document.querySelectorAll('a[href*="bitstream"]').forEach(a => {
+                                if (a.href) links.push(a.href);
+                            });
+                            return links;
+                        }''')
+                        
+                        pdf_done = False
+                        if bitstream_links:
+                            import requests
+                            import pymupdf
+                            for b_url in bitstream_links[:2]:
+                                try:
+                                    resp = requests.get(b_url, headers={'User-Agent': user_agent}, timeout=10)
+                                    if resp.status_code == 200 and resp.content:
+                                        doc = pymupdf.open(stream=resp.content, filetype='pdf')
+                                        pdf_text = "\n".join(pg.get_text() for pg in doc[:20])
+                                        cleaned_text = cls._clean_scraped_text(pdf_text)
+                                        words = len(cleaned_text.split())
+                                        if words >= 28:
+                                            pages_content.append({
+                                                'url': url,
+                                                'title': initial_title[:400],
+                                                'text': cleaned_text,
+                                                'words': words,
+                                                'access_limitations': f"Repository: {'Shodhganga' if 'shodhganga' in url else 'ShodhGangotri'} | Thesis/Synopsis PDF",
+                                            })
+                                            pdf_done = True
+                                            logger.info(f"Playwright: Crawled INFLIBNET bitstream PDF '{initial_title}' ({words} words)")
+                                            break
+                                except Exception:
+                                    pass
+                        
+                        if not pdf_done:
+                            raw_text = scrape_p.evaluate('''() => {
+                                const removals = document.querySelectorAll('script, style, noscript, nav, footer, header');
+                                removals.forEach(el => el.remove());
+                                return document.body ? document.body.innerText : '';
+                            }''')
+                            cleaned_text = cls._clean_scraped_text(raw_text)
+                            words = len(cleaned_text.split())
+                            if words >= 25:
+                                pages_content.append({
+                                    'url': url,
+                                    'title': initial_title[:400],
+                                    'text': cleaned_text,
+                                    'words': words,
+                                    'access_limitations': f"Repository: {'Shodhganga' if 'shodhganga' in url else 'ShodhGangotri'} | Web Record",
+                                })
+                        scrape_p.close()
+                        crawled_domains.add(domain)
+                        continue
+                    except Exception as inflibnet_err:
+                        logger.debug(f"INFLIBNET handle crawl error: {inflibnet_err}")
 
                 # Handle direct PDF URLs via requests + PyMuPDF
                 if url.lower().endswith('.pdf'):

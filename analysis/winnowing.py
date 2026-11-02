@@ -72,9 +72,10 @@ class WinnowingEngine:
         # Pre-normalize dashes and quotes for clean token boundary extraction
         norm = text.replace('—', ' ').replace('–', ' ').replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
         word_idx = 0
-        for m in re.finditer(r'\b[a-zA-Z0-9_\'-]+\b', norm):
+        # Support alphanumeric English, Hindi/Devanagari (\u0900-\u097F), and standard word characters
+        for m in re.finditer(r'[\w\u0900-\u097F\'-]+', norm):
             raw_token = text[m.start():m.end()] if m.end() <= len(text) else m.group(0)
-            clean = re.sub(r'[^a-zA-Z0-9]', '', m.group(0)).lower()
+            clean = re.sub(r'[^\w\u0900-\u097F]', '', m.group(0)).lower()
             if not clean:
                 continue
             tokens.append(TokenSpan(

@@ -493,3 +493,329 @@ class AIAPIClient:
                 'message': 'Local Calibrated AI Engine is active (offline mode; no external API credentials needed).'
             }
 
+
+    # =========================================================================
+    # 3. TURNITIN SIMILARITY & SOURCE ATTRIBUTION API ENGINE
+    # =========================================================================
+    def evaluate_turnitin_similarity(
+        self,
+        submitted_text: str,
+        retrieved_sources: Optional[List[Dict[str, Any]]] = None,
+        use_search_grounding: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Executes Turnitin Match Overview and Enhanced Similarity Analysis:
+        - Cross-references submitted text against candidate sources or live search
+        - Categorizes matches into 4 Turnitin Match Groups:
+          NOT_CITED_OR_QUOTED, MISSING_QUOTATION, MISSING_CITATION, CITED_AND_QUOTED
+        - Aggregates source percentages in descending order with match numbers [1], [2], ...
+        - Returns strict Turnitin JSON Schema
+        """
+        if not submitted_text or not submitted_text.strip():
+            return {
+                "overall_similarity_percentage": 0.0,
+                "similarity_excluding_quoted_and_cited": 0.0,
+                "match_groups_summary": {
+                    "not_cited_or_quoted_count": 0,
+                    "missing_quotation_count": 0,
+                    "missing_citation_count": 0,
+                    "cited_and_quoted_count": 0
+                },
+                "sources_overview": [],
+                "highlighted_matches": []
+            }
+
+        # Auto-retrieve candidate sources via Playwright/Academic engines if none supplied
+        if retrieved_sources is None:
+            try:
+                from .playwright_scraper import PlaywrightPlagiarismChecker
+                scraper = PlaywrightPlagiarismChecker(headless=True, timeout_ms=10000)
+                web_refs = scraper.search_and_retrieve_sources(submitted_text, min_words=14, max_sources=6)
+                retrieved_sources = [
+                    {
+                        'source_id': str(r.id),
+                        'title': r.title,
+                        'url': getattr(r, 'url', '') or '',
+                        'source_type': r.get_source_type_display(),
+                        'snippet': (r.retrieved_text or '')[:1000]
+                    }
+                    for r in web_refs
+                ]
+            except Exception as e:
+                logger.warning(f"Turnitin similarity auto source retrieval skipped: {e}")
+                retrieved_sources = []
+
+        # Split document into numbered sentences
+        raw_sentences = [s.strip() for s in re.split(r'(?<=[.!?।॥\n])\s+', submitted_text) if s.strip()]
+        numbered_sentences = [{"sentence_index": idx + 1, "text": s} for idx, s in enumerate(raw_sentences)]
+
+        # Try Google Gemini with Search Grounding or retrieved sources
+        if self.gemini_api_key and (self.provider in ('gemini', 'auto')):
+            try:
+                res = self._call_gemini_turnitin_engine(submitted_text, numbered_sentences, retrieved_sources, use_search_grounding)
+                if res and "sources_overview" in res:
+                    return res
+            except Exception as ge:
+                logger.warning(f"Gemini Turnitin API call failed: {ge}. Using fallback.")
+
+        # Try OpenAI API with structured response
+        if self.openai_api_key and (self.provider in ('openai', 'auto')):
+            try:
+                res = self._call_openai_turnitin_engine(submitted_text, numbered_sentences, retrieved_sources)
+                if res and "sources_overview" in res:
+                    return res
+            except Exception as oe:
+                logger.warning(f"OpenAI Turnitin API call failed: {oe}. Using fallback.")
+
+        # Local calibrated Turnitin Match Groups Engine
+        return self._local_turnitin_similarity_fallback(submitted_text, raw_sentences, retrieved_sources)
+
+    def _call_gemini_turnitin_engine(
+        self,
+        full_text: str,
+        numbered_sentences: List[Dict[str, Any]],
+        retrieved_sources: List[Dict[str, Any]],
+        use_search_grounding: bool
+    ) -> Optional[Dict[str, Any]]:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_api_key}"
+        sys_prompt = (
+            "You are the Turnitin Similarity & Source Attribution API Engine.\n"
+            "Analyze submitted_text against retrieved_sources or web grounding.\n"
+            "Categorize matches into 4 official Turnitin Match Groups: "
+            "NOT_CITED_OR_QUOTED, MISSING_QUOTATION, MISSING_CITATION, CITED_AND_QUOTED.\n"
+            "Classify match_type as: Verbatim (8+ words), Mosaic_Patchwriting, Structural_Paraphrase.\n"
+            "Calculate per-source similarity_percentage = (matched_words / total_words) * 100.\n"
+            "Sort sources_overview in descending order by percentage, assigning sequential match_number (1, 2, ...).\n"
+            "Output STRICT JSON ONLY adhering to the requested schema."
+        )
+        user_content = {
+            "submitted_text": numbered_sentences[:60],
+            "retrieved_sources": retrieved_sources[:8]
+        }
+        headers = {'Content-Type': 'application/json'}
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": sys_prompt},
+                    {"text": json.dumps(user_content, ensure_ascii=False)}
+                ]
+            }],
+            "generationConfig": {
+                "temperature": 0.1,
+                "maxOutputTokens": self.max_tokens,
+                "responseMimeType": "application/json"
+            }
+        }
+        if use_search_grounding:
+            payload["tools"] = [{"google_search": {}}]
+
+        resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+        if resp.status_code == 200:
+            raw = resp.json()['candidates'][0]['content']['parts'][0]['text']
+            return self._extract_json(raw)
+        return None
+
+    def _call_openai_turnitin_engine(
+        self,
+        full_text: str,
+        numbered_sentences: List[Dict[str, Any]],
+        retrieved_sources: List[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        url = "https://api.openai.com/v1/chat/completions"
+        sys_prompt = (
+            "You are the Turnitin Similarity & Source Attribution API Engine. "
+            "Cross-reference submitted_text with retrieved_sources. "
+            "Categorize each flagged passage into one of 4 Turnitin Match Groups: "
+            "NOT_CITED_OR_QUOTED, MISSING_QUOTATION, MISSING_CITATION, CITED_AND_QUOTED. "
+            "Match types: Verbatim, Mosaic_Patchwriting, Structural_Paraphrase. "
+            "Return JSON matching the Turnitin output schema with overall_similarity_percentage, "
+            "similarity_excluding_quoted_and_cited, match_groups_summary, sources_overview (sorted descending), "
+            "and highlighted_matches."
+        )
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {self.openai_api_key}'
+        }
+        payload = {
+            "model": self.openai_model,
+            "messages": [
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": json.dumps({"submitted_text": numbered_sentences[:60], "retrieved_sources": retrieved_sources[:8]}, ensure_ascii=False)}
+            ],
+            "temperature": 0.1,
+            "response_format": {"type": "json_object"}
+        }
+        resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+        if resp.status_code == 200:
+            return json.loads(resp.json()['choices'][0]['message']['content'])
+        return None
+
+    def _local_turnitin_similarity_fallback(
+        self,
+        submitted_text: str,
+        sentences: List[str],
+        retrieved_sources: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Calibrated offline fallback implementation of Turnitin 4-Match-Group Similarity Engine.
+        """
+        from .winnowing import WinnowingEngine
+        tokenizer = WinnowingEngine()
+        sub_tokens = tokenizer.tokenize_with_offsets(submitted_text)
+        total_words = max(len(sub_tokens), 1)
+
+        source_word_sets: Dict[str, set] = {}
+        source_meta: Dict[str, Dict[str, Any]] = {}
+        for s in (retrieved_sources or []):
+            sid = str(s.get('source_id') or s.get('title') or len(source_meta) + 1)
+            source_meta[sid] = {
+                'source_id': sid,
+                'title': s.get('title', f"Source {len(source_meta)+1}"),
+                'url': s.get('url', ''),
+                'source_type': s.get('source_type', 'Internet Source'),
+                'snippet': s.get('snippet', '')
+            }
+            src_text = s.get('snippet') or s.get('text') or ''
+            src_clean = set(re.findall(r'[\w\u0900-\u097F]+', src_text.lower()))
+            source_word_sets[sid] = src_clean
+
+        highlighted_matches = []
+        source_matched_words: Dict[str, set] = {sid: set() for sid in source_meta}
+        not_cited_count = 0
+        missing_quote_count = 0
+        missing_cite_count = 0
+        cited_quote_count = 0
+
+        char_cursor = 0
+        for sent in sentences:
+            sent_len = len(sent)
+            start_pos = submitted_text.find(sent, char_cursor)
+            if start_pos == -1:
+                start_pos = char_cursor
+            end_pos = start_pos + sent_len
+            char_cursor = end_pos
+
+            sent_words = re.findall(r'[\w\u0900-\u097F]+', sent.lower())
+            if len(sent_words) < 8:
+                continue
+
+            # Determine citation & quotation status
+            has_citation = bool(
+                re.search(r'\([\w\s,]+,\s*\d{4}', sent) or
+                re.search(r'\(\w+\s+et\s+al\.,?\s*\d{4}\)', sent) or
+                re.search(r'\[\d+\]', sent)
+            )
+            has_quotes = bool(
+                sent.strip().startswith(('"', '“', "'", '‘')) or
+                sent.strip().endswith(('"', '”', "'", '’')) or
+                ('"' in sent) or ('“' in sent)
+            )
+
+            if has_quotes and has_citation:
+                match_group = "CITED_AND_QUOTED"
+            elif has_quotes and not has_citation:
+                match_group = "MISSING_CITATION"
+            elif has_citation and not has_quotes:
+                match_group = "MISSING_QUOTATION"
+            else:
+                match_group = "NOT_CITED_OR_QUOTED"
+
+            # Check match against candidate sources
+            sent_word_set = set(sent_words)
+            best_sid = None
+            best_overlap = 0.0
+
+            for sid, src_words in source_word_sets.items():
+                if not src_words:
+                    continue
+                overlap = len(sent_word_set & src_words) / max(len(sent_word_set), 1)
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_sid = sid
+
+            if best_sid and best_overlap >= 0.60:
+                match_type = "Verbatim" if best_overlap >= 0.85 else "Mosaic_Patchwriting"
+                src_info = source_meta[best_sid]
+                
+                # Attribute word indices
+                for idx, t in enumerate(sub_tokens):
+                    if start_pos <= t.start_char and t.end_char <= end_pos:
+                        source_matched_words[best_sid].add(idx)
+
+                highlighted_matches.append({
+                    "match_number": 0,  # Updated after ranking
+                    "match_group": match_group,
+                    "match_type": match_type,
+                    "submitted_span": {
+                        "text": sent,
+                        "start_char": start_pos,
+                        "end_char": end_pos
+                    },
+                    "source_span": {
+                        "matched_source_text": src_info['snippet'][:250] if src_info['snippet'] else sent,
+                        "source_title": src_info['title'],
+                        "source_url": src_info['url']
+                    },
+                    "_source_id": best_sid
+                })
+
+                if match_group == "NOT_CITED_OR_QUOTED":
+                    not_cited_count += 1
+                elif match_group == "MISSING_QUOTATION":
+                    missing_quote_count += 1
+                elif match_group == "MISSING_CITATION":
+                    missing_cite_count += 1
+                elif match_group == "CITED_AND_QUOTED":
+                    cited_quote_count += 1
+
+        # Rank sources descending by percentage
+        all_matched_word_indices = set()
+        uncited_matched_word_indices = set()
+
+        sources_overview = []
+        for sid, matched_indices in source_matched_words.items():
+            if not matched_indices:
+                continue
+            all_matched_word_indices.update(matched_indices)
+            pct = round((len(matched_indices) / total_words) * 100, 2)
+            s_info = source_meta[sid]
+            sources_overview.append({
+                "source_id": sid,
+                "source_title": s_info['title'],
+                "source_url": s_info['url'],
+                "source_type": s_info['source_type'],
+                "source_similarity_percentage": pct,
+                "total_matches_in_document": sum(1 for m in highlighted_matches if m.get('_source_id') == sid)
+            })
+
+        sources_overview.sort(key=lambda s: s['source_similarity_percentage'], reverse=True)
+        sid_to_match_num = {}
+        for rank, s in enumerate(sources_overview, 1):
+            s['match_number'] = rank
+            sid_to_match_num[s['source_id']] = rank
+
+        for m in highlighted_matches:
+            sid = m.pop('_source_id', None)
+            m['match_number'] = sid_to_match_num.get(sid, 1)
+
+        for m in highlighted_matches:
+            if m['match_group'] != "CITED_AND_QUOTED":
+                for idx, t in enumerate(sub_tokens):
+                    if m['submitted_span']['start_char'] <= t.start_char and t.end_char <= m['submitted_span']['end_char']:
+                        uncited_matched_word_indices.add(idx)
+
+        overall_sim = round((len(all_matched_word_indices) / total_words) * 100, 2)
+        uncited_sim = round((len(uncited_matched_word_indices) / total_words) * 100, 2)
+
+        return {
+            "overall_similarity_percentage": overall_sim,
+            "similarity_excluding_quoted_and_cited": uncited_sim,
+            "match_groups_summary": {
+                "not_cited_or_quoted_count": not_cited_count,
+                "missing_quotation_count": missing_quote_count,
+                "missing_citation_count": missing_cite_count,
+                "cited_and_quoted_count": cited_quote_count
+            },
+            "sources_overview": sources_overview,
+            "highlighted_matches": highlighted_matches
+        }

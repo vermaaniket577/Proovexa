@@ -80,7 +80,11 @@ AI_TRANSITION_MARKERS = {
     "furthermore", "moreover", "additionally", "consequently", "in conclusion",
     "it is crucial to note", "it is important to consider", "plays a pivotal role",
     "plays a vital role", "a testament to", "beacon of", "delve into",
-    "intricate tapestry", "navigating the", "fostering a", "underscores the"
+    "intricate tapestry", "navigating the", "fostering a", "underscores the",
+    # Hindi repetitive AI transition markers
+    "इसके अलावा", "इसके अतिरिक्त", "निष्कर्ष के रूप में", "संक्षेप में",
+    "महत्वपूर्ण भूमिका", "समग्र दृष्टिकोण", "उल्लेखनीय है कि",
+    "आधारशिला के रूप में", "विभिन्न पहलुओं", "परिवर्तनकारी प्रभाव"
 }
 
 
@@ -280,7 +284,7 @@ class TurnitinAIPipeline:
         cleaned_prose = " ".join(clean_lines)
 
         # 6. Sentence Segmentation preserving character offsets
-        raw_sentence_splits = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(\[])", cleaned_prose)
+        raw_sentence_splits = re.split(r"(?<=[.!?।॥])\s+(?=[A-Za-z0-9\u0900-\u097F\"'(\[])", cleaned_prose)
 
         sentences: List[IndexedSentence] = []
         char_cursor = 0
@@ -350,7 +354,7 @@ class TurnitinAIPipeline:
 
         # Lexical diversity: Type-Token Ratio (TTR)
         combined_text = " ".join(s.text for s in sentences)
-        tokens = re.findall(r"\b[a-zA-Z]{2,}\b", combined_text.lower())
+        tokens = re.findall(r"[\w\u0900-\u097F]{2,}", combined_text.lower())
         unique_tokens = set(tokens)
         ttr = len(unique_tokens) / max(1, len(tokens))
 

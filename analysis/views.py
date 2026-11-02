@@ -373,3 +373,148 @@ def api_test_ai_connection_view(request):
     return JsonResponse(result)
 
 
+
+@login_required
+def api_turnitin_similarity_view(request):
+    """
+    REST API endpoint for Turnitin Match Overview and Enhanced Similarity Report.
+    Accepts:
+      POST JSON with:
+        - submitted_text: string (or doc_id)
+        - retrieved_sources: optional list of candidate sources [{source_id, title, url, source_type, snippet}]
+        - use_search_grounding: optional boolean (default True)
+    Returns:
+      Strict Turnitin JSON schema with overall_similarity_percentage,
+      similarity_excluding_quoted_and_cited, match_groups_summary,
+      sources_overview, and highlighted_matches.
+    """
+    import json
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8')) if request.body else {}
+    except Exception:
+        data = request.POST
+
+    from .ai_api_client import AIAPIClient
+    client = AIAPIClient()
+
+    doc_id = data.get('doc_id')
+    raw_text = data.get('submitted_text') or data.get('text', '')
+    retrieved_sources = data.get('retrieved_sources')
+    use_search_grounding = bool(data.get('use_search_grounding', True))
+
+    if doc_id and not raw_text:
+        from documents.models import Document, ExtractedText
+        from django.shortcuts import get_object_or_404
+        document = get_object_or_404(Document, id=doc_id, is_deleted=False)
+        texts = ExtractedText.objects.filter(document=document).order_by('page_number', 'paragraph_number')
+        raw_text = "\n\n".join(t.content for t in texts)
+
+    if not raw_text or not raw_text.strip():
+        return JsonResponse({'error': 'Parameter "submitted_text" or "doc_id" is required'}, status=400)
+
+    result = client.evaluate_turnitin_similarity(
+        submitted_text=raw_text,
+        retrieved_sources=retrieved_sources,
+        use_search_grounding=use_search_grounding
+    )
+    return JsonResponse(result)
+
+@login_required
+def api_combined_report_view(request, doc_id):
+    """
+    REST API endpoint for unified Turnitin-style Originality and AI Writing Report.
+    Returns the exact structured JSON schema with separate Similarity and AI detection sections.
+    """
+    from documents.models import Document
+    from django.shortcuts import get_object_or_404
+    document = get_object_or_404(Document, id=doc_id, is_deleted=False)
+
+    is_staff_user = getattr(request.user, 'is_admin', False) or getattr(request.user, 'is_teacher', False) or getattr(request.user, 'is_staff', False)
+    if document.uploaded_by != request.user and not is_staff_user:
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    sim_report = document.latest_similarity_report
+    ai_report = document.latest_ai_report
+
+    # Similarity analysis payload
+    if sim_report:
+        matches = []
+        for p in sim_report.matched_passages.filter(is_excluded=False).select_related('source')[:100]:
+            matches.append({
+                'source_title': p.source.title if p.source else 'Unknown Source',
+                'source_url': getattr(p.source, 'url', '') if p.source else '',
+                'matched_words': p.word_count,
+                'similarity': round((p.similarity_score or 1.0) * 100, 1),
+                'match_type': p.match_type,
+                'start_word': p.submitted_char_start,
+                'end_word': p.submitted_char_end,
+            })
+        sim_data = {
+            'status': sim_report.status,
+            'percentage': sim_report.overall_similarity,
+            'matched_words': sim_report.matched_words,
+            'total_words': sim_report.total_words,
+            'sources_found': sim_report.source_count,
+            'matches': matches
+        }
+    else:
+        sim_data = {
+            'status': 'pending' if document.status == 'analyzing' else 'not_started',
+            'percentage': 0.0,
+            'matched_words': 0,
+            'total_words': document.word_count or 0,
+            'sources_found': 0,
+            'matches': []
+        }
+
+    # AI analysis payload
+    if ai_report:
+        passages = []
+        ai_words = 0
+        for seg in (ai_report.segments_data or []):
+            is_ai = seg.get('classification') in ('ai_generated', 'ai_likely', 'ai_paraphrased')
+            seg_words = seg.get('word_count', len(seg.get('text', '').split()))
+            if is_ai:
+                ai_words += seg_words
+            passages.append({
+                'start_word': seg.get('start_char', 0),
+                'end_word': seg.get('end_char', 0),
+                'probability': round(seg.get('ai_probability', seg.get('probability', 0.0)), 2),
+                'classification': seg.get('classification', 'human')
+            })
+        ai_data = {
+            'status': ai_report.status,
+            'percentage': ai_report.overall_ai_score,
+            'ai_flagged_words': ai_words,
+            'total_eligible_words': document.word_count or 0,
+            'model_version': ai_report.model_version or 'turnitin-calibrated-ai-v2',
+            'passages': passages
+        }
+    else:
+        ai_data = {
+            'status': 'pending' if document.status == 'analyzing' else 'not_started',
+            'percentage': 0.0,
+            'ai_flagged_words': 0,
+            'total_eligible_words': document.word_count or 0,
+            'model_version': 'turnitin-calibrated-ai-v2',
+            'passages': []
+        }
+
+    overall_status = "completed" if (sim_report and ai_report) else document.status
+
+    return JsonResponse({
+        'status': overall_status,
+        'document_id': str(document.id),
+        'document_name': document.title or document.original_filename,
+        'word_count': document.word_count,
+        'similarity_analysis': sim_data,
+        'ai_analysis': ai_data,
+        'report': {
+            'pdf_ready': bool(sim_report and sim_report.status == 'completed'),
+            'highlighted_document_ready': bool(sim_report and sim_report.matched_passages.exists()),
+            'source_breakdown_ready': bool(sim_report and sim_report.source_breakdown)
+        }
+    })

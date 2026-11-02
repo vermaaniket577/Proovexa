@@ -12,4 +12,6 @@ urlpatterns = [
     path('ai-settings/', views.ai_settings_view, name='ai_settings'),
     path('ai-settings/test/', views.api_test_ai_connection_view, name='ai_settings_test'),
     path('api/ai-analyze/', views.api_ai_analyze_view, name='api_ai_analyze'),
+    path('api/turnitin-similarity/', views.api_turnitin_similarity_view, name='api_turnitin_similarity'),
+    path('<uuid:doc_id>/api/combined-report/', views.api_combined_report_view, name='api_combined_report'),
 ]
