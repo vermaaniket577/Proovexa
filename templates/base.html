@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Academic Plagiarism & Similarity Detection Platform - Upload documents, detect similarity, generate professional reports.">
-    <title>{% block title %}ScholarGuard{% endblock %} | Academic Similarity Detection</title>
+    <title>{% block title %}Proovexa{% endblock %} | Academic Similarity & AI Detection</title>
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -47,10 +47,12 @@
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <a href="{% url 'dashboard:home' %}" class="sidebar-brand">
-                    <i class="bi bi-shield-check"></i>
+                    <div class="sidebar-brand-icon-wrap">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
                     <div class="d-flex flex-column">
-                        <span>ScholarGuard</span>
-                        <small style="font-size: 0.65rem; color: rgba(255,255,255,0.45); font-weight: 500; letter-spacing: 0.04em;">ACADEMIC INTEGRITY</small>
+                        <span style="font-weight: 800; letter-spacing: -0.02em; font-size: 1.2rem;">Proovexa</span>
+                        <small style="font-size: 0.62rem; color: rgba(255,255,255,0.48); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">Turnitin™ & AI Platform</small>
                     </div>
                 </a>
                 <button class="sidebar-toggle d-lg-none" id="sidebarClose">
@@ -119,22 +121,26 @@
             </div>
 
             <div class="sidebar-footer">
-                <div class="user-info">
-                    <div class="user-avatar">
+                <div class="user-card-panel">
+                    <div class="user-avatar-ring">
                         {{ user.first_name|first|default:user.username|first|upper }}
+                        <span class="user-online-pip"></span>
                     </div>
-                    <div class="user-details">
-                        <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
-                        <span class="user-role">{{ user.get_role_display }}</span>
+                    <div class="user-details flex-grow-1 min-w-0">
+                        <span class="user-name" title="{{ user.get_full_name|default:user.username }}">{{ user.get_full_name|default:user.username }}</span>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="user-role-badge">{{ user.get_role_display }}</span>
+                            <span class="text-white-50" style="font-size: 0.65rem;">&bull; Active</span>
+                        </div>
                     </div>
-                </div>
-                <div class="sidebar-footer-actions">
-                    <a href="{% url 'accounts:profile' %}" class="btn btn-sm btn-outline-light" title="Account Settings">
-                        <i class="bi bi-gear"></i>
-                    </a>
-                    <a href="{% url 'accounts:logout' %}" class="btn btn-sm btn-outline-light" title="Sign Out">
-                        <i class="bi bi-box-arrow-right"></i>
-                    </a>
+                    <div class="sidebar-footer-actions d-flex gap-1">
+                        <a href="{% url 'accounts:profile' %}" class="btn-sidebar-icon" title="Account Settings">
+                            <i class="bi bi-gear-fill"></i>
+                        </a>
+                        <a href="{% url 'accounts:logout' %}" class="btn-sidebar-icon text-danger-emphasis" title="Sign Out">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -142,77 +148,82 @@
         <!-- Main Content Shell -->
         <main class="main-content">
             <header class="top-bar">
-                <div class="top-bar-left">
+                <div class="top-bar-left d-flex align-items-center gap-3">
                     <button class="sidebar-toggle d-lg-none" id="sidebarOpen">
-                        <i class="bi bi-list"></i>
+                        <i class="bi bi-list fs-4 text-dark"></i>
                     </button>
                     <div class="top-bar-title">
-                        <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                        <h1 class="h5 mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                            {% block page_title %}Dashboard{% endblock %}
+                        </h1>
                     </div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 d-none d-xl-inline-flex align-items-center gap-1.5" style="font-size: 0.72rem; font-weight: 600;">
+                        <span class="pulse-live-indicator"></span> Turnitin™ & AI Live Engine
+                    </span>
                 </div>
 
                 <!-- Global Search Input -->
-                <div class="topbar-search-form d-none d-md-block">
-                    <i class="bi bi-search topbar-search-icon"></i>
-                    <input type="text" class="topbar-search-input" placeholder="Search documents, reports, sources..." id="globalSearchInput">
-                    <kbd class="topbar-search-shortcut">Ctrl+K</kbd>
+                <div class="topbar-search-form d-none d-md-flex align-items-center position-relative mx-auto" style="max-width: 420px; width: 100%;">
+                    <i class="bi bi-search topbar-search-icon position-absolute ms-3 text-muted" style="font-size: 0.85rem;"></i>
+                    <input type="text" class="form-control rounded-pill ps-5 pe-5 py-2 border-light-subtle bg-light shadow-none" style="font-size: 0.86rem;" placeholder="Search documents, reports, sources..." id="globalSearchInput">
+                    <kbd class="topbar-search-shortcut position-absolute end-0 me-3 badge bg-white text-muted border border-secondary-subtle px-1.5 py-0.5" style="font-size: 0.68rem;">Ctrl+K</kbd>
                 </div>
 
-                <div class="top-bar-actions">
+                <div class="top-bar-actions ms-auto d-flex align-items-center gap-2.5">
                     <!-- Notifications Dropdown -->
                     <div class="dropdown">
-                        <button class="topbar-icon-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
-                            <i class="bi bi-bell"></i>
-                            <span class="topbar-badge-dot"></span>
+                        <button class="topbar-icon-btn btn btn-light rounded-circle p-2 position-relative" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-bell text-secondary"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="width: 300px; font-size: 0.88rem;">
-                            <li class="dropdown-header fw-bold text-dark d-flex justify-content-between align-items-center">
-                                <span>Notifications</span>
-                                <span class="badge bg-primary-subtle text-primary">2 New</span>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="width: 320px; font-size: 0.88rem; border-radius: 14px;">
+                            <li class="dropdown-header fw-bold text-dark d-flex justify-content-between align-items-center py-2 px-3">
+                                <span>System Activity</span>
+                                <span class="badge bg-primary-subtle text-primary rounded-pill">Engine Online</span>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
                             <li>
-                                <a class="dropdown-item py-2" href="{% url 'reports:list' %}">
+                                <a class="dropdown-item py-2.5 px-3" href="{% url 'reports:list' %}">
                                     <div class="fw-semibold text-truncate"><i class="bi bi-check2-circle text-success me-2"></i>Analysis Completed</div>
-                                    <small class="text-muted">Research_Paper_Final.pdf similarity: 2%</small>
+                                    <small class="text-muted">Turnitin multi-layer & AI reports ready</small>
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item py-2" href="{% url 'reports:list' %}">
-                                    <div class="fw-semibold text-truncate"><i class="bi bi-robot text-info me-2"></i>AI Report Ready</div>
-                                    <small class="text-muted">Turnitin-grade AI writing score generated</small>
+                                <a class="dropdown-item py-2.5 px-3" href="{% url 'documents:list' %}">
+                                    <div class="fw-semibold text-truncate"><i class="bi bi-database-check text-info me-2"></i>Institutional Repositories</div>
+                                    <small class="text-muted">Over 90M+ academic source indices active</small>
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
-                            <li><a class="dropdown-item text-center text-primary py-2 fw-semibold" href="{% url 'reports:list' %}">View All Reports</a></li>
+                            <li><a class="dropdown-item text-center text-primary py-2 fw-semibold" href="{% url 'reports:list' %}">View All Reports &rarr;</a></li>
                         </ul>
                     </div>
 
                     <!-- New Check Primary CTA -->
-                    <a href="{% url 'documents:upload' %}" class="btn btn-primary btn-sm d-flex align-items-center gap-2 px-3 fw-semibold shadow-sm">
+                    <a href="{% url 'documents:upload' %}" class="btn btn-primary btn-sm d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill fw-semibold shadow-sm topbar-cta-btn">
                         <i class="bi bi-plus-lg"></i>
                         <span>New Check</span>
                     </a>
 
                     <!-- Profile Dropdown -->
                     <div class="dropdown">
-                        <button class="user-profile-menu-btn" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="user-profile-avatar-small">
+                        <button class="btn btn-light rounded-pill d-flex align-items-center gap-2 py-1 px-2.5 border-0 bg-transparent" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="user-avatar-ring" style="width: 32px; height: 32px; font-size: 0.82rem;">
                                 {{ user.first_name|first|default:user.username|first|upper }}
                             </div>
                             <span class="d-none d-lg-inline fw-semibold text-dark small">{{ user.username }}</span>
-                            <i class="bi bi-chevron-down text-muted small"></i>
+                            <i class="bi bi-chevron-down text-muted" style="font-size: 0.75rem;"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 200px; font-size: 0.88rem;">
-                            <li class="px-3 py-2">
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 220px; font-size: 0.88rem; border-radius: 14px;">
+                            <li class="px-3 py-2.5">
                                 <div class="fw-bold text-dark">{{ user.get_full_name|default:user.username }}</div>
-                                <div class="text-muted small">{{ user.email|default:"Academic User" }}</div>
-                                <span class="badge bg-secondary-subtle text-secondary mt-1">{{ user.get_role_display }}</span>
+                                <div class="text-muted small text-truncate">{{ user.email|default:"Academic User" }}</div>
+                                <span class="badge bg-secondary-subtle text-secondary rounded-pill mt-1.5">{{ user.get_role_display }}</span>
                             </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item py-2" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>Profile Settings</a></li>
-                            <li><a class="dropdown-item py-2" href="{% url 'landing' %}"><i class="bi bi-globe me-2"></i>Marketing Homepage</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2 text-primary"></i>Profile Settings</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'landing' %}"><i class="bi bi-globe me-2 text-info"></i>Marketing Homepage</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
                             <li><a class="dropdown-item py-2 text-danger" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
                         </ul>
                     </div>

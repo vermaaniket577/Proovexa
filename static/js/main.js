@@ -221,15 +221,26 @@ document.addEventListener('DOMContentLoaded', function() {
         const sizeStr = file.size > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
         const ext = file.name.split('.').pop().toLowerCase();
 
-        const colorMap = { pdf: '#ef4444', docx: '#3b82f6', txt: '#6b7280', pptx: '#f59e0b' };
-        const color = colorMap[ext] || '#6b7280';
+        const colorMap = { pdf: '#ef4444', docx: '#2563eb', txt: '#475569', pptx: '#d97706' };
+        const color = colorMap[ext] || '#4f46e5';
 
         zone.innerHTML = `
-            <div class="file-type-badge ${ext}" style="margin: 0 auto 12px; width: 48px; height: 48px; font-size: 0.85rem;">
-                ${ext}
+            <div class="selected-file-card">
+                <div class="selected-file-icon" style="background-color: ${color};">
+                    ${ext.toUpperCase()}
+                </div>
+                <div class="flex-grow-1 min-w-0">
+                    <div class="fw-bold text-dark text-truncate fs-6">${file.name}</div>
+                    <div class="d-flex align-items-center gap-2 small text-muted mt-1 flex-wrap">
+                        <span class="badge bg-light text-dark border">${sizeStr}</span>
+                        <span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Ready for Turnitin scan</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 flex-shrink-0" onclick="event.stopPropagation(); (document.getElementById('doc-file') || document.querySelector('input[type=\\'file\\']')).click();">
+                    <i class="bi bi-arrow-repeat me-1"></i>Change
+                </button>
             </div>
-            <div class="upload-title">${file.name}</div>
-            <div class="upload-subtitle">${sizeStr} • Click or drag to change</div>
+            <div class="mt-3 text-muted small"><i class="bi bi-shield-check text-primary me-1"></i>Document verified and loaded. Complete submission form below to run analysis.</div>
         `;
 
         // Auto-fill title if empty
