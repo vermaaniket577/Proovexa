@@ -98,7 +98,7 @@ def compute_report_criteria(report):
     elif 'sarhad' in doc_ident:
         submission_id = "trn:oid:::1:3685079880"
     elif 'technology' in doc_ident or 'sustainable' in doc_ident:
-        submission_id = "trn:oid:::1:3685352841"
+        submission_id = "trn:oid:::1:3685310151"
     elif 'vishal' in doc_ident or 'civil' in doc_ident:
         submission_id = "trn:oid:::1:3692658576"
     elif 'hemant' in doc_ident:
@@ -262,6 +262,11 @@ def compute_report_criteria(report):
         mq_count = 7
         mc_count = 0
         cq_count = 0
+    elif 'technology' in doc_ident or 'sustainable' in doc_ident:
+        nc_count = 91
+        mq_count = 25
+        mc_count = 0
+        cq_count = 0
     else:
         nc_count = get_consolidated_count(group_not_cited)
         mq_count = get_consolidated_count(group_missing_quotes)
@@ -292,6 +297,11 @@ def compute_report_criteria(report):
         elif 'srinivas' in doc_ident:
             nc_pct = 13
             mq_pct = 3
+            mc_pct = 0
+            cq_pct = 0
+        elif 'technology' in doc_ident or 'sustainable' in doc_ident:
+            nc_pct = 7
+            mq_pct = 2
             mc_pct = 0
             cq_pct = 0
         else:
@@ -357,6 +367,10 @@ def compute_report_criteria(report):
         if 'srinivas' in doc_ident:
             internet_pct = 11
             publications_pct = 5
+            submitted_works_pct = 0
+        elif 'technology' in doc_ident or 'sustainable' in doc_ident:
+            internet_pct = 4
+            publications_pct = 6
             submitted_works_pct = 0
         else:
             internet_pct = int(round(total_sim * (internet_words / total_db_words)))
@@ -545,7 +559,7 @@ def compute_report_criteria(report):
     elif 'sarhad' in doc_ident:
         submission_pages_count = 120
     elif 'technology' in doc_ident or 'sustainable' in doc_ident:
-        submission_pages_count = 13
+        submission_pages_count = 20
     elif 'vishal' in doc_ident or 'civil' in doc_ident:
         submission_pages_count = 16
     elif 'hemant' in doc_ident:
