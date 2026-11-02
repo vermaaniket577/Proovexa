@@ -797,7 +797,7 @@ class CorpusRetriever:
     """
 
     @staticmethod
-    def search_local_repository(document=None, max_sources: int = 50) -> List[Dict[str, Any]]:
+    def search_local_repository(document=None, max_sources: int = 300) -> List[Dict[str, Any]]:
         """Retrieves active reference documents from Proovexa's database."""
         try:
             from documents.models import ReferenceSource

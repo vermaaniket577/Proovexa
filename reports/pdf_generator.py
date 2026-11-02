@@ -131,6 +131,7 @@ class TurnitinReportCanvas(canvas.Canvas):
         self.pages = []
         self.current_section = "Cover Page"
         self.submission_id = ""
+        self.total_pages_override = None
 
     def showPage(self):
         page_dict = dict(self.__dict__)
@@ -139,7 +140,7 @@ class TurnitinReportCanvas(canvas.Canvas):
         self._startPage()
 
     def save(self):
-        page_count = len(self.pages)
+        page_count = self.total_pages_override or len(self.pages)
         for page in self.pages:
             self.__dict__.update(page)
             section = page.get('page_section', 'Integrity Overview')
@@ -781,6 +782,7 @@ def generate_pdf_report(report):
     def canvas_maker(*args, **kwargs):
         c = TurnitinReportCanvas(*args, **kwargs)
         c.submission_id = criteria['submission_id']
+        c.total_pages_override = criteria.get('total_pages')
         return c
 
     doc.build(story, canvasmaker=canvas_maker)

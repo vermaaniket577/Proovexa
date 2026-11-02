@@ -384,7 +384,7 @@ class AnalysisEngine:
 
             # Limit to top candidates for detailed multi-method analysis (optimal academic recall + high speed)
 
-            max_candidates = 140
+            max_candidates = 300
 
             top_candidates = candidates[:max_candidates]
 
@@ -414,7 +414,7 @@ class AnalysisEngine:
 
                     continue
 
-                if len(top_candidates) >= 160:
+                if len(top_candidates) >= 350:
 
                     break
 
