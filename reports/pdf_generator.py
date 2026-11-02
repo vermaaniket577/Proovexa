@@ -204,6 +204,8 @@ def _build_source_table_rows(s):
     pill_bg = colors.HexColor(s.get('pill_bg', '#fce4ec'))
     pill_text = colors.HexColor('#191919')
     cat_text = s['category']
+    if cat_text in ['Submitted works', 'Submitted Works', 'Student Papers', 'student papers']:
+        cat_text = 'Student papers'
     pill_w = 52 if len(cat_text) <= 8 else 74
     pill_d = Drawing(pill_w, 13)
     pill_d.add(Rect(0, 0, pill_w, 13, rx=6.5, ry=6.5, fillColor=pill_bg, strokeColor=None))
