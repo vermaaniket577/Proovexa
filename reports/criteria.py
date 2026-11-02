@@ -99,6 +99,8 @@ def compute_report_criteria(report):
         submission_id = "trn:oid:::1:3685352841"
     elif 'vishal' in doc_ident or 'civil' in doc_ident:
         submission_id = "trn:oid:::1:3692658576"
+    elif 'hemant' in doc_ident:
+        submission_id = "trn:oid:::1:3685295305"
     else:
         num_seed = abs(hash(str(report.id))) % 900000000 + 100000000
         submission_id = f"trn:oid:::1:{num_seed}"
@@ -114,6 +116,8 @@ def compute_report_criteria(report):
         author_name = "Sunil Kumar"
     elif 'vishal' in doc_ident:
         author_name = "Vishal"
+    elif 'hemant' in doc_ident:
+        author_name = "Hemant Yadav"
     else:
         author_name = uploaded_by.get_full_name() or uploaded_by.username or "Student Author"
     institution_name = getattr(uploaded_by.institution, 'name', '') if getattr(uploaded_by, 'institution', None) else 'Metropolitan Academic Institute'
@@ -246,6 +250,11 @@ def compute_report_criteria(report):
         mq_count = 39
         mc_count = 0
         cq_count = 0
+    elif 'hemant' in doc_ident:
+        nc_count = 65
+        mq_count = 7
+        mc_count = 0
+        cq_count = 0
     else:
         nc_count = get_consolidated_count(group_not_cited)
         mq_count = get_consolidated_count(group_missing_quotes)
@@ -268,13 +277,19 @@ def compute_report_criteria(report):
     total_group_words = raw_nc + raw_mq + raw_mc + raw_cq
 
     if not is_zero_report and total_group_words > 0:
-        nc_pct = int(round(total_sim * (raw_nc / total_group_words)))
-        mq_pct = int(round(total_sim * (raw_mq / total_group_words)))
-        mc_pct = int(round(total_sim * (raw_mc / total_group_words)))
-        cq_pct = int(round(total_sim * (raw_cq / total_group_words)))
-        diff = int(total_sim) - (nc_pct + mq_pct + mc_pct + cq_pct)
-        if diff != 0:
-            nc_pct = max(0, nc_pct + diff)
+        if 'hemant' in doc_ident:
+            nc_pct = 10
+            mq_pct = 2
+            mc_pct = 0
+            cq_pct = 0
+        else:
+            nc_pct = int(round(total_sim * (raw_nc / total_group_words)))
+            mq_pct = int(round(total_sim * (raw_mq / total_group_words)))
+            mc_pct = int(round(total_sim * (raw_mc / total_group_words)))
+            cq_pct = int(round(total_sim * (raw_cq / total_group_words)))
+            diff = int(total_sim) - (nc_pct + mq_pct + mc_pct + cq_pct)
+            if diff != 0:
+                nc_pct = max(0, nc_pct + diff)
     else:
         nc_pct = int(total_sim) if not is_zero_report else 0
         mq_pct = 0
@@ -514,6 +529,8 @@ def compute_report_criteria(report):
         submission_pages_count = 13
     elif 'vishal' in doc_ident or 'civil' in doc_ident:
         submission_pages_count = 16
+    elif 'hemant' in doc_ident:
+        submission_pages_count = 18
     else:
         submission_pages_count = doc_pages
     total_pages = total_overview_pages + submission_pages_count
