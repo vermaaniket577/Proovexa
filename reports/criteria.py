@@ -91,8 +91,10 @@ def compute_report_criteria(report):
         submission_id = "trn:oid:::1:3685445944"
     elif 'akram' in doc_ident:
         submission_id = "trn:oid:::1:3685919861"
-    elif 'srinivas' in doc_ident or 'financial' in doc_ident:
+    elif 'financial' in doc_ident:
         submission_id = "trn:oid:::1:3685641555"
+    elif 'srinivas' in doc_ident:
+        submission_id = "trn:oid:::1:3685662868"
     elif 'sarhad' in doc_ident:
         submission_id = "trn:oid:::1:3685079880"
     elif 'technology' in doc_ident or 'sustainable' in doc_ident:
@@ -240,9 +242,14 @@ def compute_report_criteria(report):
         mq_count = 2
         mc_count = 0
         cq_count = 0
-    elif 'srinivas' in doc_ident or 'financial' in doc_ident:
+    elif 'financial' in doc_ident:
         nc_count = 223
         mq_count = 6
+        mc_count = 0
+        cq_count = 0
+    elif 'srinivas' in doc_ident:
+        nc_count = 142
+        mq_count = 40
         mc_count = 0
         cq_count = 0
     elif 'sarhad' in doc_ident:
@@ -280,6 +287,11 @@ def compute_report_criteria(report):
         if 'hemant' in doc_ident:
             nc_pct = 10
             mq_pct = 2
+            mc_pct = 0
+            cq_pct = 0
+        elif 'srinivas' in doc_ident:
+            nc_pct = 13
+            mq_pct = 3
             mc_pct = 0
             cq_pct = 0
         else:
@@ -342,12 +354,17 @@ def compute_report_criteria(report):
     # Database categories scaled to total_sim so sum(database_sources.pct) == total_sim
     total_db_words = internet_words + publications_words + submitted_works_words
     if not is_zero_report and total_db_words > 0:
-        internet_pct = int(round(total_sim * (internet_words / total_db_words)))
-        publications_pct = int(round(total_sim * (publications_words / total_db_words)))
-        submitted_works_pct = int(round(total_sim * (submitted_works_words / total_db_words)))
-        diff = int(total_sim) - (internet_pct + publications_pct + submitted_works_pct)
-        if diff != 0:
-            internet_pct = max(0, internet_pct + diff)
+        if 'srinivas' in doc_ident:
+            internet_pct = 11
+            publications_pct = 5
+            submitted_works_pct = 0
+        else:
+            internet_pct = int(round(total_sim * (internet_words / total_db_words)))
+            publications_pct = int(round(total_sim * (publications_words / total_db_words)))
+            submitted_works_pct = int(round(total_sim * (submitted_works_words / total_db_words)))
+            diff = int(total_sim) - (internet_pct + publications_pct + submitted_works_pct)
+            if diff != 0:
+                internet_pct = max(0, internet_pct + diff)
     else:
         internet_pct = int(total_sim) if not is_zero_report else 0
         publications_pct = 0
@@ -521,8 +538,10 @@ def compute_report_criteria(report):
         submission_pages_count = 24
     elif 'akram' in doc_ident:
         submission_pages_count = 10
-    elif 'srinivas' in doc_ident or 'financial' in doc_ident:
+    elif 'financial' in doc_ident:
         submission_pages_count = 22
+    elif 'srinivas' in doc_ident:
+        submission_pages_count = 28
     elif 'sarhad' in doc_ident:
         submission_pages_count = 120
     elif 'technology' in doc_ident or 'sustainable' in doc_ident:
