@@ -160,9 +160,7 @@ def report_detail_view(request, report_id):
     from analysis.models import AIReport
     ai_report = AIReport.objects.filter(document=report.document, status=AIReport.Status.COMPLETED).order_by('-created_at').first()
     if not ai_report:
-        from analysis.engine import AIDetectionEngine
-        engine = AIDetectionEngine()
-        ai_report = engine.analyze_document(report.document, user=request.user)
+        ai_report = AIReport.objects.filter(document=report.document).order_by('-created_at').first()
 
     is_zero_ai = ai_report.is_zero_ai if ai_report else True
     overall_ai_display = ai_report.display_score if ai_report else "*%"
