@@ -86,6 +86,30 @@ def source_providers_view(request):
             'required': False,
             'description': 'Optional Google Custom Search API for deep web retrieval across educational domains.',
         },
+        {
+            'name': 'Elsevier / ScienceDirect API Key',
+            'env_var': 'ELSEVIER_API_KEY',
+            'is_set': bool(getattr(settings, 'ELSEVIER_API_KEY', os.environ.get('ELSEVIER_API_KEY', ''))),
+            'current': 'configured (hidden)' if getattr(settings, 'ELSEVIER_API_KEY', os.environ.get('ELSEVIER_API_KEY', '')) else 'Not set (institutional license required)',
+            'required': False,
+            'description': 'Authorizes Elsevier ScienceDirect full-text article indexing and cross-referencing.',
+        },
+        {
+            'name': 'Springer Nature API Key',
+            'env_var': 'SPRINGER_API_KEY',
+            'is_set': bool(getattr(settings, 'SPRINGER_API_KEY', os.environ.get('SPRINGER_API_KEY', ''))),
+            'current': 'configured (hidden)' if getattr(settings, 'SPRINGER_API_KEY', os.environ.get('SPRINGER_API_KEY', '')) else 'Not set (institutional license required)',
+            'required': False,
+            'description': 'Authorizes Springer Nature Meta & Open Access article retrieval across Nature & SpringerLink.',
+        },
+        {
+            'name': 'IEEE Xplore API Key',
+            'env_var': 'IEEE_API_KEY',
+            'is_set': bool(getattr(settings, 'IEEE_API_KEY', os.environ.get('IEEE_API_KEY', ''))),
+            'current': 'configured (hidden)' if getattr(settings, 'IEEE_API_KEY', os.environ.get('IEEE_API_KEY', '')) else 'Not set (institutional license required)',
+            'required': False,
+            'description': 'Authorizes IEEE Xplore technical article and conference proceeding indexing.',
+        },
     ]
 
     return render(request, 'sources/providers.html', {

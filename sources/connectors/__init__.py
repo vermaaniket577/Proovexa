@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional
 
 from .base import BaseSourceConnector, SourceProviderResult
 from .crossref import CrossrefConnector
+from .crossref_preprints import CrossrefPreprintsConnector
 from .openalex import OpenAlexConnector
 from .arxiv import ArxivConnector
 from .europe_pmc import EuropePMCConnector
@@ -15,29 +16,48 @@ from .doaj import DOAJConnector
 from .semantic_scholar import SemanticScholarConnector
 from .core import COREConnector
 from .unpaywall import UnpaywallConnector
+from .eric import ERICConnector
+from .zenodo import ZenodoConnector
+from .hal import HALOpenScienceConnector
+from .base_search import BASEConnector
+from .internet_archive import InternetArchiveConnector
+from .common_crawl import CommonCrawlConnector
 from .wikipedia import WikipediaConnector
 from .web_search import WebSearchConnector
+from .submitted_works import SubmittedWorksConnector
 from .local_documents import LocalDocumentConnector
 from .code_similarity import CodeSimilarityConnector
+from .publishers import get_all_publisher_connectors
 
 logger = logging.getLogger(__name__)
 
 # Registered connector singleton instances
 _ALL_CONNECTORS: List[BaseSourceConnector] = [
+    # Top Academic & Open Access Repositories
     CrossrefConnector(),
+    CrossrefPreprintsConnector(),
     OpenAlexConnector(),
-    ArxivConnector(),
-    EuropePMCConnector(),
-    PubMedCentralConnector(),
-    DOAJConnector(),
-    SemanticScholarConnector(),
     COREConnector(),
+    SemanticScholarConnector(),
+    PubMedCentralConnector(),
+    EuropePMCConnector(),
+    DOAJConnector(),
+    ArxivConnector(),
     UnpaywallConnector(),
+    ERICConnector(),
+    ZenodoConnector(),
+    HALOpenScienceConnector(),
+    BASEConnector(),
+    # Internet & Web Archives
+    InternetArchiveConnector(),
+    CommonCrawlConnector(),
     WikipediaConnector(),
     WebSearchConnector(),
+    # Submitted Works & Institutional Repositories
+    SubmittedWorksConnector(),
     LocalDocumentConnector(),
     CodeSimilarityConnector(),
-]
+] + get_all_publisher_connectors()
 
 
 def get_all_connectors() -> List[BaseSourceConnector]:

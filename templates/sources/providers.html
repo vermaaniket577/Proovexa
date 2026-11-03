@@ -103,30 +103,40 @@
         </button>
     </div>
     <div class="card-body p-4">
-        <div class="row g-3">
+        <!-- Filter Tabs -->
+        <div class="mb-3 d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-dark filter-btn active" onclick="filterSources('all', this)">All Sources ({{ connectors|length }})</button>
+            <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="filterSources('academic', this)">Academic & Preprints</button>
+            <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="filterSources('open_access', this)">Open Access</button>
+            <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="filterSources('web', this)">Internet & Archives</button>
+            <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="filterSources('institutional', this)">Submitted Works</button>
+        </div>
+
+        <div class="row g-3" id="connectors-grid">
             {% for c in connectors %}
-            <div class="col-lg-4 col-md-6">
+            <div class="col-lg-4 col-md-6 connector-card" data-category="{{ c.source_type }}">
                 <div class="card h-100 border {% if c.is_available %}border-success-subtle{% else %}border-warning-subtle{% endif %} shadow-none">
                     <div class="card-body d-flex flex-column justify-content-between">
                         <div>
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h6 class="fw-bold mb-0 text-dark">{{ c.name }}</h6>
-                                {% if c.is_available %}
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                        <i class="bi bi-check-circle-fill me-1"></i>Active
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
-                                        <i class="bi bi-key-fill me-1"></i>Needs Key
-                                    </span>
-                                {% endif %}
+                                <span class="badge {{ c.status_badge_class }} py-1 px-2" style="font-size: 0.72rem;">
+                                    {{ c.status_label }}
+                                </span>
                             </div>
-                            <div class="mb-2">
+                            <div class="mb-2 d-flex flex-wrap gap-1">
                                 <span class="badge bg-light text-muted border text-uppercase" style="font-size: 0.68rem;">{{ c.source_type }}</span>
-                                {% if c.requires_api_key %}
-                                    <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.68rem;">Requires Key</span>
+                                {% if c.supports_full_text %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">Full Text</span>
                                 {% else %}
-                                    <span class="badge bg-info-subtle text-info" style="font-size: 0.68rem;">Free / Open</span>
+                                    <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.68rem;">Metadata Only</span>
+                                {% endif %}
+                                {% if c.is_subscription_required %}
+                                    <span class="badge bg-secondary text-white" style="font-size: 0.68rem;">Subscription Req.</span>
+                                {% elif c.requires_api_key %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.68rem;">API Key Req.</span>
+                                {% else %}
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.68rem;">Public API</span>
                                 {% endif %}
                             </div>
                             <p class="text-muted small mb-3" style="font-size: 0.8rem; min-height: 48px;">
@@ -135,7 +145,7 @@
                         </div>
                         <div class="pt-2 border-top d-flex justify-content-between align-items-center">
                             <span class="small text-muted" id="status-text-{{ c.id }}" style="font-size: 0.75rem;">
-                                Ready
+                                {% if c.is_subscription_required %}Subscription Gateway{% elif c.is_available %}Ready{% else %}Requires Setup{% endif %}
                             </span>
                             <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2.5" id="btn-test-{{ c.id }}" onclick="testConnector('{{ c.id }}')" style="font-size: 0.78rem;">
                                 <i class="bi bi-broadcast me-1"></i> Test
@@ -266,6 +276,24 @@ function testAllConnectors() {
     {% for c in connectors %}
         testConnector('{{ c.id }}');
     {% endfor %}
+}
+
+function filterSources(cat, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.remove('btn-dark', 'active');
+        b.classList.add('btn-outline-secondary');
+    });
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('btn-dark', 'active');
+
+    document.querySelectorAll('.connector-card').forEach(card => {
+        const ctype = card.getAttribute('data-category');
+        if (cat === 'all' || ctype === cat) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
 }
 </script>
 {% endblock %}

@@ -109,6 +109,15 @@ class SourceProviderResult:
 class BaseSourceConnector(ABC):
     """Abstract base class for all similarity source connectors."""
 
+    # Standardized Turnitin-Style Integration Statuses
+    STATUS_CONNECTED = 'connected'
+    STATUS_AVAILABLE = 'available'
+    STATUS_API_AUTH_REQUIRED = 'api_auth_required'
+    STATUS_SUBSCRIPTION_REQUIRED = 'subscription_required'
+    STATUS_TEMPORARILY_UNAVAILABLE = 'temporarily_unavailable'
+    STATUS_METADATA_ONLY = 'metadata_only'
+    STATUS_FULL_TEXT_AVAILABLE = 'full_text_available'
+
     @property
     @abstractmethod
     def id(self) -> str:
@@ -124,7 +133,7 @@ class BaseSourceConnector(ABC):
     @property
     @abstractmethod
     def source_type(self) -> str:
-        """Category: 'academic', 'open_access', 'web', 'institutional', 'uploaded'."""
+        """Category: 'academic', 'open_access', 'web', 'institutional', 'uploaded', 'submitted_works'."""
         pass
 
     @property
@@ -142,6 +151,70 @@ class BaseSourceConnector(ABC):
     def api_key_name(self) -> str:
         """Name of the environment variable holding the API key."""
         return ""
+
+    @property
+    def supports_full_text(self) -> bool:
+        """Whether full text extraction is accessible (vs abstract/metadata only)."""
+        return True
+
+    @property
+    def is_subscription_required(self) -> bool:
+        """Whether institutional publisher subscription or licensing contract is required."""
+        return False
+
+    @property
+    def is_enabled(self) -> bool:
+        """Whether this connector is enabled by admin in system settings."""
+        from django.conf import settings
+        import os
+        disabled = getattr(settings, 'DISABLED_SOURCE_CONNECTORS', [])
+        return self.id not in disabled and os.environ.get(f'DISABLE_{self.id.upper()}', '0') != '1'
+
+    @property
+    def integration_status(self) -> str:
+        """
+        Calculates real-time integration status:
+        - 'connected' / 'full_text_available'
+        - 'metadata_only'
+        - 'api_auth_required'
+        - 'subscription_required'
+        - 'temporarily_unavailable'
+        """
+        if self.is_subscription_required:
+            return self.STATUS_SUBSCRIPTION_REQUIRED
+        if self.requires_api_key and not self.is_available():
+            return self.STATUS_API_AUTH_REQUIRED
+        if not self.is_available():
+            return self.STATUS_TEMPORARILY_UNAVAILABLE
+        if self.supports_full_text:
+            return self.STATUS_FULL_TEXT_AVAILABLE
+        return self.STATUS_METADATA_ONLY
+
+    @property
+    def status_label(self) -> str:
+        labels = {
+            self.STATUS_CONNECTED: "Connected",
+            self.STATUS_AVAILABLE: "Available",
+            self.STATUS_API_AUTH_REQUIRED: "API Auth Required",
+            self.STATUS_SUBSCRIPTION_REQUIRED: "Subscription Required",
+            self.STATUS_TEMPORARILY_UNAVAILABLE: "Temporarily Unavailable",
+            self.STATUS_METADATA_ONLY: "Metadata Only",
+            self.STATUS_FULL_TEXT_AVAILABLE: "Full Text Available",
+        }
+        return labels.get(self.integration_status, "Available")
+
+    @property
+    def status_badge_class(self) -> str:
+        classes = {
+            self.STATUS_CONNECTED: "bg-success",
+            self.STATUS_AVAILABLE: "bg-success",
+            self.STATUS_FULL_TEXT_AVAILABLE: "bg-success",
+            self.STATUS_METADATA_ONLY: "bg-info text-dark",
+            self.STATUS_API_AUTH_REQUIRED: "bg-warning text-dark",
+            self.STATUS_SUBSCRIPTION_REQUIRED: "bg-secondary",
+            self.STATUS_TEMPORARILY_UNAVAILABLE: "bg-danger",
+        }
+        return classes.get(self.integration_status, "bg-secondary")
 
     @abstractmethod
     def is_available(self) -> bool:
