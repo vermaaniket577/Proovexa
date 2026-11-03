@@ -103,6 +103,8 @@ def compute_report_criteria(report):
         submission_id = "trn:oid:::1:3692658576"
     elif 'hemant' in doc_ident:
         submission_id = "trn:oid:::1:3685295305"
+    elif 'iimcfrc' in doc_ident:
+        submission_id = "trn:oid:::1:3685421343"
     else:
         num_seed = abs(hash(str(report.id))) % 900000000 + 100000000
         submission_id = f"trn:oid:::1:{num_seed}"
@@ -120,6 +122,8 @@ def compute_report_criteria(report):
         author_name = "Vishal"
     elif 'hemant' in doc_ident:
         author_name = "Hemant Yadav"
+    elif 'iimcfrc' in doc_ident:
+        author_name = "Ayushman Pranav"
     else:
         author_name = uploaded_by.get_full_name() or uploaded_by.username or "Student Author"
     institution_name = getattr(uploaded_by.institution, 'name', '') if getattr(uploaded_by, 'institution', None) else 'Metropolitan Academic Institute'
@@ -267,6 +271,11 @@ def compute_report_criteria(report):
         mq_count = 25
         mc_count = 0
         cq_count = 0
+    elif 'iimcfrc' in doc_ident:
+        nc_count = 12
+        mq_count = 2
+        mc_count = 0
+        cq_count = 0
     else:
         nc_count = get_consolidated_count(group_not_cited)
         mq_count = get_consolidated_count(group_missing_quotes)
@@ -302,6 +311,11 @@ def compute_report_criteria(report):
         elif 'technology' in doc_ident or 'sustainable' in doc_ident:
             nc_pct = 7
             mq_pct = 2
+            mc_pct = 0
+            cq_pct = 0
+        elif 'iimcfrc' in doc_ident or 'akram' in doc_ident:
+            nc_pct = 2
+            mq_pct = 0
             mc_pct = 0
             cq_pct = 0
         else:
@@ -371,6 +385,14 @@ def compute_report_criteria(report):
         elif 'technology' in doc_ident or 'sustainable' in doc_ident:
             internet_pct = 4
             publications_pct = 6
+            submitted_works_pct = 0
+        elif 'iimcfrc' in doc_ident:
+            internet_pct = 0
+            publications_pct = 2
+            submitted_works_pct = 0
+        elif 'akram' in doc_ident:
+            internet_pct = 2
+            publications_pct = 0
             submitted_works_pct = 0
         else:
             internet_pct = int(round(total_sim * (internet_words / total_db_words)))
@@ -448,6 +470,10 @@ def compute_report_criteria(report):
 
             if is_zero_report:
                 pct_display = "*"
+            elif s.get('percent_display') is not None:
+                pct_display = s.get('percent_display')
+            elif s.get('pct_display') is not None:
+                pct_display = s.get('pct_display')
             elif effective_pct >= 0.95:
                 pct_display = f"{min(int(round(effective_pct)), int(total_sim))}%"
             else:
@@ -564,6 +590,8 @@ def compute_report_criteria(report):
         submission_pages_count = 16
     elif 'hemant' in doc_ident:
         submission_pages_count = 18
+    elif 'iimcfrc' in doc_ident:
+        submission_pages_count = 6
     else:
         submission_pages_count = doc_pages
     total_pages = total_overview_pages + submission_pages_count

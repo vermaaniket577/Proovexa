@@ -964,9 +964,16 @@ mark.turnitin-highlight:hover {
     <div class="turnitin-sheet-divider my-2"></div>
 
     <!-- Top Sources Title & Subtitle -->
-    <div class="mb-2">
-        <div class="turnitin-section-header mb-1">Top Sources</div>
-        <div class="text-muted small">The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.</div>
+    <div class="mb-2 d-flex justify-content-between align-items-center">
+        <div>
+            <div class="turnitin-section-header mb-1">Top Sources</div>
+            <div class="text-muted small">The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.</div>
+        </div>
+        <div class="no-print">
+            <a href="{% url 'reports:download_docx' report.id %}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1.5 text-primary fw-medium px-2.5 py-1" style="font-size: 0.8rem; border-color: #cbd5e1; border-radius: 6px; text-decoration: none;" title="Convert & Export Report to Microsoft Word (.docx)">
+                <i class="bi bi-file-earmark-word text-primary fs-6"></i> PDF to Word
+            </a>
+        </div>
     </div>
 
     <div class="turnitin-sheet-divider my-2"></div>
@@ -985,8 +992,8 @@ mark.turnitin-highlight:hover {
                     {{ s.category }}
                 </span>
                 {% if s.exact_matched_words %}
-                <span class="badge rounded-pill bg-light text-secondary border px-2 py-1 ms-1" style="font-size: 0.68rem; font-weight: 500;" title="Exact verbatim matched words">
-                    <i class="bi bi-check2-all text-success me-1"></i>Exact: {{ s.exact_matched_words }} words{% if s.exact_percentage > 0 %} ({{ s.exact_percentage }}%){% endif %}
+                <span class="badge rounded-pill bg-light text-secondary border px-2 py-1 ms-1" style="font-size: 0.68rem; font-weight: 500; font-family: 'Inter', sans-serif;" title="Exact verbatim matched words">
+                    Exact: {{ s.exact_matched_words }} w
                 </span>
                 {% endif %}
             </div>
