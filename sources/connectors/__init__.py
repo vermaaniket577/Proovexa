@@ -1,0 +1,152 @@
+"""
+Registry and parallel dispatcher for all academic and web similarity connectors.
+"""
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Dict, Any, Optional
+
+from .base import BaseSourceConnector, SourceProviderResult
+from .crossref import CrossrefConnector
+from .openalex import OpenAlexConnector
+from .arxiv import ArxivConnector
+from .europe_pmc import EuropePMCConnector
+from .pubmed_central import PubMedCentralConnector
+from .doaj import DOAJConnector
+from .semantic_scholar import SemanticScholarConnector
+from .core import COREConnector
+from .unpaywall import UnpaywallConnector
+from .wikipedia import WikipediaConnector
+from .web_search import WebSearchConnector
+from .local_documents import LocalDocumentConnector
+from .code_similarity import CodeSimilarityConnector
+
+logger = logging.getLogger(__name__)
+
+# Registered connector singleton instances
+_ALL_CONNECTORS: List[BaseSourceConnector] = [
+    CrossrefConnector(),
+    OpenAlexConnector(),
+    ArxivConnector(),
+    EuropePMCConnector(),
+    PubMedCentralConnector(),
+    DOAJConnector(),
+    SemanticScholarConnector(),
+    COREConnector(),
+    UnpaywallConnector(),
+    WikipediaConnector(),
+    WebSearchConnector(),
+    LocalDocumentConnector(),
+    CodeSimilarityConnector(),
+]
+
+
+def get_all_connectors() -> List[BaseSourceConnector]:
+    """Returns list of all registered source connectors."""
+    return _ALL_CONNECTORS
+
+
+def get_available_connectors() -> List[BaseSourceConnector]:
+    """Returns list of active/configured source connectors."""
+    return [c for c in _ALL_CONNECTORS if c.is_available()]
+
+
+def get_connector(connector_id: str) -> Optional[BaseSourceConnector]:
+    """Finds a connector by its slug ID."""
+    for c in _ALL_CONNECTORS:
+        if c.id == connector_id:
+            return c
+    return None
+
+
+def multi_source_search(
+    queries: List[str],
+    max_results_per_source: int = 3,
+    connectors: Optional[List[BaseSourceConnector]] = None,
+    timeout_seconds: float = 8.0,
+) -> Dict[str, Any]:
+    """
+    Executes parallel search across all available academic and web source connectors.
+    
+    Args:
+        queries: Distinctive phrases, sentences, or titles extracted from document
+        max_results_per_source: Number of records per query per connector
+        connectors: Optional explicit list of connectors to query
+        timeout_seconds: Maximum wall time for network calls
+        
+    Returns:
+        Dict with:
+          'results': List of deduplicated SourceProviderResult objects
+          'sources_checked': List of connector names that ran successfully
+          'failed_sources': List of connector names that encountered errors/timeouts
+          'total_retrieved': Total distinct results count
+    """
+    active_connectors = connectors or get_available_connectors()
+    if not active_connectors or not queries:
+        return {
+            'results': [],
+            'sources_checked': [],
+            'failed_sources': [],
+            'total_retrieved': 0,
+        }
+
+    # Dedup and limit queries for performance (top 3 distinctive phrases)
+    clean_queries = [q.strip() for q in queries if len(q.strip()) >= 5][:3]
+    if not clean_queries:
+        return {
+            'results': [],
+            'sources_checked': [],
+            'failed_sources': [],
+            'total_retrieved': 0,
+        }
+
+    harvested_results: List[SourceProviderResult] = []
+    sources_checked = set()
+    failed_sources = set()
+    seen_urls = set()
+    seen_titles = set()
+
+    def _query_connector(conn: BaseSourceConnector, q: str):
+        return conn.id, conn.name, conn.search(q, max_results=max_results_per_source)
+
+    tasks = []
+    with ThreadPoolExecutor(max_workers=min(len(active_connectors) * len(clean_queries), 12)) as executor:
+        for conn in active_connectors:
+            for q in clean_queries:
+                tasks.append(executor.submit(_query_connector, conn, q))
+
+        try:
+            for future in as_completed(tasks, timeout=timeout_seconds):
+                try:
+                    conn_id, conn_name, res_list = future.result()
+                    sources_checked.add(conn_name)
+                    for item in res_list:
+                        # Deduplication key by URL or DOI or normalized Title
+                        norm_title = "".join(c for c in item.title.lower() if c.isalnum())
+                        key_url = item.url or (f"doi:{item.doi}" if item.doi else norm_title)
+                        if key_url and key_url in seen_urls:
+                            continue
+                        if norm_title and norm_title in seen_titles:
+                            continue
+
+                        if key_url:
+                            seen_urls.add(key_url)
+                        if norm_title:
+                            seen_titles.add(norm_title)
+
+                        harvested_results.append(item)
+                except Exception as e:
+                    logger.debug(f"Connector task exception: {e}")
+        except TimeoutError:
+            logger.info(f"Multi-source search reached timeout ({timeout_seconds}s); continuing with completed results.")
+
+    # Check which connectors had zero successes or timed out
+    for conn in active_connectors:
+        if conn.name not in sources_checked:
+            failed_sources.add(conn.name)
+
+    return {
+        'results': harvested_results,
+        'sources_checked': sorted(list(sources_checked)),
+        'failed_sources': sorted(list(failed_sources)),
+        'total_retrieved': len(harvested_results),
+    }

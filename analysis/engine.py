@@ -11,6 +11,7 @@ import re
 import time
 
 import logging
+from typing import List, Dict, Any, Optional, Set
 
 from django.conf import settings
 
@@ -102,7 +103,7 @@ class AnalysisEngine:
 
         self.ngram_comparator = NGramComparator(n=ngram_size)
 
-        self.fuzzy_comparator = FuzzyComparator(threshold=0.75)
+        self.fuzzy_comparator = FuzzyComparator(threshold=0.60)
 
         self.tfidf_comparator = TFIDFComparator()
 
@@ -181,13 +182,12 @@ class AnalysisEngine:
 
 
             if not extracted_texts.exists():
-
                 report.status = SimilarityReport.Status.FAILED
-
                 report.error_message = "No extracted text found. Please re-upload the document."
-
                 report.save()
-
+                document.status = Document.Status.FAILED
+                document.error_message = report.error_message
+                document.save(update_fields=['status', 'error_message'])
                 return report
 
 
@@ -243,29 +243,29 @@ class AnalysisEngine:
 
 
             if not sources:
-
-                # No sources to compare - report 0% similarity
-
+                # Source retrieval failed and no local reference sources exist: report failure transparently!
+                checked_info = getattr(self, 'last_search_meta', {}).get('sources_checked', [])
+                failed_info = getattr(self, 'last_search_meta', {}).get('failed_sources', [])
                 report.overall_similarity = 0.0
-
                 report.total_words = total_words
-
                 report.matched_words = 0
-
                 report.source_count = 0
-
-                report.status = SimilarityReport.Status.COMPLETED
-
-                report.processing_time_seconds = time.time() - start_time
-
-                report.sources_checked = ['No reference sources available for comparison']
-
+                report.status = SimilarityReport.Status.FAILED
+                report.error_message = (
+                    "Unable to complete the comparison: Could not connect to external academic "
+                    "or web databases, and no local reference documents were available. "
+                    "Please check network connectivity or configure API credentials."
+                )
+                report.processing_time_seconds = round(time.time() - start_time, 2)
+                report.sources_checked = [
+                    f"Sources attempted: {len(checked_info) + len(failed_info)}",
+                    f"Connectors available: {', '.join(checked_info) if checked_info else 'None'}",
+                ]
                 report.save()
 
-                document.status = Document.Status.COMPLETED
-
-                document.save(update_fields=['status'])
-
+                document.status = Document.Status.FAILED
+                document.error_message = report.error_message
+                document.save(update_fields=['status', 'error_message'])
                 return report
 
 
@@ -347,29 +347,23 @@ class AnalysisEngine:
 
 
             if not source_texts:
-
-                # No sources with text to compare against
-
+                # Sources were found, but none yielded extractable text: report failure transparently!
                 report.overall_similarity = 0.0
-
                 report.total_words = total_words
-
                 report.matched_words = 0
-
                 report.source_count = 0
-
-                report.status = SimilarityReport.Status.COMPLETED
-
-                report.processing_time_seconds = time.time() - start_time
-
-                report.sources_checked = [f'{len(sources)} reference sources found but none had extractable text']
-
+                report.status = SimilarityReport.Status.FAILED
+                report.error_message = (
+                    "Unable to complete the comparison: Reference sources were identified, but none contained "
+                    "extractable text for comparison. Please verify candidate sources."
+                )
+                report.processing_time_seconds = round(time.time() - start_time, 2)
+                report.sources_checked = [f'{len(sources)} candidate sources found, but none had extractable text']
                 report.save()
 
-                document.status = Document.Status.COMPLETED
-
-                document.save(update_fields=['status'])
-
+                document.status = Document.Status.FAILED
+                document.error_message = report.error_message
+                document.save(update_fields=['status', 'error_message'])
                 return report
 
 
@@ -796,13 +790,11 @@ class AnalysisEngine:
 
 
 
-                sub_page = match.get('submitted_page')
-
-                sub_para = match.get('submitted_para')
-
-                if not sub_page or not sub_para:
-
+                if char_start is not None and et_records:
                     sub_page, sub_para = _resolve_page_para(char_start)
+                else:
+                    sub_page = match.get('submitted_page') or 1
+                    sub_para = match.get('submitted_para') or 1
 
 
 
@@ -934,6 +926,14 @@ class AnalysisEngine:
 
             report.processing_time_seconds = round(time.time() - start_time, 2)
 
+            if not sources_checked and source_refs:
+                for s in source_refs[:10]:
+                    sources_checked.append({
+                        'name': s.title,
+                        'type': s.get_source_type_display() if hasattr(s, 'get_source_type_display') else 'Academic Repository',
+                        'tfidf_similarity': 0.0,
+                    })
+
             report.sources_checked = sources_checked
 
             report.save()
@@ -994,6 +994,46 @@ class AnalysisEngine:
 
 
 
+    def _extract_distinctive_queries(self, document, full_text: str) -> List[str]:
+        """Extracts distinctive titles and salient phrases from document for academic & web queries."""
+        queries = []
+        # 1. Document title if meaningful
+        doc_title = (getattr(document, 'title', '') or '').strip()
+        if doc_title and len(doc_title) > 5 and not doc_title.lower().endswith(('.pdf', '.docx', '.txt')):
+            queries.append(doc_title[:150])
+
+        # 2. Extract first prominent heading or title candidate from text
+        lines = [line.strip() for line in full_text.split('\n') if line.strip()]
+        for line in lines[:5]:
+            clean_line = re.sub(r'^[#*\s\d.]+', '', line).strip()
+            w_count = len(clean_line.split())
+            if 4 <= w_count <= 18 and clean_line.lower() not in [q.lower() for q in queries]:
+                queries.append(clean_line[:150])
+                break
+
+        # 3. Extract distinctive sentences from abstract / introduction
+        paras = [p.strip() for p in full_text.split('\n\n') if len(p.strip()) > 40]
+        stopwords = {
+            'this', 'that', 'with', 'from', 'have', 'were', 'which', 'their', 'there',
+            'about', 'would', 'could', 'should', 'these', 'those', 'being', 'between',
+            'into', 'more', 'also', 'such', 'other', 'than', 'some', 'when'
+        }
+        for p in paras[:4]:
+            sents = re.split(r'(?<=[.!?])\s+', p)
+            for s in sents:
+                clean_s = re.sub(r'[^\w\s]', ' ', s).strip()
+                words = [w for w in clean_s.split() if len(w) > 2]
+                meaningful = [w for w in words if w.lower() not in stopwords]
+                if 6 <= len(words) <= 22 and len(meaningful) >= 4:
+                    phrase = " ".join(words[:12])
+                    if phrase.lower() not in [q.lower() for q in queries]:
+                        queries.append(phrase)
+                        break
+            if len(queries) >= 3:
+                break
+
+        return queries[:3]
+
     def _get_comparison_sources(self, document, full_text=""):
 
         """Get reference sources to compare against, including Playwright live web search."""
@@ -1040,41 +1080,51 @@ class AnalysisEngine:
 
 
 
-        # Check live internet sources using Playwright headless browser
-
+        # Check live academic databases & internet sources using modular connectors
         check_web = self.exclusion_settings.get('check_web_sources', True)
+        search_metadata = {'sources_checked': [], 'failed_sources': []}
 
-        if check_web and full_text and len(full_text.split()) >= 14:
-
+        if check_web and full_text and len(full_text.split()) >= 8:
             try:
+                from sources.providers import multi_source_search
+                queries = self._extract_distinctive_queries(document, full_text)
+                if queries:
+                    search_res = multi_source_search(
+                        queries=queries,
+                        max_results_per_source=3,
+                        timeout_seconds=8.0,
+                    )
+                    search_metadata['sources_checked'] = search_res.get('sources_checked', [])
+                    search_metadata['failed_sources'] = search_res.get('failed_sources', [])
 
-                from .playwright_scraper import PlaywrightPlagiarismChecker
+                    inst = document.uploaded_by.institution if (document and document.uploaded_by) else None
+                    for prov_res in search_res.get('results', []):
+                        if prov_res.text and len(prov_res.text.strip()) > 25:
+                            ref_obj = prov_res.to_reference_source(institution=inst)
+                            if ref_obj and not any(str(s.id) == str(ref_obj.id) for s in sources):
+                                sources.append(ref_obj)
+            except Exception as search_e:
+                logger.warning(f"Multi-source academic/web search exception: {search_e}")
 
-                min_words = self.exclusion_settings.get('min_match_words', 14)
+            # Optional Playwright headless crawler if explicitly enabled
+            if getattr(settings, 'ENABLE_PLAYWRIGHT_SEARCH', False):
+                try:
+                    from .playwright_scraper import PlaywrightPlagiarismChecker
+                    min_words = self.exclusion_settings.get('min_match_words', 14)
+                    checker = PlaywrightPlagiarismChecker(headless=True, timeout_ms=6000)
+                    web_sources = checker.search_and_retrieve_sources(
+                        full_text=full_text,
+                        min_words=min_words,
+                        max_sources=4,
+                        target_document=document,
+                    )
+                    for ws in web_sources:
+                        if not any(str(s.id) == str(ws.id) for s in sources):
+                            sources.append(ws)
+                except Exception as pw_e:
+                    logger.debug(f"Playwright web crawl skipped: {pw_e}")
 
-                checker = PlaywrightPlagiarismChecker(headless=True, timeout_ms=12000)
-
-                web_sources = checker.search_and_retrieve_sources(
-
-                    full_text=full_text,
-
-                    min_words=min_words,
-
-                    max_sources=6,
-
-                    target_document=document,
-
-                )
-
-                for ws in web_sources:
-
-                    if not any(str(s.id) == str(ws.id) for s in sources):
-
-                        sources.append(ws)
-
-            except Exception as pw_e:
-
-                logger.warning(f"Playwright web plagiarism search skipped: {pw_e}")
+        self.last_search_meta = search_metadata
 
 
 

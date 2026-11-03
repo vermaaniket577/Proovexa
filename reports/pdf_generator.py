@@ -227,13 +227,13 @@ def _build_source_table_rows(s):
     # Title / Domain (Line 2 Left: width 473.28 pt)
     title_p = Paragraph(
         f"<b>{s['title']}</b>",
-        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=9.5, leading=13.0, textColor=colors.HexColor('#111827'))
+        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=9.0, leading=12.5, textColor=colors.HexColor('#1e293b'))
     )
 
     # Percentage (Line 2 Right: width 50 pt)
     pct_p = Paragraph(
         f"<b>{s['percent']}</b>",
-        ParagraphStyle('SrcPct', fontName=f_bold, fontSize=9.5, leading=13.0, alignment=TA_RIGHT, textColor=colors.HexColor('#111827'))
+        ParagraphStyle('SrcPct', fontName=f_bold, fontSize=9.0, leading=12.5, alignment=TA_RIGHT, textColor=colors.HexColor('#1e293b'))
     )
 
     return [
