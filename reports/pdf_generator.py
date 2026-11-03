@@ -195,26 +195,24 @@ def _build_source_table_rows(s):
     """
     f_reg, f_bold, _ = _register_turnitin_fonts()
     # 1. Colored number badge (oval pill)
-    badge_w = 19 if s['index'] < 10 else (24 if s['index'] < 100 else 28)
-    badge_d = Drawing(badge_w, 13)
-    badge_d.add(Rect(0, 0, badge_w, 13, rx=6.5, ry=6.5, fillColor=colors.HexColor(s['color']), strokeColor=None))
-    badge_d.add(String(badge_w / 2.0, 3.8, str(s['index']), fontName=f_bold, fontSize=7.5, fillColor=colors.white, textAnchor='middle'))
+    badge_w = 21 if s['index'] < 10 else (27 if s['index'] < 100 else 33)
+    badge_d = Drawing(badge_w, 14)
+    badge_d.add(Rect(0, 0, badge_w, 14, rx=7, ry=7, fillColor=colors.HexColor(s['color']), strokeColor=None))
+    badge_d.add(String(badge_w / 2.0, 4.0, str(s['index']), fontName=f_bold, fontSize=8.0, fillColor=colors.white, textAnchor='middle'))
 
     # 2. Category pill tag (matching source's pastel tone with dark neutral text)
     pill_bg = colors.HexColor(s.get('pill_bg', '#fce4ec'))
-    pill_text = colors.HexColor('#191919')
-    cat_text = s['category']
-    if cat_text in ['Submitted works', 'Submitted Works', 'Student Papers', 'student papers']:
-        cat_text = 'Student papers'
-    pill_w = 52 if len(cat_text) <= 8 else 74
-    pill_d = Drawing(pill_w, 13)
-    pill_d.add(Rect(0, 0, pill_w, 13, rx=6.5, ry=6.5, fillColor=pill_bg, strokeColor=None))
-    pill_d.add(String(pill_w / 2.0, 3.8, cat_text, fontName=f_reg, fontSize=6.8, fillColor=pill_text, textAnchor='middle'))
+    pill_text = colors.HexColor('#111827')
+    cat_text = s.get('category', 'Internet')
+    pill_w = 54 if len(cat_text) <= 8 else (70 if len(cat_text) <= 12 else 84)
+    pill_d = Drawing(pill_w, 14)
+    pill_d.add(Rect(0, 0, pill_w, 14, rx=7, ry=7, fillColor=pill_bg, strokeColor=None))
+    pill_d.add(String(pill_w / 2.0, 4.0, cat_text, fontName=f_reg, fontSize=7.2, fillColor=pill_text, textAnchor='middle'))
 
     # Top line container table: Badge and Pill side by side
     exact_w = s.get('exact_matched_words', 0)
     if exact_w > 0:
-        exact_p = Paragraph(f"<font color='#64748b'>Exact: {exact_w} w</font>", ParagraphStyle('ExactW', fontName=f_reg, fontSize=6.8, leading=9.0, textColor=colors.HexColor('#64748b')))
+        exact_p = Paragraph(f"<font color='#64748b'>Exact: {exact_w} w</font>", ParagraphStyle('ExactW', fontName=f_reg, fontSize=7.0, leading=9.0, textColor=colors.HexColor('#64748b')))
         top_table = Table([[badge_d, pill_d, exact_p]], colWidths=[badge_w + 5, pill_w + 6, 80])
     else:
         top_table = Table([[badge_d, pill_d]], colWidths=[badge_w + 5, pill_w + 6])
@@ -229,13 +227,13 @@ def _build_source_table_rows(s):
     # Title / Domain (Line 2 Left: width 473.28 pt)
     title_p = Paragraph(
         f"<b>{s['title']}</b>",
-        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=8.5, leading=12.5, textColor=colors.HexColor('#191919'))
+        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=9.5, leading=13.0, textColor=colors.HexColor('#111827'))
     )
 
     # Percentage (Line 2 Right: width 50 pt)
     pct_p = Paragraph(
         f"<b>{s['percent']}</b>",
-        ParagraphStyle('SrcPct', fontName=f_bold, fontSize=8.5, leading=12.5, alignment=TA_RIGHT, textColor=colors.HexColor('#191919'))
+        ParagraphStyle('SrcPct', fontName=f_bold, fontSize=9.5, leading=13.0, alignment=TA_RIGHT, textColor=colors.HexColor('#111827'))
     )
 
     return [
@@ -679,7 +677,7 @@ def generate_pdf_report(report):
                     ('BOTTOMPADDING', (0, 2 * i), (-1, 2 * i), mid_pad_1),
                     ('TOPPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), mid_pad_2),
                     ('BOTTOMPADDING', (0, 2 * i + 1), (-1, 2 * i + 1), bot_pad),
-                    ('LINEBELOW', (0, 2 * i + 1), (-1, 2 * i + 1), 0.5, colors.HexColor('#e2e8f0')),
+                    ('LINEBELOW', (0, 2 * i + 1), (-1, 2 * i + 1), 0.5, colors.HexColor('#ebebeb')),
                 ])
             t.setStyle(TableStyle(t_style))
             story.append(t)
