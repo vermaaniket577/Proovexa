@@ -163,7 +163,7 @@ def report_detail_view(request, report_id):
         ai_report = AIReport.objects.filter(document=report.document).order_by('-created_at').first()
 
     is_zero_ai = ai_report.is_zero_ai if ai_report else True
-    overall_ai_display = ai_report.display_score if ai_report else "*%"
+    overall_ai_display = ai_report.display_score if ai_report else "0%"
     ai_total_pages = (report.document.page_count or 1) + 2
 
     return render(request, 'reports/detail.html', {

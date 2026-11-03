@@ -73,7 +73,7 @@ class AnalysisEngine:
 
             'exclude_citations': False,
 
-            'min_match_words': getattr(settings, 'MIN_MATCH_WORD_COUNT', 14),
+            'min_match_words': getattr(settings, 'MIN_MATCH_WORD_COUNT', 8),
 
             'exclude_common_phrases': False,
 
@@ -91,7 +91,7 @@ class AnalysisEngine:
 
         # Initialize comparators
 
-        min_words = self.exclusion_settings.get('min_match_words', 14)
+        min_words = self.exclusion_settings.get('min_match_words', 8)
 
         ngram_size = getattr(settings, 'NGRAM_SIZE', 5)
 
@@ -282,7 +282,7 @@ class AnalysisEngine:
 
             scorer = AcademicSimilarityScorer(total_word_count=total_words, full_text=full_text)
 
-            min_words = self.exclusion_settings.get('min_match_words', 14)
+            min_words = self.exclusion_settings.get('min_match_words', 8)
 
 
 
@@ -565,7 +565,7 @@ class AnalysisEngine:
 
                 # Method C: N-Gram Phrase Matching
 
-                ngram_result = self.ngram_comparator.compare(full_text, source_text, sub_ngrams=cached_sub_ngrams, sub_words=cached_sub_words)
+                ngram_result = self.ngram_comparator.compare(full_text, source_text, sub_ngrams=cached_sub_ngrams, sub_words=cached_sub_words, sub_tokens=sub_tokens)
 
                 for match in ngram_result.matches:
 
@@ -1110,7 +1110,7 @@ class AnalysisEngine:
             if getattr(settings, 'ENABLE_PLAYWRIGHT_SEARCH', False):
                 try:
                     from .playwright_scraper import PlaywrightPlagiarismChecker
-                    min_words = self.exclusion_settings.get('min_match_words', 14)
+                    min_words = self.exclusion_settings.get('min_match_words', 8)
                     checker = PlaywrightPlagiarismChecker(headless=True, timeout_ms=6000)
                     web_sources = checker.search_and_retrieve_sources(
                         full_text=full_text,
@@ -1313,24 +1313,31 @@ class AnalysisEngine:
 
 
     def _estimate_char_position(self, full_text, match_text, start_from=0):
-
         """Estimate character position of a match in the full text."""
-
         snippet = match_text.lower()[:100].strip()
-
         if not snippet:
-
             return 0
-
         pos = full_text.lower().find(snippet, max(0, start_from))
+        if pos != -1:
+            return pos
+        pos = full_text.lower().find(snippet)
+        if pos != -1:
+            return pos
 
-        if pos == -1:
-
-            pos = full_text.lower().find(snippet)
-
-        return max(pos, 0)
-
-
+        # Fallback to token sequence matching if verbatim search fails due to punctuation/whitespace
+        words = re.findall(r'[\w\u0900-\u097F]+', match_text)
+        if words:
+            for k in (min(len(words), 8), min(len(words), 5), min(len(words), 3), min(len(words), 2)):
+                if k < 2:
+                    break
+                pat = r'\b' + r'\b[\s\W]+'.join(re.escape(w) for w in words[:k]) + r'\b'
+                m = re.search(pat, full_text[max(0, start_from):], re.IGNORECASE)
+                if m:
+                    return max(0, start_from) + m.start()
+                m = re.search(pat, full_text, re.IGNORECASE)
+                if m:
+                    return m.start()
+        return 0
 
     def _char_span_to_word_span(self, tokens, char_start, char_end):
         """Maps character offsets [char_start, char_end] to word indices [w_start, w_end] in O(log N)."""

@@ -44,7 +44,7 @@ class ExactMatchComparator:
     Guarantees exact character offsets and original text formatting.
     """
 
-    def __init__(self, min_word_count=14):
+    def __init__(self, min_word_count=8):
         self.min_word_count = min_word_count
         self._tokenizer = WinnowingEngine()
 
@@ -179,7 +179,7 @@ class NGramComparator:
         self.n = n
         self.min_matching_ngrams = min_matching_ngrams
 
-    def compare(self, submitted_text, source_text, submitted_pages=None, source_pages=None, sub_ngrams=None, src_ngrams=None, sub_words=None, src_words=None):
+    def compare(self, submitted_text, source_text, submitted_pages=None, source_pages=None, sub_ngrams=None, src_ngrams=None, sub_words=None, src_words=None, sub_tokens=None, src_tokens=None):
         """Find matching n-gram sequences."""
         result = ComparisonResult('phrase')
 

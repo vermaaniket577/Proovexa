@@ -36,7 +36,7 @@ class ExclusionEngine:
         word_count = len(submitted_text.split())
 
         # Check minimum word count
-        min_words = self.settings.get('min_match_words', 14)
+        min_words = self.settings.get('min_match_words', 8)
         if word_count < min_words:
             return True, f'Below minimum word count ({min_words})', False
 
@@ -193,7 +193,7 @@ class ExclusionEngine:
             summary.append('Direct quotations excluded')
         if self.settings.get('exclude_citations'):
             summary.append('Formatted citations excluded')
-        if self.settings.get('min_match_words', 14) != 14:
+        if self.settings.get('min_match_words', 8) != 8:
             summary.append(f"Minimum match: {self.settings['min_match_words']} words")
         if self.settings.get('exclude_common_phrases'):
             summary.append('Common phrases excluded')

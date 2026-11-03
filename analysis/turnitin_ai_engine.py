@@ -354,7 +354,7 @@ class TurnitinAIDetector:
             category = "Human"
             highlight_color = "none"
 
-            if not is_meta and pooled_score >= 0.60:
+            if not is_meta and pooled_score >= 0.50:
                 # Paraphraser detection: AI context + low burstiness, but elevated local synonym spikes
                 if s_spike > 2.65 and 22.0 <= s_ppl <= 65.0:
                     category = "AI-Paraphrased"

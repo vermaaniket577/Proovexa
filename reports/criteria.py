@@ -313,9 +313,17 @@ def compute_report_criteria(report):
     if len(passages) == 0 and report.overall_similarity > 0:
         nc_count = report.exact_match_count or 1
 
-    is_zero_report = (report.overall_similarity == 0 or report.overall_similarity <= 0.0)
-    total_sim = round(report.overall_similarity, 0)
-    score_display = f"{int(total_sim)}%"
+    is_zero_report = (report.overall_similarity <= 0.0 and (report.matched_words or 0) == 0 and len(passages) == 0)
+    sim_val = float(report.overall_similarity or 0.0)
+    if is_zero_report:
+        score_display = "0%"
+        total_sim = 0
+    elif sim_val < 0.5:
+        score_display = "<1%"
+        total_sim = 1
+    else:
+        total_sim = max(1, int(round(sim_val)))
+        score_display = f"{total_sim}%"
 
     # Match groups stats scaled to total_sim so sum(match_groups.pct) == total_sim
     raw_nc = sum(p.word_count for p in group_not_cited)
@@ -529,7 +537,7 @@ def compute_report_criteria(report):
             elif s.get('pct_display') is not None:
                 pct_display = s.get('pct_display')
             elif effective_pct >= 0.95:
-                pct_display = f"{min(int(round(effective_pct)), int(total_sim))}%"
+                pct_display = f"{max(1, int(round(effective_pct)))}%"
             else:
                 pct_display = "<1%"
 
@@ -565,7 +573,7 @@ def compute_report_criteria(report):
             if is_zero_report:
                 pct_display = "*"
             elif src_pct >= 0.95:
-                pct_display = f"{min(int(round(src_pct)), int(total_sim))}%"
+                pct_display = f"{max(1, int(round(src_pct)))}%"
             else:
                 pct_display = "<1%"
 

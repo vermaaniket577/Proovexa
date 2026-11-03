@@ -329,21 +329,21 @@ class AIReport(models.Model):
 
     @property
     def is_zero_ai(self):
-        """Turnitin treats 0% and sub-20% scores as *% with review required disclaimer."""
-        return self.overall_ai_score < 20.0
+        """Turnitin treats <1% as zero AI."""
+        return self.overall_ai_score < 1.0
 
     @property
     def display_score(self):
         """
         Format Turnitin AI display score:
         - 0% if no AI detected (< 1.0%)
-        - *% if score is between 1% and 19% (masked to suppress false positives)
+        - XX%* if score is between 1% and 19% (Turnitin asterisk notation for sub-20% review disclaimer)
         - XX% if score is >= 20%
         """
         if self.overall_ai_score < 1.0:
             return "0%"
         elif self.overall_ai_score < 20.0:
-            return "*%"
+            return f"{int(round(self.overall_ai_score))}%*"
         return f"{int(round(self.overall_ai_score))}%"
 
     def __str__(self):

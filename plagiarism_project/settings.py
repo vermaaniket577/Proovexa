@@ -24,7 +24,7 @@ env = environ.Env(
     MAX_PAGES=(int, 500),
     MAX_WORDS=(int, 100000),
     DEFAULT_SIMILARITY_THRESHOLD=(int, 15),
-    MIN_MATCH_WORD_COUNT=(int, 14),
+    MIN_MATCH_WORD_COUNT=(int, 8),
     NGRAM_SIZE=(int, 5),
     PROCESSING_TIMEOUT_SECONDS=(int, 300),
 )
@@ -202,7 +202,7 @@ ALLOWED_MIME_TYPES = {
 
 # Similarity Settings
 DEFAULT_SIMILARITY_THRESHOLD = env('DEFAULT_SIMILARITY_THRESHOLD')
-MIN_MATCH_WORD_COUNT = env('MIN_MATCH_WORD_COUNT', default=14)
+MIN_MATCH_WORD_COUNT = env('MIN_MATCH_WORD_COUNT', default=8)
 NGRAM_SIZE = env('NGRAM_SIZE')
 
 # Processing Settings

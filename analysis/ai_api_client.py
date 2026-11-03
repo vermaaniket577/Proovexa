@@ -63,6 +63,8 @@ class AIAPIClient:
 
     def is_api_available(self, task_type: str = 'ai_writing') -> bool:
         """Returns True if external AI API calls are enabled and keys are configured for task."""
+        if getattr(AIAPIClient, '_quota_exhausted', False):
+            return False
         if not self.is_enabled or self.provider == 'local':
             return False
         if task_type == 'ai_writing' and not self.enable_ai_writing_detection:
@@ -157,6 +159,10 @@ class AIAPIClient:
         }
 
         resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+        if resp.status_code in (402, 429):
+            AIAPIClient._quota_exhausted = True
+            logger.warning(f"Gemini API quota exhausted (status {resp.status_code}). Switching to calibrated local AI engine.")
+            return None
         if resp.status_code == 200:
             data = resp.json()
             raw_text = data['candidates'][0]['content']['parts'][0]['text']
@@ -190,6 +196,10 @@ class AIAPIClient:
         }
 
         resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+        if resp.status_code in (402, 429):
+            AIAPIClient._quota_exhausted = True
+            logger.warning(f"Gemini API quota exhausted (status {resp.status_code}). Switching to calibrated local AI engine.")
+            return None
         if resp.status_code == 200:
             data = resp.json()
             content = data['choices'][0]['message']['content']
@@ -272,6 +282,10 @@ class AIAPIClient:
             "generationConfig": {"temperature": self.temperature, "maxOutputTokens": self.max_tokens}
         }
         resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+        if resp.status_code in (402, 429):
+            AIAPIClient._quota_exhausted = True
+            logger.warning(f"Gemini API quota exhausted (status {resp.status_code}). Switching to calibrated local AI engine.")
+            return None
         if resp.status_code == 200:
             raw = resp.json()['candidates'][0]['content']['parts'][0]['text']
             parsed = self._extract_json(raw)
@@ -301,6 +315,10 @@ class AIAPIClient:
             "response_format": {"type": "json_object"}
         }
         resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+        if resp.status_code in (402, 429):
+            AIAPIClient._quota_exhausted = True
+            logger.warning(f"Gemini API quota exhausted (status {resp.status_code}). Switching to calibrated local AI engine.")
+            return None
         if resp.status_code == 200:
             parsed = json.loads(resp.json()['choices'][0]['message']['content'])
             parsed['provider'] = f"OpenAI API (Semantic Paraphrase Engine - {self.openai_model})"
@@ -610,6 +628,10 @@ class AIAPIClient:
             payload["tools"] = [{"google_search": {}}]
 
         resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+        if resp.status_code in (402, 429):
+            AIAPIClient._quota_exhausted = True
+            logger.warning(f"Gemini API quota exhausted (status {resp.status_code}). Switching to calibrated local AI engine.")
+            return None
         if resp.status_code == 200:
             raw = resp.json()['candidates'][0]['content']['parts'][0]['text']
             return self._extract_json(raw)
@@ -646,6 +668,10 @@ class AIAPIClient:
             "response_format": {"type": "json_object"}
         }
         resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+        if resp.status_code in (402, 429):
+            AIAPIClient._quota_exhausted = True
+            logger.warning(f"Gemini API quota exhausted (status {resp.status_code}). Switching to calibrated local AI engine.")
+            return None
         if resp.status_code == 200:
             return json.loads(resp.json()['choices'][0]['message']['content'])
         return None

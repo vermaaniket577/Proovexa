@@ -179,7 +179,7 @@ class TurnitinAIPipeline:
         min_prose_words: int = 300,
         timeout_seconds: int = 25,
         max_concurrency: int = 4,
-        confidence_threshold: float = 0.60,
+        confidence_threshold: float = 0.50,
     ):
         self.provider = provider.lower()
         self.target_window_words = target_window_words
