@@ -311,6 +311,12 @@ def generate_pdf_report(report):
     4. Integrity Overview (Page 4: Sources continuation 11-13+)
     5. Integrity Submission (Pages 5+: Document text with inline highlights & margin badges)
     """
+    try:
+        from reports.turnitin_engine import TurnitinPDFEngine
+        return TurnitinPDFEngine.generate_report(report)
+    except Exception:
+        pass
+
     criteria = compute_report_criteria(report)
 
     buffer = io.BytesIO()
@@ -707,8 +713,10 @@ def generate_pdf_report(report):
     story.append(Paragraph(report.document.title, doc_title_style))
     story.append(HRFlowable(width="100%", thickness=1.2, color=colors.HexColor('#0084ff'), spaceAfter=14))
 
-    # Pre-map passages to paragraph content
-    source_color_map = {s['index']: (s.get('color', '#e91e63'), s.get('pastel_bg', '#fce4ec')) for s in criteria.get('top_sources', [])}
+    # Pre-map passages to paragraph content
+
+    source_color_map = {s['index']: (s.get('color', '#e91e63'), s.get('pastel_bg', '#fce4ec')) for s in criteria.get('top_sources', [])}
+
     if extracted_texts.exists():
         from xml.sax.saxutils import escape as xml_escape
         for et in extracted_texts:

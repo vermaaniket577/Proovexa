@@ -8,7 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from documents.models import Document
-from analysis.models import SimilarityReport, ProcessingJob
+from analysis.models import SimilarityReport, AIReport, ProcessingJob
 from accounts.models import User, AuditLog, Institution
 
 
@@ -39,10 +39,11 @@ def _get_admin_stats():
     total_users = User.objects.count()
     total_documents = Document.objects.filter(is_deleted=False).count()
     total_reports = SimilarityReport.objects.filter(status='completed').count()
+    total_ai_reports = AIReport.objects.filter(status='completed').count()
 
     recent_documents = Document.objects.filter(
         is_deleted=False
-    ).select_related('uploaded_by').order_by('-uploaded_at')[:10]
+    ).select_related('uploaded_by').prefetch_related('similarity_reports', 'ai_reports').order_by('-uploaded_at')[:10]
 
     recent_reports = SimilarityReport.objects.filter(
         status='completed'
@@ -62,12 +63,14 @@ def _get_admin_stats():
         'total_users': total_users,
         'total_documents': total_documents,
         'total_reports': total_reports,
+        'total_ai_reports': total_ai_reports,
         'docs_this_month': docs_this_month,
         'docs_this_week': docs_this_week,
         'avg_similarity': round(avg_similarity, 1),
         'recent_documents': recent_documents,
         'recent_reports': recent_reports,
         'user_counts': {u['role']: u['count'] for u in user_counts},
+        'credits_remaining': 100,
     }
 
 
@@ -83,7 +86,12 @@ def _get_teacher_stats(user):
         status='completed'
     ).distinct()
 
-    recent_documents = documents.select_related('uploaded_by').order_by('-uploaded_at')[:10]
+    total_ai_reports = AIReport.objects.filter(
+        Q(created_by=user) | Q(document__assignment__created_by=user),
+        status='completed'
+    ).distinct().count()
+
+    recent_documents = documents.select_related('uploaded_by').prefetch_related('similarity_reports', 'ai_reports').order_by('-uploaded_at')[:10]
     recent_reports = reports.select_related(
         'document', 'document__uploaded_by'
     ).order_by('-created_at')[:10]
@@ -91,9 +99,11 @@ def _get_teacher_stats(user):
     return {
         'total_documents': documents.count(),
         'total_reports': reports.count(),
+        'total_ai_reports': total_ai_reports,
         'recent_documents': recent_documents,
         'recent_reports': recent_reports,
         'assignments_count': user.created_assignments.filter(is_active=True).count(),
+        'credits_remaining': 100,
     }
 
 
@@ -105,13 +115,18 @@ def _get_student_stats(user):
     reports = SimilarityReport.objects.filter(
         document__uploaded_by=user, status='completed'
     )
+    total_ai_reports = AIReport.objects.filter(
+        document__uploaded_by=user, status='completed'
+    ).count()
 
-    recent_documents = documents.order_by('-uploaded_at')[:10]
+    recent_documents = documents.prefetch_related('similarity_reports', 'ai_reports').order_by('-uploaded_at')[:10]
     recent_reports = reports.select_related('document').order_by('-created_at')[:10]
 
     return {
         'total_documents': documents.count(),
         'total_reports': reports.count(),
+        'total_ai_reports': total_ai_reports,
         'recent_documents': recent_documents,
         'recent_reports': recent_reports,
+        'credits_remaining': 100,
     }

@@ -52,7 +52,7 @@
                     </div>
                     <div class="d-flex flex-column">
                         <span style="font-weight: 800; letter-spacing: -0.02em; font-size: 1.2rem;">Proovexa</span>
-                        <small style="font-size: 0.62rem; color: rgba(255,255,255,0.48); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">Turnitin™ & AI Platform</small>
+                        <small style="font-size: 0.62rem; color: rgba(255,255,255,0.6); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">Academic Integrity SaaS</small>
                     </div>
                 </a>
                 <button class="sidebar-toggle d-lg-none" id="sidebarClose">
@@ -62,34 +62,46 @@
 
             <div class="sidebar-nav">
                 <div class="nav-section">
-                    <span class="nav-section-title">Core Platform</span>
+                    <span class="nav-section-title">Academic Integrity</span>
                     <a href="{% url 'dashboard:home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
                         <i class="bi bi-grid-1x2-fill"></i>
                         <span>Dashboard</span>
                     </a>
                     <a href="{% url 'documents:upload' %}" class="nav-link {% if request.resolver_match.url_name == 'upload' %}active{% endif %}">
                         <i class="bi bi-cloud-arrow-up-fill"></i>
-                        <span>Upload & Analyze</span>
+                        <span>New Submission</span>
                     </a>
-                    <a href="{% url 'documents:list' %}" class="nav-link {% if 'documents' in request.path and 'upload' not in request.path %}active{% endif %}">
+                    <a href="{% url 'documents:list' %}" class="nav-link {% if 'documents' in request.path and 'upload' not in request.path and 'is_reference' not in request.get_full_path %}active{% endif %}">
                         <i class="bi bi-file-earmark-text-fill"></i>
-                        <span>Document Library</span>
+                        <span>My Documents</span>
                     </a>
-                    <a href="{% url 'reports:list' %}" class="nav-link {% if 'reports' in request.path %}active{% endif %}">
-                        <i class="bi bi-bar-chart-fill"></i>
-                        <span>Similarity & AI Reports</span>
+                    <a href="{% url 'reports:list' %}" class="nav-link {% if 'reports' in request.path and 'ai' not in request.path %}active{% endif %}">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Similarity Reports</span>
+                    </a>
+                    <a href="{% url 'reports:list' %}?type=ai" class="nav-link {% if 'type=ai' in request.get_full_path or '/ai/' in request.path %}active{% endif %}">
+                        <i class="bi bi-robot"></i>
+                        <span>AI Writing Reports</span>
                     </a>
                 </div>
 
                 <div class="nav-section">
-                    <span class="nav-section-title">Workspace</span>
+                    <span class="nav-section-title">Workspace & Projects</span>
                     <a href="{% url 'documents:list' %}?is_reference=1" class="nav-link {% if 'is_reference=1' in request.get_full_path %}active{% endif %}">
                         <i class="bi bi-journal-bookmark-fill"></i>
-                        <span>Reference Repository</span>
+                        <span>Reference Repositories</span>
                     </a>
                     <a href="{% url 'dashboard:home' %}#assignments" class="nav-link">
-                        <i class="bi bi-mortarboard-fill"></i>
-                        <span>Course Submissions</span>
+                        <i class="bi bi-folder-fill"></i>
+                        <span>Research Projects & Courses</span>
+                    </a>
+                    <a href="{% url 'accounts:profile' %}#credits" class="nav-link">
+                        <i class="bi bi-coin"></i>
+                        <span>Usage & Credits</span>
+                    </a>
+                    <a href="https://github.com/vermaaniket577/Proovexa" target="_blank" class="nav-link">
+                        <i class="bi bi-question-circle-fill"></i>
+                        <span>Help & Support</span>
                     </a>
                 </div>
 
@@ -158,7 +170,7 @@
                         </h1>
                     </div>
                     <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 d-none d-xl-inline-flex align-items-center gap-1.5" style="font-size: 0.72rem; font-weight: 600;">
-                        <span class="pulse-live-indicator"></span> Turnitin™ & AI Live Engine
+                        <span class="pulse-live-indicator"></span> Enterprise Integrity & AI Engine Online
                     </span>
                 </div>
 

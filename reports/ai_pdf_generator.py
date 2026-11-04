@@ -171,6 +171,12 @@ def generate_ai_pdf_report(ai_report):
     """
     Generate an AI Writing Detection PDF report matching Turnitin format.
     """
+    try:
+        from reports.turnitin_engine.ai_reporter import TurnitinAIReporter
+        return TurnitinAIReporter.generate_report(ai_report)
+    except Exception as e:
+        pass
+
     doc_obj = ai_report.document
     uploaded_by = doc_obj.uploaded_by
     author_name = uploaded_by.get_full_name() or uploaded_by.username or "Student Author"

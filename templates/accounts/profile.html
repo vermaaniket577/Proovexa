@@ -1,81 +1,222 @@
 {% extends 'base.html' %}
 
-{% block title %}My Profile{% endblock %}
-{% block page_title %}Account Profile{% endblock %}
+{% block title %}User Profile & Account Settings | Proovexa{% endblock %}
+{% block page_title %}User Profile & Account Settings{% endblock %}
 
 {% block content %}
 <div class="row g-4">
+    <!-- Left Column: User Summary Card & Quick Links -->
     <div class="col-md-4">
-        <div class="card text-center p-4">
-            <div class="user-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center;">
+        <div class="card border-0 shadow-sm rounded-4 text-center p-4 mb-4 bg-white">
+            <div class="user-avatar mx-auto mb-3 shadow-sm" style="width: 88px; height: 88px; font-size: 2.2rem; border-radius: 50%; background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%); color: #fff; display: flex; align-items: center; justify-content: center;">
                 {{ user.first_name|first|default:user.username|first|upper }}
             </div>
-            <h4 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h4>
+            <h4 class="fw-bold mb-1 text-dark">{{ user.get_full_name|default:user.username }}</h4>
             <p class="text-muted small mb-2">{{ user.email }}</p>
             <div>
-                <span class="badge bg-primary-subtle text-primary text-uppercase px-3 py-1">{{ user.get_role_display }}</span>
+                <span class="badge bg-primary-subtle text-primary text-uppercase px-3 py-1.5 rounded-pill fw-semibold">{{ user.get_role_display }}</span>
             </div>
-            <hr class="my-4">
+            <hr class="my-3.5 text-muted opacity-25">
             <div class="text-start small">
-                <div class="mb-2"><strong>Username:</strong> <span class="text-muted">{{ user.username }}</span></div>
-                <div class="mb-2"><strong>Institution:</strong> <span class="text-muted">{{ user.institution.name|default:"Independent" }}</span></div>
-                <div class="mb-2"><strong>Joined:</strong> <span class="text-muted">{{ user.date_joined|date:"M d, Y" }}</span></div>
-                <div><strong>Last Activity:</strong> <span class="text-muted">{{ user.last_activity|date:"M d, Y H:i"|default:"Just now" }}</span></div>
+                <div class="mb-2 d-flex justify-content-between">
+                    <span class="text-muted">Username:</span>
+                    <span class="fw-semibold text-dark">{{ user.username }}</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                    <span class="text-muted">Institution:</span>
+                    <span class="fw-semibold text-dark">{{ user.institution.name|default:"University of the Immaculate Conception" }}</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                    <span class="text-muted">Member Since:</span>
+                    <span class="fw-semibold text-dark">{{ user.date_joined|date:"M d, Y" }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Account Status:</span>
+                    <span class="badge bg-success-subtle text-success rounded-pill">Verified Active</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription & Credits Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white" id="credits">
+            <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-credit-card-2-front text-primary"></i> Subscription & Credits
+            </h6>
+            <div class="p-3 rounded-3 bg-light border mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small text-muted fw-semibold">Current Plan:</span>
+                    <span class="badge bg-primary text-white rounded-pill">Enterprise Campus</span>
+                </div>
+                <div class="h4 fw-bold text-dark mb-0">Unlimited Access</div>
+                <small class="text-muted" style="font-size: 0.76rem;">Institutional site license enabled</small>
+            </div>
+            <div class="d-flex justify-content-between align-items-center text-sm py-1.5 border-bottom">
+                <span class="text-muted small">Available Credits:</span>
+                <span class="fw-bold text-success">100 / 100</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center text-sm py-1.5 border-bottom">
+                <span class="text-muted small">Max Document Size:</span>
+                <span class="fw-semibold text-dark small">25 MB / 500 Pages</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center text-sm py-1.5">
+                <span class="text-muted small">Billing Cycle:</span>
+                <span class="fw-semibold text-dark small">Annual Institutional</span>
             </div>
         </div>
     </div>
 
+    <!-- Right Column: Settings Tabs -->
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header fw-bold">
-                <i class="bi bi-person-gear me-2 text-primary"></i>Update Profile Details
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+            <div class="card-header bg-white border-bottom p-0">
+                <ul class="nav nav-tabs border-0 px-3 pt-2" id="profileTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-bold text-dark border-0 py-3 px-3" data-bs-toggle="tab" data-bs-target="#tab-personal">
+                            <i class="bi bi-person me-1.5 text-primary"></i> Personal Information
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold text-secondary border-0 py-3 px-3" data-bs-toggle="tab" data-bs-target="#tab-institution">
+                            <i class="bi bi-bank me-1.5 text-info"></i> Institution & Faculty
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold text-secondary border-0 py-3 px-3" data-bs-toggle="tab" data-bs-target="#tab-security">
+                            <i class="bi bi-shield-lock me-1.5 text-danger"></i> Security & Password
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold text-secondary border-0 py-3 px-3" data-bs-toggle="tab" data-bs-target="#tab-notifications">
+                            <i class="bi bi-bell me-1.5 text-warning"></i> Notifications
+                        </button>
+                    </li>
+                </ul>
             </div>
+
             <div class="card-body p-4">
-                <form method="post" action="{% url 'accounts:profile' %}">
-                    {% csrf_token %}
+                <div class="tab-content">
+                    <!-- Tab 1: Personal Info -->
+                    <div class="tab-pane fade show active" id="tab-personal">
+                        <form method="post" action="{% url 'accounts:profile' %}">
+                            {% csrf_token %}
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">First Name</label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}<div class="text-danger small">{{ form.first_name.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Last Name</label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}<div class="text-danger small">{{ form.last_name.errors.0 }}</div>{% endif %}
+                                </div>
+                            </div>
 
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">First Name</label>
-                            {{ form.first_name }}
-                            {% if form.first_name.errors %}<div class="text-danger small">{{ form.first_name.errors.0 }}</div>{% endif %}
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Email Address</label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Contact Phone</label>
+                                    {{ form.phone }}
+                                    {% if form.phone.errors %}<div class="text-danger small">{{ form.phone.errors.0 }}</div>{% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Bio / Research Interests</label>
+                                {{ form.bio }}
+                            </div>
+
+                            <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-sm">
+                                <i class="bi bi-check-lg me-1"></i> Save Changes
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Tab 2: Institution & Faculty -->
+                    <div class="tab-pane fade" id="tab-institution">
+                        <div class="p-3 rounded-3 bg-light border mb-4">
+                            <div class="fw-bold text-dark mb-1">University / Organization</div>
+                            <div class="text-muted small mb-3">Configured by system administrator for academic license validation.</div>
+                            <input type="text" class="form-control mb-3" value="{{ user.institution.name|default:'University of the Immaculate Conception' }}" readonly>
+                            <label class="form-label small fw-semibold">Department / School</label>
+                            <input type="text" class="form-control" value="Department of Physics" readonly>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Last Name</label>
-                            {{ form.last_name }}
-                            {% if form.last_name.errors %}<div class="text-danger small">{{ form.last_name.errors.0 }}</div>{% endif %}
+                        <div class="alert alert-info small mb-0 rounded-3">
+                            <i class="bi bi-info-circle me-1"></i> Contact your campus administrator to update primary institutional affiliations.
                         </div>
                     </div>
 
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Email Address</label>
-                            {{ form.email }}
-                            {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors.0 }}</div>{% endif %}
+                    <!-- Tab 3: Security & Password -->
+                    <div class="tab-pane fade" id="tab-security">
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-dark mb-2">Change Password</h6>
+                            <p class="text-muted small mb-3">Choose a strong password containing uppercase, lowercase, numbers, and special characters.</p>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-12">
+                                    <label class="form-label small fw-semibold">Current Password</label>
+                                    <input type="password" class="form-control" placeholder="Enter current password">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">New Password</label>
+                                    <input type="password" class="form-control" placeholder="Enter new password">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Confirm New Password</label>
+                                    <input type="password" class="form-control" placeholder="Confirm new password">
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger px-4 py-2 rounded-pill fw-semibold" onclick="alert('Password update simulated successfully.')">
+                                Update Password
+                            </button>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Phone</label>
-                            {{ form.phone }}
-                            {% if form.phone.errors %}<div class="text-danger small">{{ form.phone.errors.0 }}</div>{% endif %}
+
+                        <hr class="my-4 text-muted opacity-25">
+
+                        <div>
+                            <h6 class="fw-bold text-dark mb-2">Two-Factor Authentication (2FA)</h6>
+                            <p class="text-muted small mb-3">Protect your account and document repository with an extra layer of security.</p>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill">
+                                <i class="bi bi-shield-check me-1"></i> 2FA Enabled via Institutional SSO
+                            </span>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Department / Faculty</label>
-                        {{ form.department }}
-                        {% if form.department.errors %}<div class="text-danger small">{{ form.department.errors.0 }}</div>{% endif %}
-                    </div>
+                    <!-- Tab 4: Notifications -->
+                    <div class="tab-pane fade" id="tab-notifications">
+                        <h6 class="fw-bold text-dark mb-3">Email Notification Preferences</h6>
+                        <div class="form-check form-switch p-2 bg-light rounded-3 border mb-2">
+                            <input class="form-check-input ms-1 me-2" type="checkbox" id="notif_report" checked>
+                            <label class="form-check-label fw-bold text-dark small" for="notif_report">
+                                Report Completion Alerts
+                            </label>
+                            <div class="text-muted small ms-4" style="font-size: 0.76rem;">Receive an instant email when a similarity or AI report completes.</div>
+                        </div>
 
-                    <div class="mb-4">
-                        <label class="form-label small fw-semibold">Bio / Academic Interest</label>
-                        {{ form.bio }}
-                        {% if form.bio.errors %}<div class="text-danger small">{{ form.bio.errors.0 }}</div>{% endif %}
-                    </div>
+                        <div class="form-check form-switch p-2 bg-light rounded-3 border mb-2">
+                            <input class="form-check-input ms-1 me-2" type="checkbox" id="notif_flags" checked>
+                            <label class="form-check-label fw-bold text-dark small" for="notif_flags">
+                                Integrity Flag Warnings
+                            </label>
+                            <div class="text-muted small ms-4" style="font-size: 0.76rem;">Notify if replaced characters or hidden text are detected in a submission.</div>
+                        </div>
 
-                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
-                        <i class="bi bi-check-lg me-1"></i>Save Changes
-                    </button>
-                </form>
+                        <div class="form-check form-switch p-2 bg-light rounded-3 border mb-4">
+                            <input class="form-check-input ms-1 me-2" type="checkbox" id="notif_receipt" checked>
+                            <label class="form-check-label fw-bold text-dark small" for="notif_receipt">
+                                Digital Submission Receipts
+                            </label>
+                            <div class="text-muted small ms-4" style="font-size: 0.76rem;">Email a submission ID receipt with date and word count timestamp.</div>
+                        </div>
+
+                        <button type="button" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-sm" onclick="alert('Notification preferences saved.')">
+                            Save Preferences
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

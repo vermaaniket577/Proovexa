@@ -1,24 +1,24 @@
 {% extends 'base.html' %}
 
-{% block title %}New Document Submission | Proovexa{% endblock %}
-{% block page_title %}New Document Submission{% endblock %}
+{% block title %}Submit Your Document | Proovexa{% endblock %}
+{% block page_title %}Submit Your Document{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-xl-10 col-lg-11">
 
         <!-- Visual Multi-Phase Processing Stepper -->
-        <div class="card mb-4 border-0 shadow-sm overflow-hidden">
+        <div class="card mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-body p-3 p-md-4">
                 <div class="stepper-pipeline">
                     <!-- Step 1 (Active) -->
                     <div class="stepper-item active">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="stepper-num">1</span>
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill" style="font-size: 0.65rem;">Active Phase</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill" style="font-size: 0.65rem;">Active</span>
                         </div>
-                        <div class="fw-bold text-dark small">Upload & Validate</div>
-                        <div class="text-muted" style="font-size: 0.76rem;">PDF, DOCX, TXT, PPTX</div>
+                        <div class="fw-bold text-dark small">Document Upload</div>
+                        <div class="text-muted" style="font-size: 0.74rem;">PDF, DOCX, TXT, PPTX</div>
                     </div>
 
                     <!-- Step 2 -->
@@ -27,8 +27,8 @@
                             <span class="stepper-num">2</span>
                             <i class="bi bi-file-text text-muted" style="font-size: 0.9rem;"></i>
                         </div>
-                        <div class="fw-semibold text-secondary small">Text & OCR Extraction</div>
-                        <div class="text-muted" style="font-size: 0.76rem;">Normalize & token stream</div>
+                        <div class="fw-semibold text-secondary small">Text Extraction</div>
+                        <div class="text-muted" style="font-size: 0.74rem;">Tokenization & parsing</div>
                     </div>
 
                     <!-- Step 3 -->
@@ -37,37 +37,47 @@
                             <span class="stepper-num">3</span>
                             <i class="bi bi-intersect text-muted" style="font-size: 0.9rem;"></i>
                         </div>
-                        <div class="fw-semibold text-secondary small">Turnitin™ & AI Scan</div>
-                        <div class="text-muted" style="font-size: 0.76rem;">Multi-corpus Winnowing</div>
+                        <div class="fw-semibold text-secondary small">Similarity Analysis</div>
+                        <div class="text-muted" style="font-size: 0.74rem;">Multi-corpus comparison</div>
                     </div>
 
                     <!-- Step 4 -->
                     <div class="stepper-item">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="stepper-num">4</span>
+                            <i class="bi bi-robot text-muted" style="font-size: 0.9rem;"></i>
+                        </div>
+                        <div class="fw-semibold text-secondary small">AI Writing Analysis</div>
+                        <div class="text-muted" style="font-size: 0.74rem;">Perplexity & classification</div>
+                    </div>
+
+                    <!-- Step 5 -->
+                    <div class="stepper-item">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="stepper-num">5</span>
                             <i class="bi bi-file-earmark-pdf text-muted" style="font-size: 0.9rem;"></i>
                         </div>
-                        <div class="fw-semibold text-secondary small">Integrity Report</div>
-                        <div class="text-muted" style="font-size: 0.76rem;">A4 PDF & Digital Receipt</div>
+                        <div class="fw-semibold text-secondary small">Report Generated</div>
+                        <div class="text-muted" style="font-size: 0.74rem;">Interactive viewer & PDF</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Main Upload Card -->
+        <!-- Main Submission Card -->
         <div class="card shadow-sm border border-light-subtle rounded-4 overflow-hidden mb-4">
             <div class="card-header bg-white border-bottom py-3.5 px-4 d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2.5">
-                    <div class="p-2 rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                    <div class="p-2 rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
                         <i class="bi bi-cloud-arrow-up-fill fs-5"></i>
                     </div>
                     <div>
-                        <div class="fw-bold text-dark fs-6 mb-0">Document Submission Form & Pre-Check Options</div>
-                        <div class="text-muted" style="font-size: 0.76rem;">Select your draft thesis, article, or assignment file to begin</div>
+                        <div class="fw-bold text-dark fs-6 mb-0">Submit Your Document</div>
+                        <div class="text-muted" style="font-size: 0.78rem;">Upload your research proposal, term paper, or dissertation for academic analysis</div>
                     </div>
                 </div>
                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill d-none d-sm-inline-flex align-items-center">
-                    <i class="bi bi-shield-lock-fill me-1.5"></i> Private & Confidential
+                    <i class="bi bi-shield-lock-fill me-1.5"></i> Confidential & Secure
                 </span>
             </div>
 
@@ -83,18 +93,25 @@
                     </div>
                     {% endif %}
 
-                    <!-- Drag & Drop Zone -->
+                    <!-- Large Drag & Drop Upload Area -->
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-dark mb-2.5 d-flex align-items-center justify-content-between">
-                            <span>Select or Drag Your Document</span>
-                            <span class="text-muted small fw-normal">Maximum size: 25 MB</span>
+                        <label class="form-label fw-bold text-dark mb-2 d-flex align-items-center justify-content-between">
+                            <span>Select Document File <span class="text-danger">*</span></span>
+                            <span class="text-muted small fw-normal">Maximum upload size: 25 MB</span>
                         </label>
-                        <div class="upload-zone py-5 px-4" id="upload-zone">
-                            <div class="upload-icon-circle">
-                                <i class="bi bi-cloud-arrow-up-fill"></i>
+                        <div class="upload-zone py-5 px-4 text-center rounded-4 border border-2 border-dashed bg-light position-relative" id="upload-zone" style="cursor: pointer; transition: all 0.2s ease;">
+                            <div class="upload-icon-circle mx-auto mb-3 rounded-circle bg-white shadow-sm d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; color: var(--primary);">
+                                <i class="bi bi-cloud-arrow-up-fill fs-2"></i>
                             </div>
-                            <h4 class="upload-title">Drag & drop your file here, or <span class="text-primary text-decoration-underline">browse your computer</span></h4>
-                            <p class="upload-subtitle mb-3">Accepted formats: <strong>PDF</strong>, <strong>DOCX</strong>, <strong>TXT</strong>, <strong>PPTX</strong> &bull; Up to 500 pages</p>
+                            <h4 class="upload-title h5 fw-bold text-dark mb-1">Drag & drop your file here, or <span class="text-primary text-decoration-underline">Browse Files</span></h4>
+                            <p class="upload-subtitle text-muted small mb-3">Supported file formats: <strong>PDF</strong>, <strong>DOC</strong>, <strong>DOCX</strong>, <strong>TXT</strong>, <strong>RTF</strong> &bull; Up to 500 pages</p>
+                            
+                            <div id="file-chosen-banner" class="d-none alert alert-success d-inline-flex align-items-center gap-2 py-1.5 px-3 mb-2 rounded-pill small">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span id="file-chosen-name" class="fw-semibold">No file chosen</span>
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2 text-decoration-none" id="remove-file-btn" title="Remove file">&times;</button>
+                            </div>
+                            <br>
                             <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-4 py-2 fw-semibold" onclick="document.getElementById('doc-file').click();">
                                 <i class="bi bi-folder2-open me-1.5"></i> Browse Files
                             </button>
@@ -107,141 +124,209 @@
                         {% endif %}
                     </div>
 
-                    <!-- Supported Format Badges -->
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-4 pb-3 border-bottom">
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-semibold rounded-pill">
-                            <i class="bi bi-filetype-pdf me-1"></i> Adobe PDF (.pdf)
-                        </span>
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fw-semibold rounded-pill">
-                            <i class="bi bi-filetype-docx me-1"></i> Microsoft Word (.docx)
-                        </span>
-                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 fw-semibold rounded-pill">
-                            <i class="bi bi-filetype-txt me-1"></i> Plain Text (.txt)
-                        </span>
-                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 fw-semibold rounded-pill">
-                            <i class="bi bi-filetype-pptx me-1"></i> PowerPoint (.pptx)
-                        </span>
-                        <span class="text-muted small ms-auto align-self-center d-none d-md-inline-block">
-                            <i class="bi bi-check2-circle text-success me-1"></i> Automatic OCR & Text Sanitization
-                        </span>
-                    </div>
+                    <!-- Document Information Fields -->
+                    <div class="card border border-light-subtle rounded-3 p-4 mb-4 bg-white">
+                        <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-info-circle text-primary"></i> Document Information
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="doc-title" class="form-label fw-bold text-dark small mb-1">
+                                    Document Title <span class="text-danger">*</span>
+                                </label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                    <div class="text-danger small mt-1 fw-semibold">{{ form.title.errors.0 }}</div>
+                                {% endif %}
+                            </div>
 
-                    <!-- Document Title & Metadata -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-12">
-                            <label for="doc-title" class="form-label fw-bold text-dark d-flex align-items-center justify-content-between mb-1.5">
-                                <span>Document Title <span class="text-danger">*</span></span>
-                                <small class="text-muted fw-normal">Displayed on Turnitin Cover Page</small>
-                            </label>
-                            {{ form.title }}
-                            <div class="form-text small text-muted mt-1">Provide a formal manuscript title for citations, match highlight badges, and digital receipts.</div>
-                            {% if form.title.errors %}
-                                <div class="text-danger small mt-1 fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>{{ form.title.errors.0 }}</div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark small mb-1">Author Name</label>
+                                <input type="text" class="form-control" name="author_name" placeholder="e.g. Amit Kumar" value="{{ user.get_full_name|default:user.username }}">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark small mb-1">Institution Name</label>
+                                <input type="text" class="form-control" name="institution_name" placeholder="e.g. University of the Immaculate Conception" value="{{ user.institution.name|default:'University of the Immaculate Conception' }}">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark small mb-1">Department</label>
+                                <input type="text" class="form-control" name="department" placeholder="e.g. Department of Physics" value="Department of Physics">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark small mb-1">Course / Research Subject</label>
+                                <input type="text" class="form-control" name="subject" placeholder="e.g. Quantum Optics & Trapping" value="Quantum Physics">
+                            </div>
+
+                            {% if form.assignment %}
+                            <div class="col-12">
+                                <label for="doc-assignment" class="form-label fw-bold text-dark small mb-1">Associated Course Assignment</label>
+                                {{ form.assignment }}
+                            </div>
                             {% endif %}
                         </div>
-
-                        <!-- Assignment Select -->
-                        {% if form.assignment %}
-                        <div class="col-md-12">
-                            <label for="doc-assignment" class="form-label fw-bold text-dark">Associated Course Assignment</label>
-                            {{ form.assignment }}
-                            <div class="form-text small text-muted mt-1">Optionally associate with an instructor assignment to apply course thresholds.</div>
-                            {% if form.assignment.errors %}
-                                <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ form.assignment.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        {% endif %}
                     </div>
 
-                    <!-- Pre-Check Exclusions & Turnitin Options -->
+                    <!-- Checking Options -->
+                    <div class="card border border-light-subtle rounded-3 p-4 mb-4 bg-white">
+                        <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-gear-wide-connected text-primary"></i> Analysis Options
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-check p-3 rounded-3 border bg-light h-100">
+                                    <input class="form-check-input ms-0 me-2" type="radio" name="check_type" id="check_sim" value="similarity" checked>
+                                    <label class="form-check-label fw-bold text-dark" for="check_sim">
+                                        Similarity Check
+                                    </label>
+                                    <div class="text-muted small mt-1">Multi-corpus academic plagiarism scan against indexed journals, repositories & web.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check p-3 rounded-3 border bg-light h-100">
+                                    <input class="form-check-input ms-0 me-2" type="radio" name="check_type" id="check_ai" value="ai">
+                                    <label class="form-check-label fw-bold text-dark" for="check_ai">
+                                        AI Writing Detection
+                                    </label>
+                                    <div class="text-muted small mt-1">Classify AI-generated text passages with sentence-level perplexity analysis.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check p-3 rounded-3 border bg-light h-100 border-primary bg-primary-subtle">
+                                    <input class="form-check-input ms-0 me-2" type="radio" name="check_type" id="check_both" value="combined" checked>
+                                    <label class="form-check-label fw-bold text-primary" for="check_both">
+                                        Combined Analysis
+                                    </label>
+                                    <div class="text-muted small mt-1">Execute both similarity plagiarism detection and AI writing scan simultaneously.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exclusion Options -->
                     <div class="card mb-4 border border-light-subtle rounded-3 overflow-hidden bg-light">
                         <div class="card-header bg-transparent border-bottom fw-bold text-dark py-3 px-3.5 d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center gap-2">
                                 <i class="bi bi-sliders2 text-primary"></i>
-                                <span>Turnitin-Grade Pre-Check Exclusions</span>
+                                <span>Configurable Exclusion Criteria</span>
                             </div>
-                            <span class="badge bg-secondary-subtle text-secondary rounded-pill" style="font-size: 0.7rem;">Default Applied</span>
+                            <span class="badge bg-secondary-subtle text-secondary rounded-pill" style="font-size: 0.7rem;">Filters Active</span>
                         </div>
                         <div class="card-body p-3.5">
                             <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="feature-switch-card">
-                                        <div class="form-check form-switch p-0 d-flex align-items-start gap-2.5">
-                                            <input class="form-check-input ms-0 mt-1 flex-shrink-0" type="checkbox" id="precheck_bib" checked disabled>
-                                            <div>
-                                                <label class="form-check-label fw-bold text-dark d-block" for="precheck_bib">
-                                                    Exclude Bibliography
-                                                </label>
-                                                <div class="text-muted small mt-1" style="font-size: 0.8rem; line-height: 1.4;">
-                                                    Filters Works Cited, References, and Bibliography sections automatically from similarity score.
-                                                </div>
-                                            </div>
-                                        </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch p-2 bg-white rounded-3 border">
+                                        <input class="form-check-input ms-1 me-2" type="checkbox" id="precheck_bib" checked>
+                                        <label class="form-check-label fw-bold text-dark small" for="precheck_bib">
+                                            Exclude Bibliography
+                                        </label>
+                                        <div class="text-muted small ms-4" style="font-size: 0.76rem;">Exclude References and Works Cited sections.</div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="feature-switch-card">
-                                        <div class="form-check form-switch p-0 d-flex align-items-start gap-2.5">
-                                            <input class="form-check-input ms-0 mt-1 flex-shrink-0" type="checkbox" id="precheck_quotes" checked disabled>
-                                            <div>
-                                                <label class="form-check-label fw-bold text-dark d-block" for="precheck_quotes">
-                                                    Exclude Direct Quotations
-                                                </label>
-                                                <div class="text-muted small mt-1" style="font-size: 0.8rem; line-height: 1.4;">
-                                                    Suppresses matches for text enclosed in quotation marks and block quote segments.
-                                                </div>
-                                            </div>
-                                        </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch p-2 bg-white rounded-3 border">
+                                        <input class="form-check-input ms-1 me-2" type="checkbox" id="precheck_quotes" checked>
+                                        <label class="form-check-label fw-bold text-dark small" for="precheck_quotes">
+                                            Exclude Quoted Material
+                                        </label>
+                                        <div class="text-muted small ms-4" style="font-size: 0.76rem;">Suppresses matches enclosed in quotation marks.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch p-2 bg-white rounded-3 border">
+                                        <input class="form-check-input ms-1 me-2" type="checkbox" id="precheck_small" checked>
+                                        <label class="form-check-label fw-bold text-dark small" for="precheck_small">
+                                            Exclude Small Matches
+                                        </label>
+                                        <div class="text-muted small ms-4" style="font-size: 0.76rem;">Ignore matches below 8 words or &lt;1%.</div>
                                     </div>
                                 </div>
                             </div>
-                            <small class="text-muted mt-2.5 d-block">
-                                <i class="bi bi-info-circle text-primary me-1"></i> You can adjust fine-grained percentage thresholds and view individual match groups on the generated report.
-                            </small>
                         </div>
                     </div>
 
-                    <!-- Reference Repository Option (For Teachers/Admins) -->
-                    {% if form.is_reference %}
-                    <div class="mb-4">
-                        <div class="form-check form-switch p-3 bg-white border border-light-subtle rounded-3 shadow-sm">
-                            {{ form.is_reference }}
-                            <label class="form-check-label fw-bold text-dark ms-2" for="doc-is-reference">
-                                Add to Institutional Master Reference Index
-                            </label>
-                            <div class="small text-muted ms-2 mt-1">
-                                Check this to store this document as an authoritative reference against which future student papers will be checked.
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Privacy Guarantee Banner -->
-                    <div class="alert alert-info py-3 px-3.5 mb-4 border-0 rounded-3 bg-info-subtle text-info-emphasis">
-                        <div class="d-flex align-items-center gap-2.5">
-                            <i class="bi bi-shield-check fs-4 flex-shrink-0 text-info"></i>
-                            <div class="small" style="line-height: 1.45;">
-                                <strong>Academic Privacy & Copyright Guarantee:</strong> Your submission is analyzed securely in accordance with FERPA and GDPR standards. Documents are never sold, shared, or indexed into public search engines.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Actions -->
+                    <!-- Primary Action Button -->
                     <div class="pt-2">
-                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" id="submit-upload-btn" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); border: none; font-size: 1.05rem;">
-                            <i class="bi bi-shield-check fs-5"></i> <span>Submit Document & Launch Turnitin™ Analysis</span>
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" id="submit-upload-btn" style="background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%); border: none; font-size: 1.05rem;">
+                            <i class="bi bi-play-circle-fill fs-5"></i> <span>Start Analysis</span>
                         </button>
                     </div>
 
                     <!-- Trust indicators -->
                     <div class="d-flex justify-content-center align-items-center gap-4 text-muted small mt-3.5 flex-wrap" style="font-size: 0.78rem;">
                         <span><i class="bi bi-lock-fill text-success me-1"></i> 256-Bit SSL Encrypted</span>
-                        <span><i class="bi bi-lightning-charge-fill text-warning me-1"></i> Real-Time Processing</span>
-                        <span><i class="bi bi-check-circle-fill text-primary me-1"></i> Instant Digital Receipt</span>
+                        <span><i class="bi bi-shield-check text-primary me-1"></i> Confidential Research Storage</span>
+                        <span><i class="bi bi-check-circle-fill text-info me-1"></i> Instant Digital Receipt</span>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('doc-file');
+    const chosenBanner = document.getElementById('file-chosen-banner');
+    const chosenName = document.getElementById('file-chosen-name');
+    const removeBtn = document.getElementById('remove-file-btn');
+    const uploadZone = document.getElementById('upload-zone');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const f = this.files[0];
+                chosenName.innerText = f.name + " (" + (f.size / 1024).toFixed(1) + " KB)";
+                chosenBanner.classList.remove('d-none');
+                
+                // Auto populate document title if empty
+                const titleInput = document.getElementById('doc-title');
+                if (titleInput && !titleInput.value) {
+                    const clean = f.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+                    titleInput.value = clean.charAt(0).toUpperCase() + clean.slice(1);
+                }
+            }
+        });
+    }
+
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (fileInput) fileInput.value = '';
+            chosenBanner.classList.add('d-none');
+        });
+    }
+
+    // Drag and drop handlers
+    if (uploadZone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadZone.classList.add('border-primary', 'bg-primary-subtle');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadZone.classList.remove('border-primary', 'bg-primary-subtle');
+            }, false);
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length && fileInput) {
+                fileInput.files = files;
+                const event = new Event('change');
+                fileInput.dispatchEvent(event);
+            }
+        }, false);
+    }
+});
+</script>
 {% endblock %}
