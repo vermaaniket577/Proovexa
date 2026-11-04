@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
+from django.conf import settings
 
 from .models import SimilarityReport, MatchedPassage, ExclusionRule, AIAPISettings
 from .engine import AnalysisEngine
