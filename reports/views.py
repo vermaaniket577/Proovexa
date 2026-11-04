@@ -88,6 +88,14 @@ def report_detail_view(request, report_id):
     extracted_texts = report.document.extracted_texts.all().order_by('page_number', 'paragraph_number')
     paragraphs_data = []
 
+    source_color_map = {}
+    for s in criteria.get('top_sources', []):
+        source_color_map[s['index']] = (
+            s.get('color', '#e91e63'),
+            s.get('pastel_bg', '#fce4ec'),
+            s.get('color', '#e91e63'),
+        )
+
     for et in extracted_texts:
         raw_content = et.content
         escaped_html = html.escape(raw_content)
@@ -109,11 +117,17 @@ def report_detail_view(request, report_id):
             sorted_matches = sorted(para_matches, key=lambda m: len(m.submitted_text), reverse=True)
             top_m = sorted_matches[0]
             top_badge = top_m.source_index or 1
-            top_color, _, _ = TURNITIN_PALETTE[(top_badge - 1) % len(TURNITIN_PALETTE)]
+            if top_badge in source_color_map:
+                top_color, _, _ = source_color_map[top_badge]
+            else:
+                top_color, _, _ = TURNITIN_PALETTE[(top_badge - 1) % len(TURNITIN_PALETTE)]
 
             for m in sorted_matches:
                 m_idx = m.source_index or 1
-                solid_col, pastel_bg, border_col = TURNITIN_PALETTE[(m_idx - 1) % len(TURNITIN_PALETTE)]
+                if m_idx in source_color_map:
+                    solid_col, pastel_bg, border_col = source_color_map[m_idx]
+                else:
+                    solid_col, pastel_bg, border_col = TURNITIN_PALETTE[(m_idx - 1) % len(TURNITIN_PALETTE)]
                 m_text = m.submitted_text.strip()
                 m_escaped = html.escape(m_text)
                 src_title = html.escape(m.source.title if m.source else "Reference Database")

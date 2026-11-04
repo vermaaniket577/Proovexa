@@ -707,7 +707,8 @@ def generate_pdf_report(report):
     story.append(Paragraph(report.document.title, doc_title_style))
     story.append(HRFlowable(width="100%", thickness=1.2, color=colors.HexColor('#0084ff'), spaceAfter=14))
 
-    # Pre-map passages to paragraph content
+    # Pre-map passages to paragraph content
+    source_color_map = {s['index']: (s.get('color', '#e91e63'), s.get('pastel_bg', '#fce4ec')) for s in criteria.get('top_sources', [])}
     if extracted_texts.exists():
         from xml.sax.saxutils import escape as xml_escape
         for et in extracted_texts:
@@ -724,13 +725,19 @@ def generate_pdf_report(report):
             if para_matches:
                 # Find matching source badge
                 top_badge_idx = para_matches[0].source_index or 1
-                badge_color_hex, _ = SOURCE_PALETTE[(top_badge_idx - 1) % len(SOURCE_PALETTE)]
+                if top_badge_idx in source_color_map:
+                    badge_color_hex, _ = source_color_map[top_badge_idx]
+                else:
+                    badge_color_hex, _ = SOURCE_PALETTE[(top_badge_idx - 1) % len(SOURCE_PALETTE)]
 
                 # Highlight the text inside paragraph safely for ReportLab XML parser
                 highlighted_content = xml_escape(content)
                 for m in para_matches:
                     m_idx = m.source_index or 1
-                    _, pastel_bg = SOURCE_PALETTE[(m_idx - 1) % len(SOURCE_PALETTE)]
+                    if m_idx in source_color_map:
+                        _, pastel_bg = source_color_map[m_idx]
+                    else:
+                        _, pastel_bg = SOURCE_PALETTE[(m_idx - 1) % len(SOURCE_PALETTE)]
                     m_clean = m.submitted_text.strip()
                     m_escaped = xml_escape(m_clean)
                     if m_escaped in highlighted_content:
