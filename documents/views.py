@@ -117,18 +117,9 @@ def upload_view(request):
                 doc.processed_at = timezone.now()
                 doc.save(update_fields=['page_count', 'word_count', 'status', 'processed_at'])
 
-                # If it's a reference document, create a ReferenceSource
-                if doc.is_reference:
-                    ReferenceSource.objects.create(
-                        title=doc.title,
-                        author=request.user.get_full_name(),
-                        source_type=ReferenceSource.SourceType.UPLOADED,
-                        document=doc,
-                        retrieved_text=result.full_text,
-                        word_count=result.word_count,
-                        retrieval_timestamp=timezone.now(),
-                        institution=request.user.institution,
-                    )
+                # Automatically index into internal database for cross-document similarity comparison
+                from analysis.services import index_document_into_internal_database
+                index_document_into_internal_database(doc, full_text=result.full_text)
 
                 # Automatically generate both Plagiarism Similarity Report and AI Report immediately on upload
                 try:

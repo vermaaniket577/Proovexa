@@ -396,39 +396,22 @@ class AnalysisEngine:
 
 
             # Limit to top candidates for detailed multi-method analysis (optimal academic recall + high speed)
-
-            max_candidates = 300
-
+            max_candidates = 15
             top_candidates = candidates[:max_candidates]
 
-
-
             # Ensure candidate sources with 8-to-14 word matches or title keywords are included
-
             sub_clean_words = re.findall(r'[\w\u0900-\u097F]+', full_text.lower())
-
             check_k = min(8, min_words)
-
             sub_k_shingles = set()
-
             if len(sub_clean_words) >= check_k:
-
                 for i in range(len(sub_clean_words) - check_k + 1):
-
                     sub_k_shingles.add(tuple(sub_clean_words[i:i + check_k]))
 
-
-
             cand_indices = {c[0] for c in top_candidates}
-
             for s_idx, s_ref in enumerate(source_refs):
-
                 if s_idx in cand_indices:
-
                     continue
-
-                if len(top_candidates) >= 350:
-
+                if len(top_candidates) >= 20:
                     break
 
                 s_txt = source_texts[s_idx]
@@ -600,39 +583,24 @@ class AnalysisEngine:
 
 
 
-                # Method D: Near-Duplicate / Fuzzy Matching (run on top candidates with non-trivial similarity)
-
-                if cand_rank < 3 and tfidf_score > 0.08:
-
+                # Method D: Near-Duplicate / Fuzzy Matching (evaluate top relevant candidates)
+                if cand_rank < 3 and (winnow_count > 0 or exact_count > 0 or tfidf_score > 0.12):
                     fuzzy_result = self.fuzzy_comparator.compare(full_text, source_text)
-
                     for match in fuzzy_result.matches:
-
                         match['source'] = source
-
                         match['source_index'] = source_index
-
                         match['match_type'] = 'fuzzy'
-
                         all_matches.append(match)
-
                         fuzzy_count += 1
 
-
-
                 # Method E: Turnitin 3-Tier Hybrid Evaluation (Shingle Containment, Lexical, Semantic Paraphrase)
-
                 shingle_containment, exact_phrases = self.hybrid_checker.compute_shingle_containment(
-
                     full_text, source_text, sub_shingles=cached_sub_shingles, sub_tokens=cached_sub_norm_tokens
-
                 )
-
                 lexical_sim = float(tfidf_score)
 
-                # Paraphrase semantic layer: only evaluate top candidate sources needing semantic verification
-                if cand_rank < 5 and (shingle_containment > 0.03 or (lexical_sim > 0.25 and not exact_phrases)):
-
+                # Paraphrase semantic layer: evaluate top candidate sources with high relevance
+                if cand_rank < 3 and (shingle_containment > 0.02 or exact_phrases or tfidf_score > 0.12):
                     semantic_cov, flagged_pairs = self.hybrid_checker.compute_semantic_matches(
 
                         full_text, source_text, sub_embeddings=cached_sub_embeddings, sub_sents=cached_sub_sents
@@ -657,22 +625,24 @@ class AnalysisEngine:
 
 
 
-                for pair in flagged_pairs:
-
+                for phrase in exact_phrases:
                     all_matches.append({
-
-                        'submitted_text': pair['submitted_sentence'],
-
-                        'source_text': pair['matched_source_sentence'],
-
-                        'similarity': pair['similarity'] / 100.0,
-
-                        'match_type': 'exact' if pair['match_type'] == 'Exact/Near-Exact' else 'fuzzy',
-
+                        'submitted_text': phrase,
+                        'source_text': phrase,
+                        'similarity': 1.0,
+                        'match_type': 'phrase',
                         'source': source,
-
                         'source_index': source_index,
+                    })
 
+                for pair in flagged_pairs:
+                    all_matches.append({
+                        'submitted_text': pair['submitted_sentence'],
+                        'source_text': pair['matched_source_sentence'],
+                        'similarity': pair['similarity'] / 100.0,
+                        'match_type': 'exact' if pair['match_type'] == 'Exact/Near-Exact' else 'fuzzy',
+                        'source': source,
+                        'source_index': source_index,
                     })
 
 
@@ -1108,7 +1078,17 @@ class AnalysisEngine:
                 if len(queries) >= 8:
                     break
 
-        return queries[:6]
+        # Extract distinctive domain technical trigrams and salient phrases
+        raw_words = [w.lower() for w in re.findall(r'[a-zA-Z\u0900-\u097F]{3,}', full_text)]
+        meaningful_tokens = [w for w in raw_words if w not in stopwords and len(w) > 2]
+        if len(meaningful_tokens) >= 3:
+            from collections import Counter
+            trigrams = Counter([' '.join(meaningful_tokens[i:i+3]) for i in range(len(meaningful_tokens)-2)])
+            for tg, count in trigrams.most_common(5):
+                if count >= 3 and tg.lower() not in [q.lower() for q in queries] and not tg.startswith('https doi') and not tg.startswith('doi org'):
+                    queries.append(tg)
+
+        return queries[:8]
 
     def _get_comparison_sources(self, document, full_text=""):
 
@@ -1127,18 +1107,26 @@ class AnalysisEngine:
 
 
         # Filter out self-match drafts / duplicates from the same user if exclude_self_match is active
-
+        # Excludes only exact duplicates or prior revisions of the SAME student's paper,
+        # while preserving other distinct student papers and institutional works.
         exclude_self = self.exclusion_settings.get('exclude_self_match', True)
 
         if exclude_self and document.uploaded_by:
+            doc_title_norm = re.sub(r'[^\w]', '', (document.title or '').lower())
 
-            sources = [
+            def is_same_work_draft(s):
+                if not s.document:
+                    return False
+                if s.document.is_reference:
+                    return False
+                if document.file_hash and s.document.file_hash == document.file_hash:
+                    return True
+                s_title_norm = re.sub(r'[^\w]', '', (s.document.title or s.title or '').lower())
+                if doc_title_norm and s_title_norm and (doc_title_norm in s_title_norm or s_title_norm in doc_title_norm):
+                    return True
+                return False
 
-                s for s in sources
-
-                if not (s.document and s.document.uploaded_by_id == document.uploaded_by_id and not s.document.is_reference)
-
-            ]
+            sources = [s for s in sources if not is_same_work_draft(s)]
 
         if document.file_hash:
 
@@ -1168,7 +1156,7 @@ class AnalysisEngine:
                     search_res = multi_source_search(
                         queries=queries,
                         max_results_per_source=3,
-                        timeout_seconds=8.0,
+                        timeout_seconds=15.0,
                     )
                     search_metadata['sources_checked'] = search_res.get('sources_checked', [])
                     search_metadata['failed_sources'] = search_res.get('failed_sources', [])
@@ -1216,17 +1204,19 @@ class AnalysisEngine:
 
 
 
-        # exclude_self_match filters out same-user drafts/prior submissions unless marked as institutional reference
-
+        # exclude_self_match filters out prior drafts/revisions of the SAME student's paper
         exclude_self = self.exclusion_settings.get('exclude_self_match', True)
-
         if exclude_self and document.uploaded_by:
-
-            other_docs = other_docs.filter(
-
-                Q(is_reference=True) | ~Q(uploaded_by=document.uploaded_by)
-
-            )
+            doc_title_norm = re.sub(r'[^\w]', '', (document.title or '').lower())
+            excluded_ids = set()
+            for od in other_docs:
+                if od.is_reference:
+                    continue
+                od_title_norm = re.sub(r'[^\w]', '', (od.title or '').lower())
+                if doc_title_norm and od_title_norm and (doc_title_norm in od_title_norm or od_title_norm in doc_title_norm):
+                    excluded_ids.add(od.id)
+            if excluded_ids:
+                other_docs = other_docs.exclude(id__in=excluded_ids)
 
         # Always exclude identical file-hash duplicates of the same document
 
@@ -1389,30 +1379,37 @@ class AnalysisEngine:
 
 
     def _estimate_char_position(self, full_text, match_text, start_from=0):
-        """Estimate character position of a match in the full text."""
-        snippet = match_text.lower()[:100].strip()
-        if not snippet:
+        """Fast character position estimation in full text without catastrophic regex backtracking."""
+        if not match_text:
             return 0
+        clean_match = match_text.strip().lower()
+        # 1. Try first 80 chars
+        snippet = clean_match[:80]
         pos = full_text.lower().find(snippet, max(0, start_from))
         if pos != -1:
             return pos
         pos = full_text.lower().find(snippet)
         if pos != -1:
             return pos
-
-        # Fallback to token sequence matching if verbatim search fails due to punctuation/whitespace
-        words = re.findall(r'[\w\u0900-\u097F]+', match_text)
-        if words:
-            for k in (min(len(words), 8), min(len(words), 5), min(len(words), 3), min(len(words), 2)):
-                if k < 2:
-                    break
-                pat = r'\b' + r'\b[\s\W]+'.join(re.escape(w) for w in words[:k]) + r'\b'
-                m = re.search(pat, full_text[max(0, start_from):], re.IGNORECASE)
-                if m:
-                    return max(0, start_from) + m.start()
-                m = re.search(pat, full_text, re.IGNORECASE)
-                if m:
-                    return m.start()
+        # 2. Try first 30 chars
+        if len(clean_match) > 30:
+            snippet_short = clean_match[:30]
+            pos = full_text.lower().find(snippet_short, max(0, start_from))
+            if pos != -1:
+                return pos
+            pos = full_text.lower().find(snippet_short)
+            if pos != -1:
+                return pos
+        # 3. Try first 3-4 words with simple substring find
+        words = clean_match.split()
+        if len(words) >= 2:
+            w_snippet = " ".join(words[:min(4, len(words))])
+            pos = full_text.lower().find(w_snippet, max(0, start_from))
+            if pos != -1:
+                return pos
+            pos = full_text.lower().find(w_snippet)
+            if pos != -1:
+                return pos
         return 0
 
     def _char_span_to_word_span(self, tokens, char_start, char_end):

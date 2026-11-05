@@ -298,7 +298,11 @@ class TurnitinStyleChecker:
 
             return 0.0, []
 
-        src_sents = filtered_src_sents
+        src_sents = sorted(
+            filtered_src_sents,
+            key=lambda s: sum(1 for w in re.findall(r'[\w\u0900-\u097F]{4,}', s.lower()) if w in sub_word_set),
+            reverse=True
+        )[:25]
 
         # Fast candidate pre-filter for submitted sentences: only encode sentences sharing words with source text
 

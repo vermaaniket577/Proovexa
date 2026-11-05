@@ -332,12 +332,16 @@ class FuzzyComparator:
         if not sub_sentences or not src_sentences:
             return result
 
-        # Precompute tokens and token sets for source sentences
+        # Precompute tokens, token sets, and inverted token index for source sentences
         src_data = []
-        for src_sent in src_sentences:
+        token_to_src_indices = defaultdict(list)
+        for idx, src_sent in enumerate(src_sentences):
             tokens = re.sub(r'[^\w\u0900-\u097F\s]', '', src_sent.lower()).split()
             if len(tokens) >= self.min_sentence_length:
-                src_data.append((src_sent, tokens, len(tokens), set(tokens)))
+                t_set = set(tokens)
+                src_data.append((src_sent, tokens, len(tokens), t_set))
+                for t in t_set:
+                    token_to_src_indices[t].append(len(src_data) - 1)
 
         matched_count = 0
         for sub_sent in sub_sentences:
@@ -350,12 +354,18 @@ class FuzzyComparator:
             best_match = None
             best_ratio = 0
 
-            for src_sent, src_tokens, src_len, src_set in src_data:
+            # Rapid candidate lookup via inverted index
+            cand_counter = Counter()
+            for t in sub_set:
+                for s_i in token_to_src_indices.get(t, ()):
+                    cand_counter[s_i] += 1
+
+            for s_i, common_tokens in cand_counter.items():
+                src_sent, src_tokens, src_len, src_set = src_data[s_i]
                 # Upper bound check: theoretical maximum ratio based on lengths
                 if (2.0 * min(sub_len, src_len)) / (sub_len + src_len) < self.threshold:
                     continue
                 # Upper bound check: theoretical maximum ratio based on shared vocabulary
-                common_tokens = len(sub_set & src_set)
                 if (2.0 * common_tokens) / (sub_len + src_len) < self.threshold:
                     continue
 

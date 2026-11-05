@@ -75,6 +75,7 @@ class OpenAlexConnector(BaseSourceConnector):
         params = {
             'search': query_text.strip()[:200],
             'per-page': min(max_results, 10),
+            'mailto': _get_mailto(),
         }
 
         try:

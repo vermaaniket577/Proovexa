@@ -62,7 +62,7 @@ class WikipediaConnector(BaseSourceConnector):
             results = []
             titles = [item['title'] for item in search_items[:max_results]]
 
-            # Fetch plain-text extracts in batch
+            # Fetch plain-text extracts in batch (fast intro extracts)
             extract_params = {
                 'action': 'query',
                 'prop': 'extracts|info',

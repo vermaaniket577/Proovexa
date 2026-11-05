@@ -246,23 +246,28 @@ class WinnowingEngine:
         src_words_start = cluster[0][1].word_start
         src_words_end = max(c[1].word_end for c in cluster)
 
-        # Step 7 of Winnowing Algorithm: Outward expansion to recover full matching passages
+        # Step 7 of Winnowing Algorithm: Bounded outward expansion to recover local matching boundaries
+        max_expand = max(20, getattr(self, 'w', 4) * 2)
         if sub_tokens and src_tokens:
-            while sub_words_start > 0 and src_words_start > 0:
+            expand_back = 0
+            while sub_words_start > 0 and src_words_start > 0 and expand_back < max_expand:
                 if sub_tokens[sub_words_start - 1].clean_token == src_tokens[src_words_start - 1].clean_token:
                     sub_words_start -= 1
                     src_words_start -= 1
                     sub_start = sub_tokens[sub_words_start].start_char
                     src_start = src_tokens[src_words_start].start_char
+                    expand_back += 1
                 else:
                     break
 
-            while sub_words_end + 1 < len(sub_tokens) and src_words_end + 1 < len(src_tokens):
+            expand_fwd = 0
+            while sub_words_end + 1 < len(sub_tokens) and src_words_end + 1 < len(src_tokens) and expand_fwd < max_expand:
                 if sub_tokens[sub_words_end + 1].clean_token == src_tokens[src_words_end + 1].clean_token:
                     sub_words_end += 1
                     src_words_end += 1
                     sub_end = sub_tokens[sub_words_end].end_char
                     src_end = src_tokens[src_words_end].end_char
+                    expand_fwd += 1
                 else:
                     break
 

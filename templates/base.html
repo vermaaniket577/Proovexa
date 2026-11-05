@@ -135,13 +135,23 @@
             <div class="sidebar-footer">
                 <div class="user-card-panel">
                     <div class="user-avatar-ring">
+                        {% if 'reports/' in request.path or 'aniket' in user.username|lower or 'aniket' in user.get_full_name|lower %}
+                        <i class="bi bi-shield-check text-white"></i>
+                        {% else %}
                         {{ user.first_name|first|default:user.username|first|upper }}
+                        {% endif %}
                         <span class="user-online-pip"></span>
                     </div>
                     <div class="user-details flex-grow-1 min-w-0">
-                        <span class="user-name" title="{{ user.get_full_name|default:user.username }}">{{ user.get_full_name|default:user.username }}</span>
+                        <span class="user-name" title="{% if 'reports/' in request.path or 'aniket' in user.username|lower or 'aniket' in user.get_full_name|lower %}Proovexa Integrity{% else %}{{ user.get_full_name|default:user.username }}{% endif %}">
+                            {% if 'reports/' in request.path or 'aniket' in user.username|lower or 'aniket' in user.get_full_name|lower %}
+                            Proovexa Integrity
+                            {% else %}
+                            {{ user.get_full_name|default:user.username }}
+                            {% endif %}
+                        </span>
                         <div class="d-flex align-items-center gap-1">
-                            <span class="user-role-badge">{{ user.get_role_display }}</span>
+                            <span class="user-role-badge">{% if 'reports/' in request.path %}Verified Engine{% else %}{{ user.get_role_display }}{% endif %}</span>
                             <span class="text-white-50" style="font-size: 0.65rem;">&bull; Active</span>
                         </div>
                     </div>
@@ -224,15 +234,19 @@
                     <div class="dropdown">
                         <button class="btn btn-light rounded-pill d-flex align-items-center gap-2 py-1 px-2.5 border-0 bg-transparent" data-bs-toggle="dropdown" aria-expanded="false">
                             <div class="user-avatar-ring" style="width: 32px; height: 32px; font-size: 0.82rem;">
+                                {% if 'reports/' in request.path or 'aniket' in user.username|lower or 'aniket' in user.get_full_name|lower %}
+                                <i class="bi bi-shield-check text-white"></i>
+                                {% else %}
                                 {{ user.first_name|first|default:user.username|first|upper }}
+                                {% endif %}
                             </div>
-                            <span class="d-none d-lg-inline fw-semibold text-dark small">{{ user.username }}</span>
+                            <span class="d-none d-lg-inline fw-semibold text-dark small">{% if 'reports/' in request.path or 'aniket' in user.username|lower or 'aniket' in user.get_full_name|lower %}Account{% else %}{{ user.username }}{% endif %}</span>
                             <i class="bi bi-chevron-down text-muted" style="font-size: 0.75rem;"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 220px; font-size: 0.88rem; border-radius: 14px;">
                             <li class="px-3 py-2.5">
-                                <div class="fw-bold text-dark">{{ user.get_full_name|default:user.username }}</div>
-                                <div class="text-muted small text-truncate">{{ user.email|default:"Academic User" }}</div>
+                                <div class="fw-bold text-dark">{% if 'reports/' in request.path or 'aniket' in user.username|lower or 'aniket' in user.get_full_name|lower %}Proovexa Integrity{% else %}{{ user.get_full_name|default:user.username }}{% endif %}</div>
+                                <div class="text-muted small text-truncate">{% if 'reports/' in request.path or 'aniket' in user.username|lower or 'aniket' in user.get_full_name|lower %}support@proovexa.com{% else %}{{ user.email|default:"Academic User" }}{% endif %}</div>
                                 <span class="badge bg-secondary-subtle text-secondary rounded-pill mt-1.5">{{ user.get_role_display }}</span>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>

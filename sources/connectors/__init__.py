@@ -82,7 +82,7 @@ def multi_source_search(
     queries: List[str],
     max_results_per_source: int = 3,
     connectors: Optional[List[BaseSourceConnector]] = None,
-    timeout_seconds: float = 8.0,
+    timeout_seconds: float = 15.0,
 ) -> Dict[str, Any]:
     """
     Executes parallel search across all available academic and web source connectors.
@@ -136,22 +136,29 @@ def multi_source_search(
 
     def _query_connector(conn: BaseSourceConnector, q: str):
         try:
-            return conn.id, conn.name, conn.search(q, max_results=max_results_per_source)
+            res = conn.search(q, max_results=max_results_per_source)
+            return conn.id, conn.name, res, True
         except Exception as conn_err:
             logger.debug(f"Connector {conn.name} query failed: {conn_err}")
-            return conn.id, conn.name, []
+            return conn.id, conn.name, [], False
 
     tasks = []
-    with ThreadPoolExecutor(max_workers=min(len(active_connectors) * len(clean_queries), 16)) as executor:
+    # Prioritize top academic and encyclopedic sources in worker queue
+    # Send up to 2 most salient queries per connector with controlled threadpool to prevent external 429 rate limiting
+    with ThreadPoolExecutor(max_workers=10) as executor:
         for conn in active_connectors:
-            for q in clean_queries:
+            # Query top 2 distinctive phrases per provider
+            for q in clean_queries[:2]:
                 tasks.append(executor.submit(_query_connector, conn, q))
 
         try:
             for future in as_completed(tasks, timeout=timeout_seconds):
                 try:
-                    conn_id, conn_name, res_list = future.result()
-                    sources_checked.add(conn_name)
+                    conn_id, conn_name, res_list, ok = future.result()
+                    if ok:
+                        sources_checked.add(conn_name)
+                    else:
+                        failed_sources.add(conn_name)
                     for item in res_list:
                         # Deduplication key by URL or DOI or normalized Title
                         norm_title = "".join(c for c in item.title.lower() if c.isalnum())
@@ -172,10 +179,12 @@ def multi_source_search(
         except TimeoutError:
             logger.info(f"Multi-source search reached timeout ({timeout_seconds}s); continuing with completed results.")
 
-    # Check which connectors had zero successes or timed out
+    # Only mark connectors as failed if they had no completed queries at all
     for conn in active_connectors:
         if conn.name not in sources_checked:
             failed_sources.add(conn.name)
+        elif conn.name in failed_sources:
+            failed_sources.remove(conn.name)
 
     return {
         'results': harvested_results,

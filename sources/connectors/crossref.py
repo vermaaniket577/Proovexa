@@ -63,6 +63,7 @@ class CrossrefConnector(BaseSourceConnector):
             'query': query_text.strip()[:200],
             'rows': min(max_results, 10),
             'select': 'DOI,title,author,published,URL,container-title,abstract,publisher',
+            'mailto': _get_mailto(),
         }
 
         try:

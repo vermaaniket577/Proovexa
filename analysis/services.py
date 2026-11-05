@@ -18,6 +18,7 @@ def ensure_document_extracted(document):
     from documents.extractors import extract_text
 
     if document.status in [Document.Status.EXTRACTED, Document.Status.COMPLETED] and document.extracted_texts.exists():
+        index_document_into_internal_database(document)
         return True, ""
 
     try:
