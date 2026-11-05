@@ -705,7 +705,7 @@ def generate_pdf_report(report):
 
     doc_para_style = ParagraphStyle(
         'DocParaStyle', parent=styles['Normal'],
-        fontName='Times-Roman', fontSize=11.04, leading=16.0,
+        fontName='Times-Roman', fontSize=11.04, leading=16.56,
         alignment=TA_JUSTIFY, spaceAfter=10
     )
 

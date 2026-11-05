@@ -527,7 +527,7 @@ def generate_ai_pdf_report(ai_report):
     )
     doc_para_style = ParagraphStyle(
         'AIDocPara', parent=styles['Normal'],
-        fontName='Times-Roman', fontSize=11.04, leading=14.5,
+        fontName='Times-Roman', fontSize=11.04, leading=16.56,
         alignment=TA_JUSTIFY, spaceAfter=8
     )
 

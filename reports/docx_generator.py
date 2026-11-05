@@ -37,11 +37,12 @@ def generate_docx_report(report):
     """
     doc = DocxDocument()
 
-    # Set default font
+    # Set default font & line spacing (1.5)
     style = doc.styles['Normal']
     font = style.font
     font.name = 'Calibri'
     font.size = Pt(11)
+    style.paragraph_format.line_spacing = 1.5
 
     # ---- Title ----
     title = doc.add_heading('Similarity Analysis Report', level=0)
