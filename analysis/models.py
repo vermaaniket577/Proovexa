@@ -13,6 +13,9 @@ class SimilarityReport(models.Model):
         PENDING = 'pending', 'Pending'
         PROCESSING = 'processing', 'Processing'
         COMPLETED = 'completed', 'Completed'
+        PARTIALLY_CHECKED = 'partially_checked', 'Partially Checked'
+        NO_MATCHES_FOUND = 'no_matches_found', 'No Verified Matches Found'
+        SOURCE_UNAVAILABLE = 'source_unavailable', 'Source Search Unavailable'
         FAILED = 'failed', 'Failed'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -103,6 +106,32 @@ class SimilarityReport(models.Model):
         if self.overall_similarity == 0 or self.overall_similarity <= 0.0:
             return '*'
         return f"{int(round(self.overall_similarity))}%"
+
+    @property
+    def verification_status_label(self) -> str:
+        """Human-readable Turnitin verification status."""
+        if self.status == self.Status.FAILED:
+            return "Comparison Incomplete"
+        if self.status == self.Status.SOURCE_UNAVAILABLE:
+            return "Source Search Unavailable"
+        if self.status == self.Status.PARTIALLY_CHECKED:
+            return "Partially Checked"
+        if self.status == self.Status.NO_MATCHES_FOUND or (self.status == self.Status.COMPLETED and self.overall_similarity == 0):
+            return "No Verified Matches Found (Original Work)"
+        return "Successfully Checked"
+
+    @property
+    def verification_status_badge(self) -> str:
+        """Bootstrap/Turnitin badge color class."""
+        if self.status == self.Status.FAILED:
+            return "danger"
+        if self.status == self.Status.SOURCE_UNAVAILABLE:
+            return "warning"
+        if self.status == self.Status.PARTIALLY_CHECKED:
+            return "warning"
+        if self.status == self.Status.NO_MATCHES_FOUND or (self.status == self.Status.COMPLETED and self.overall_similarity == 0):
+            return "info"
+        return "success"
 
 
 class MatchedPassage(models.Model):
@@ -271,6 +300,9 @@ class AIReport(models.Model):
         PENDING = 'pending', 'Pending'
         PROCESSING = 'processing', 'Processing'
         COMPLETED = 'completed', 'Completed'
+        PARTIALLY_CHECKED = 'partially_checked', 'Partially Checked'
+        NO_MATCHES_FOUND = 'no_matches_found', 'No Verified Matches Found'
+        SOURCE_UNAVAILABLE = 'source_unavailable', 'Source Search Unavailable'
         FAILED = 'failed', 'Failed'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

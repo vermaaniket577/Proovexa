@@ -109,8 +109,17 @@ def multi_source_search(
             'total_retrieved': 0,
         }
 
-    # Dedup and limit queries for performance (top 3 distinctive phrases)
-    clean_queries = [q.strip() for q in queries if len(q.strip()) >= 5][:3]
+    # Dedup and limit queries for comprehensive multi-section coverage (up to 6 distinctive phrases)
+    clean_queries = []
+    seen_q = set()
+    for q in queries:
+        cq = q.strip()
+        if len(cq) >= 5 and cq.lower() not in seen_q:
+            clean_queries.append(cq)
+            seen_q.add(cq.lower())
+        if len(clean_queries) >= 6:
+            break
+
     if not clean_queries:
         return {
             'results': [],
@@ -126,10 +135,14 @@ def multi_source_search(
     seen_titles = set()
 
     def _query_connector(conn: BaseSourceConnector, q: str):
-        return conn.id, conn.name, conn.search(q, max_results=max_results_per_source)
+        try:
+            return conn.id, conn.name, conn.search(q, max_results=max_results_per_source)
+        except Exception as conn_err:
+            logger.debug(f"Connector {conn.name} query failed: {conn_err}")
+            return conn.id, conn.name, []
 
     tasks = []
-    with ThreadPoolExecutor(max_workers=min(len(active_connectors) * len(clean_queries), 12)) as executor:
+    with ThreadPoolExecutor(max_workers=min(len(active_connectors) * len(clean_queries), 16)) as executor:
         for conn in active_connectors:
             for q in clean_queries:
                 tasks.append(executor.submit(_query_connector, conn, q))

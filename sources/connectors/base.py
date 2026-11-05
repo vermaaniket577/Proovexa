@@ -80,23 +80,35 @@ class SourceProviderResult:
         elif hasattr(self.publication_date, 'year'):
             pub_date = self.publication_date
 
-        ref_source, _ = ReferenceSource.objects.get_or_create(
-            url=self.url if self.url else (f"doi:{self.doi}" if self.doi else ""),
-            defaults={
-                'title': self.title[:500] if self.title else 'Untitled Source',
-                'author': self.author[:500] if self.author else '',
-                'source_type': st,
-                'doi': self.doi[:100] if self.doi else '',
-                'publication_date': pub_date,
-                'retrieved_text': self.text,
-                'word_count': len(self.text.split()) if self.text else 0,
-                'retrieval_timestamp': timezone.now(),
-                'access_limitations': self.access_limitations,
-                'institution': institution,
-                'document': document,
-                'is_active': True,
-            }
-        )
+        # Robust deduplication by URL, DOI, or Title without empty string collisions
+        ref_source = None
+        if self.url and self.url.strip():
+            ref_source = ReferenceSource.objects.filter(url=self.url.strip()).first()
+        elif self.doi and self.doi.strip():
+            ref_source = ReferenceSource.objects.filter(doi=self.doi.strip()).first()
+        elif self.title and self.title.strip():
+            ref_source = ReferenceSource.objects.filter(title=self.title.strip()[:500], source_type=st).first()
+
+        if not ref_source:
+            import uuid
+            unique_url = self.url.strip() if (self.url and self.url.strip()) else (
+                f"https://doi.org/{self.doi.strip()}" if (self.doi and self.doi.strip()) else f"urn:proovexa:source:{uuid.uuid4().hex[:12]}"
+            )
+            ref_source = ReferenceSource.objects.create(
+                title=self.title[:500] if self.title else 'Untitled Source',
+                author=self.author[:500] if self.author else '',
+                source_type=st,
+                url=unique_url,
+                doi=self.doi[:100] if self.doi else '',
+                publication_date=pub_date,
+                retrieved_text=self.text,
+                word_count=len(self.text.split()) if self.text else 0,
+                retrieval_timestamp=timezone.now(),
+                access_limitations=self.access_limitations,
+                institution=institution,
+                document=document,
+                is_active=True,
+            )
         # Update text if it was previously empty and we now have retrieved text
         if self.text and (not ref_source.retrieved_text or len(ref_source.retrieved_text) < len(self.text)):
             ref_source.retrieved_text = self.text

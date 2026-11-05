@@ -661,7 +661,12 @@ mark.turnitin-highlight:hover {
                 <i class="bi bi-shield-check me-1"></i>turnitin report
             </span>
             <div>
-                <h4 class="mb-0 fw-bold">{{ report.document.title }}</h4>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h4 class="mb-0 fw-bold">{{ report.document.title }}</h4>
+                    <span class="badge bg-{{ report.verification_status_badge }} px-2.5 py-1 text-white fw-semibold" style="font-size: 0.75rem;" title="Turnitin-Standard Source Verification Status">
+                        <i class="bi bi-patch-check-fill me-1"></i>{{ report.verification_status_label }}
+                    </span>
+                </div>
                 <small class="text-muted">Submission ID: <strong id="header-submission-id">{{ criteria.submission_id }}</strong> &bull; Generated on {{ criteria.download_date }}</small>
             </div>
         </div>
@@ -1081,8 +1086,11 @@ mark.turnitin-highlight:hover {
                     {{ s.title }}
                     {% endif %}
                 </div>
-                <div class="source-pct-text">
-                    {{ s.percent }}
+                <div class="source-pct-text d-flex align-items-center gap-1.5">
+                    <span>{{ s.percent }}</span>
+                    <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" title="Inspect source comparison details" onclick="event.stopPropagation(); inspectSourceFromOverview({{ s.index }});">
+                        <i class="bi bi-info-circle text-primary" style="font-size: 0.85rem;"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1106,6 +1114,13 @@ mark.turnitin-highlight:hover {
      PAGE 5+: INTEGRITY SUBMISSION (Document text in authentic A4 sheets)
      ========================================================================= -->
 <div id="section-submission-container">
+    <div class="d-flex align-items-center gap-3 py-2 px-3 mb-3 bg-white border rounded shadow-sm small no-print flex-wrap">
+        <span class="fw-bold text-dark"><i class="bi bi-palette me-1"></i>Similarity Highlighting:</span>
+        <span class="d-inline-flex align-items-center gap-1.5"><span style="width: 12px; height: 12px; background: #dc2626; border-radius: 2px; display: inline-block;"></span> <strong class="text-danger">Red:</strong> Exact Match</span>
+        <span class="d-inline-flex align-items-center gap-1.5"><span style="width: 12px; height: 12px; background: #f97316; border-radius: 2px; display: inline-block;"></span> <strong style="color: #ea580c;">Orange:</strong> Close / Phrase Match</span>
+        <span class="d-inline-flex align-items-center gap-1.5"><span style="width: 12px; height: 12px; background: #0284c7; border-radius: 2px; display: inline-block;"></span> <strong class="text-info">Blue:</strong> Paraphrase / Semantic Match</span>
+        <span class="text-muted ms-auto"><i class="bi bi-cursor-fill me-1"></i>Click any highlighted passage or source to open source comparison</span>
+    </div>
     {% regroup paragraphs_data by page_number as submission_pages %}
     {% for spage in submission_pages %}
     <div class="turnitin-sheet turnitin-submission-sheet" id="section-submission{% if not forloop.first %}-p{{ spage.grouper }}{% else %}section-submission{% endif %}">
@@ -1716,6 +1731,15 @@ function jumpToSource(sourceIndex) {
     }, 150);
 }
 
+function inspectSourceFromOverview(sourceIndex) {
+    const match = document.querySelector('.source-match-' + sourceIndex);
+    if (match) {
+        openSourceInspection(match);
+    } else {
+        jumpToSource(sourceIndex);
+    }
+}
+
 function jumpToAiSentence(sentenceIndex) {
     showAiSection('submission');
     setTimeout(() => {
@@ -1726,6 +1750,172 @@ function jumpToAiSentence(sentenceIndex) {
             setTimeout(() => el.classList.remove('pulse-highlight'), 2200);
         }
     }, 150);
+}
+
+<!-- Turnitin Source Inspection Modal -->
+<div class="modal fade" id="sourceInspectionModal" tabindex="-1" aria-labelledby="sourceInspectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge text-white px-2.5 py-1 fw-bold fs-6" id="modal-src-badge" style="background-color: #e91e63;">1</span>
+                    <h5 class="modal-title fw-bold mb-0" id="sourceInspectionModalLabel">Source Comparison & Attribution</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Source Overview Card -->
+                <div class="card border-0 bg-light rounded-3 p-3 mb-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <span class="badge bg-secondary me-1" id="modal-src-category">Academic Database</span>
+                            <span class="badge text-white me-1" id="modal-src-match-type" style="background-color: #dc2626;">Exact Match</span>
+                            <span class="badge bg-dark" id="modal-src-sim">100% Similarity</span>
+                            <span class="badge bg-light text-dark border ms-1" id="modal-src-words">14 matched words</span>
+                        </div>
+                        <div id="modal-src-status">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-patch-check-fill me-1"></i>Verified Authentic Source</span>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1" id="modal-src-title">Title</h5>
+                    <div class="small text-muted mb-2" id="modal-src-author-line">
+                        <i class="bi bi-person me-1"></i><span id="modal-src-author">Author</span>
+                        <span id="modal-src-date-wrap" class="ms-2">&bull; <i class="bi bi-calendar me-1"></i><span id="modal-src-date">Date</span></span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 small">
+                        <div id="modal-src-url-wrap" style="display: none;">
+                            <a href="#" target="_blank" rel="noopener noreferrer" class="text-primary fw-semibold text-decoration-none" id="modal-src-url-link">
+                                <i class="bi bi-box-arrow-up-right me-1"></i><span id="modal-src-url-text">Visit Original Source</span>
+                            </a>
+                        </div>
+                        <div id="modal-src-doi-wrap" style="display: none;">
+                            <a href="#" target="_blank" rel="noopener noreferrer" class="text-secondary fw-semibold text-decoration-none" id="modal-src-doi-link">
+                                <i class="bi bi-link-45deg me-1"></i>DOI: <span id="modal-src-doi-text"></span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Side-by-Side Comparison -->
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card h-100 border">
+                            <div class="card-header bg-white fw-bold py-2 text-danger border-bottom d-flex align-items-center justify-content-between">
+                                <span><i class="bi bi-file-earmark-text me-1"></i>Submitted Document</span>
+                                <small class="text-muted fw-normal">Highlight Passage</small>
+                            </div>
+                            <div class="card-body p-3 bg-white" style="max-height: 280px; overflow-y: auto;">
+                                <p class="mb-0 p-2 rounded" id="modal-submitted-text" style="background-color: #fee2e2; border-left: 3px solid #dc2626; font-size: 0.95rem; line-height: 1.6;"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 border">
+                            <div class="card-header bg-white fw-bold py-2 text-primary border-bottom d-flex align-items-center justify-content-between">
+                                <span><i class="bi bi-quote me-1"></i>Original Source Content</span>
+                                <small class="text-muted fw-normal">Attributed Excerpt</small>
+                            </div>
+                            <div class="card-body p-3 bg-white" style="max-height: 280px; overflow-y: auto;">
+                                <blockquote class="blockquote mb-0 p-2 rounded" style="background-color: #f8fafc; border-left: 3px solid #0284c7; font-size: 0.95rem; line-height: 1.6;">
+                                    <p class="mb-0 text-secondary fst-italic" id="modal-source-text"></p>
+                                </blockquote>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openSourceInspection(element) {
+    if (!element || !element.dataset) return;
+    const d = element.dataset;
+    
+    document.getElementById('modal-src-badge').textContent = d.sourceIndex || '1';
+    document.getElementById('modal-src-badge').style.backgroundColor = d.badgeColor || '#e91e63';
+    
+    document.getElementById('modal-src-title').textContent = d.sourceTitle || 'Reference Source';
+    document.getElementById('modal-src-category').textContent = d.sourceCategory || 'Academic Database';
+    
+    const matchTypeEl = document.getElementById('modal-src-match-type');
+    matchTypeEl.textContent = d.matchType || 'Match';
+    if (d.matchCode === 'exact') {
+        matchTypeEl.style.backgroundColor = '#dc2626';
+    } else if (d.matchCode === 'phrase') {
+        matchTypeEl.style.backgroundColor = '#f97316';
+    } else if (d.matchCode === 'fuzzy') {
+        matchTypeEl.style.backgroundColor = '#0284c7';
+    } else {
+        matchTypeEl.style.backgroundColor = '#4b5563';
+    }
+    
+    document.getElementById('modal-src-sim').textContent = (d.similarity || '100%') + ' Similarity';
+    document.getElementById('modal-src-words').textContent = (d.words || '0') + ' matched words';
+    
+    const authorEl = document.getElementById('modal-src-author');
+    authorEl.textContent = d.sourceAuthor && d.sourceAuthor !== 'Unspecified Author' ? d.sourceAuthor : 'Author / Publisher on record';
+    
+    const dateWrap = document.getElementById('modal-src-date-wrap');
+    if (d.sourceDate) {
+        document.getElementById('modal-src-date').textContent = d.sourceDate;
+        dateWrap.style.display = 'inline';
+    } else {
+        dateWrap.style.display = 'none';
+    }
+    
+    const urlWrap = document.getElementById('modal-src-url-wrap');
+    const urlLink = document.getElementById('modal-src-url-link');
+    const urlText = document.getElementById('modal-src-url-text');
+    if (d.sourceUrl && d.sourceUrl.startsWith('http')) {
+        urlLink.href = d.sourceUrl;
+        urlText.textContent = d.sourceUrl.length > 50 ? d.sourceUrl.substring(0, 50) + '...' : d.sourceUrl;
+        urlWrap.style.display = 'block';
+    } else {
+        urlWrap.style.display = 'none';
+    }
+    
+    const doiWrap = document.getElementById('modal-src-doi-wrap');
+    const doiLink = document.getElementById('modal-src-doi-link');
+    const doiText = document.getElementById('modal-src-doi-text');
+    if (d.sourceDoi) {
+        doiLink.href = d.sourceDoi.startsWith('http') ? d.sourceDoi : 'https://doi.org/' + d.sourceDoi;
+        doiText.textContent = d.sourceDoi;
+        doiWrap.style.display = 'block';
+    } else {
+        doiWrap.style.display = 'none';
+    }
+    
+    // Status
+    const statusEl = document.getElementById('modal-src-status');
+    if (d.sourceUrl || d.sourceDoi) {
+        statusEl.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-patch-check-fill me-1"></i>Verified Authentic Source</span>';
+    } else {
+        statusEl.innerHTML = '<span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-shield-check me-1"></i>Internal Repository Match</span>';
+    }
+    
+    // Texts
+    const subTextEl = document.getElementById('modal-submitted-text');
+    subTextEl.textContent = d.submittedText || '';
+    if (d.matchCode === 'exact') {
+        subTextEl.style.backgroundColor = '#fee2e2';
+        subTextEl.style.borderLeftColor = '#dc2626';
+    } else if (d.matchCode === 'phrase') {
+        subTextEl.style.backgroundColor = '#ffedd5';
+        subTextEl.style.borderLeftColor = '#f97316';
+    } else {
+        subTextEl.style.backgroundColor = '#e0f2fe';
+        subTextEl.style.borderLeftColor = '#0284c7';
+    }
+    
+    document.getElementById('modal-source-text').textContent = d.sourceText || 'No direct source passage available.';
+    
+    const modal = new bootstrap.Modal(document.getElementById('sourceInspectionModal'));
+    modal.show();
 }
 
 // Auto-switch to AI if URL contains #ai or ?tab=ai

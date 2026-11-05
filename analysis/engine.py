@@ -974,7 +974,15 @@ class AnalysisEngine:
 
             report.fuzzy_match_count = fuzzy_count
 
-            report.status = SimilarityReport.Status.COMPLETED
+            if score_result['overall_similarity'] == 0:
+                if getattr(self, 'last_search_meta', {}).get('failed_sources') and not getattr(self, 'last_search_meta', {}).get('sources_checked'):
+                    report.status = SimilarityReport.Status.SOURCE_UNAVAILABLE
+                elif getattr(self, 'last_search_meta', {}).get('failed_sources'):
+                    report.status = SimilarityReport.Status.PARTIALLY_CHECKED
+                else:
+                    report.status = SimilarityReport.Status.NO_MATCHES_FOUND
+            else:
+                report.status = SimilarityReport.Status.COMPLETED
 
             report.processing_time_seconds = round(time.time() - start_time, 2)
 
@@ -1053,44 +1061,54 @@ class AnalysisEngine:
 
 
     def _extract_distinctive_queries(self, document, full_text: str) -> List[str]:
-        """Extracts distinctive titles and salient phrases from document for academic & web queries."""
+        """Extracts distinctive titles and salient phrases from document across its full length for academic & web queries."""
         queries = []
-        # 1. Document title if meaningful
         doc_title = (getattr(document, 'title', '') or '').strip()
-        if doc_title and len(doc_title) > 5 and not doc_title.lower().endswith(('.pdf', '.docx', '.txt')):
-            queries.append(doc_title[:150])
+        # Clean title of common student submission suffixes/patterns
+        cleaned_title = re.sub(r'(?i)(plag[f_]?\w*|reduced|\bnew\b|\bfinal\b|\bcorrected\b|\brevised\b|\bversion\b|\bv\d+\b|\bcopy\b|\bthesis\b|\bpaper\b|\bdraft\b|\d{6,})', ' ', doc_title)
+        cleaned_title = re.sub(r'[^\w\s-]', ' ', cleaned_title)
+        cleaned_title = ' '.join(w for w in cleaned_title.split() if len(w) > 2)
+        if len(cleaned_title.split()) >= 3:
+            queries.append(cleaned_title[:150])
 
-        # 2. Extract first prominent heading or title candidate from text
+        # Extract salient headings or title candidate from the beginning of text
         lines = [line.strip() for line in full_text.split('\n') if line.strip()]
-        for line in lines[:5]:
+        for line in lines[:15]:
             clean_line = re.sub(r'^[#*\s\d.]+', '', line).strip()
+            clean_line = re.sub(r'(?i)^(chapter|section|part)\s+\d+[:.\s-]*', '', clean_line).strip()
             w_count = len(clean_line.split())
-            if 4 <= w_count <= 18 and clean_line.lower() not in [q.lower() for q in queries]:
+            if 4 <= w_count <= 18 and clean_line.lower() not in [q.lower() for q in queries] and not clean_line.lower().startswith(('overview', 'introduction')):
                 queries.append(clean_line[:150])
                 break
 
-        # 3. Extract distinctive sentences from abstract / introduction
-        paras = [p.strip() for p in full_text.split('\n\n') if len(p.strip()) > 40]
+        # Extract distinctive, domain-specific phrases across evenly distributed sections of the document
+        paras = [p.strip() for p in full_text.split('\n\n') if len(p.strip()) > 80]
         stopwords = {
             'this', 'that', 'with', 'from', 'have', 'were', 'which', 'their', 'there',
             'about', 'would', 'could', 'should', 'these', 'those', 'being', 'between',
-            'into', 'more', 'also', 'such', 'other', 'than', 'some', 'when'
+            'into', 'more', 'also', 'such', 'other', 'than', 'some', 'when', 'chapter',
+            'presents', 'presented', 'overview', 'context', 'inspiration', 'discusses',
+            'figure', 'table', 'equation', 'shown', 'shows', 'illustrates', 'using'
         }
-        for p in paras[:4]:
-            sents = re.split(r'(?<=[.!?])\s+', p)
-            for s in sents:
-                clean_s = re.sub(r'[^\w\s]', ' ', s).strip()
-                words = [w for w in clean_s.split() if len(w) > 2]
-                meaningful = [w for w in words if w.lower() not in stopwords]
-                if 6 <= len(words) <= 22 and len(meaningful) >= 4:
-                    phrase = " ".join(words[:12])
-                    if phrase.lower() not in [q.lower() for q in queries]:
-                        queries.append(phrase)
-                        break
-            if len(queries) >= 3:
-                break
 
-        return queries[:3]
+        if paras:
+            step = max(1, len(paras) // 6)
+            for idx in range(0, len(paras), step):
+                p = paras[idx]
+                sents = re.split(r'(?<=[.!?])\s+', p)
+                for s in sents:
+                    clean_s = re.sub(r'[^\w\s]', ' ', s).strip()
+                    words = [w for w in clean_s.split() if len(w) > 2]
+                    meaningful = [w for w in words if w.lower() not in stopwords]
+                    if 8 <= len(words) <= 24 and len(meaningful) >= 5:
+                        phrase = " ".join(words[:12])
+                        if phrase.lower() not in [q.lower() for q in queries]:
+                            queries.append(phrase)
+                            break
+                if len(queries) >= 8:
+                    break
+
+        return queries[:6]
 
     def _get_comparison_sources(self, document, full_text=""):
 

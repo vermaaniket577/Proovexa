@@ -128,15 +128,50 @@ def report_detail_view(request, report_id):
                     solid_col, pastel_bg, border_col = source_color_map[m_idx]
                 else:
                     solid_col, pastel_bg, border_col = TURNITIN_PALETTE[(m_idx - 1) % len(TURNITIN_PALETTE)]
+
+                # Match type color styling (Red for exact, Orange for phrase, Blue for paraphrase)
+                if m.match_type == 'exact':
+                    type_border_col = '#dc2626'
+                    type_bg_col = '#fee2e2'
+                    type_label = 'Exact Match'
+                elif m.match_type == 'phrase':
+                    type_border_col = '#f97316'
+                    type_bg_col = '#ffedd5'
+                    type_label = 'Close / Phrase Match'
+                elif m.match_type == 'fuzzy':
+                    type_border_col = '#0284c7'
+                    type_bg_col = '#e0f2fe'
+                    type_label = 'Possible Paraphrase'
+                else:
+                    type_border_col = solid_col
+                    type_bg_col = pastel_bg
+                    type_label = 'Match'
+
                 m_text = m.submitted_text.strip()
                 m_escaped = html.escape(m_text)
-                src_title = html.escape(m.source.title if m.source else "Reference Database")
+                src = m.source
+                src_title = html.escape(src.title if src else "Reference Database")
+                src_author = html.escape(src.author if src and src.author else "Unspecified Author")
+                src_category = html.escape(src.get_source_type_display() if src and hasattr(src, 'get_source_type_display') else "Academic / Web Source")
+                src_url = html.escape(src.url if src and src.url else "")
+                src_doi = html.escape(src.doi if src and src.doi else "")
+                src_date = html.escape(str(src.publication_date) if src and src.publication_date else "")
+                raw_src_text = m.source_text.strip() if m.source_text else (src.retrieved_text[:1000] if src and src.retrieved_text else "No extractable source passage available.")
+                src_text_escaped = html.escape(raw_src_text)
+                src_sim_pct = f"{int(round((m.similarity_score or 1.0) * 100))}%"
 
                 replacement = (
                     f'<mark class="turnitin-highlight source-match-{m_idx}" '
                     f'data-source-index="{m_idx}" data-source-title="{src_title}" '
-                    f'style="background-color: {pastel_bg}; border-bottom: 2px solid {solid_col}; color: #0f172a; padding: 2px 4px; border-radius: 3px; position: relative; cursor: pointer;" '
-                    f'title="Source [{m_idx}]: {src_title}">'
+                    f'data-source-author="{src_author}" data-source-category="{src_category}" '
+                    f'data-source-url="{src_url}" data-source-doi="{src_doi}" data-source-date="{src_date}" '
+                    f'data-match-type="{type_label}" data-match-code="{m.match_type}" '
+                    f'data-similarity="{src_sim_pct}" data-words="{m.word_count}" '
+                    f'data-badge-color="{solid_col}" '
+                    f'data-submitted-text="{m_escaped}" data-source-text="{src_text_escaped}" '
+                    f'onclick="openSourceInspection(this)" '
+                    f'style="background-color: {type_bg_col}; border-bottom: 2px solid {type_border_col}; color: #0f172a; padding: 2px 4px; border-radius: 3px; position: relative; cursor: pointer;" '
+                    f'title="[{type_label}] Source [{m_idx}]: {src_title} (Click to inspect source details)">'
                     f'<span class="badge text-white me-1 align-text-top" style="background-color: {solid_col}; font-size: 0.72rem; padding: 2px 5px; border-radius: 3px;">{m_idx}</span>'
                     f'{m_escaped}'
                     f'</mark>'
@@ -153,8 +188,15 @@ def report_detail_view(request, report_id):
                             return (
                                 f'<mark class="turnitin-highlight source-match-{m_idx}" '
                                 f'data-source-index="{m_idx}" data-source-title="{src_title}" '
-                                f'style="background-color: {pastel_bg}; border-bottom: 2px solid {solid_col}; color: #0f172a; padding: 2px 4px; border-radius: 3px; position: relative; cursor: pointer;" '
-                                f'title="Source [{m_idx}]: {src_title}">'
+                                f'data-source-author="{src_author}" data-source-category="{src_category}" '
+                                f'data-source-url="{src_url}" data-source-doi="{src_doi}" data-source-date="{src_date}" '
+                                f'data-match-type="{type_label}" data-match-code="{m.match_type}" '
+                                f'data-similarity="{src_sim_pct}" data-words="{m.word_count}" '
+                                f'data-badge-color="{solid_col}" '
+                                f'data-submitted-text="{html.escape(found_text)}" data-source-text="{src_text_escaped}" '
+                                f'onclick="openSourceInspection(this)" '
+                                f'style="background-color: {type_bg_col}; border-bottom: 2px solid {type_border_col}; color: #0f172a; padding: 2px 4px; border-radius: 3px; position: relative; cursor: pointer;" '
+                                f'title="[{type_label}] Source [{m_idx}]: {src_title} (Click to inspect source details)">'
                                 f'<span class="badge text-white me-1 align-text-top" style="background-color: {solid_col}; font-size: 0.72rem; padding: 2px 5px; border-radius: 3px;">{m_idx}</span>'
                                 f'{found_text}'
                                 f'</mark>'
