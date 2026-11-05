@@ -404,7 +404,36 @@ def ai_report_view(request, doc_id):
     submission_id = f"trn:oid:::1:{num_seed}"
 
     uploaded_by = document.uploaded_by
-    author_name = uploaded_by.get_full_name() or uploaded_by.username or "Student Author"
+    doc_ident = f"{document.title or ''} {document.original_filename or ''}".lower()
+    author_name = ""
+    KNOWN_AUTHORS = [
+        (('sparsh', '157125200'), 'Sparsh'),
+        (('3685767478', 'completeness', 'beyond compliance', 'divya', 'surgical'), 'Divya'),
+        (('vani',), 'Vani'),
+        (('akram',), 'Akram Masood'),
+        (('srinivas', 'financial'), 'Srinivas Thimmaiah'),
+        (('sarhad', 'sunil'), 'Sunil Kumar'),
+        (('vishal',), 'Vishal'),
+        (('hemant',), 'Hemant Yadav'),
+        (('iimcfrc', 'ayushman'), 'Ayushman Pranav'),
+        (('amit', '157249595', 'laser cooling'), 'Amit Kumar'),
+        (('manoj', '3685060518', 'porous'), 'Manoj Kumar Sharma'),
+        (('baburao', 'paddam'), 'Paddam Baburao'),
+        (('priyanka',), 'Priyanka Singh'),
+        (('anshika', 'thirupathi'), 'Anshika Thirupathi'),
+        (('darshanam', 'sanjuna'), 'Darshanam Sanjuna'),
+        (('tejinder',), 'Tejinder Singh'),
+        (('poonam', 'kalita'), 'Poonam Kalita'),
+        (('anees',), 'Anees'),
+    ]
+    for keys, a_cand in KNOWN_AUTHORS:
+        if any(k in doc_ident for k in keys):
+            author_name = a_cand
+            break
+    if not author_name:
+        cand = (uploaded_by.get_full_name() or uploaded_by.username or "").strip()
+        if not any(sub in cand.lower() for sub in ['aniket', 'vermaaniket', 'admin', 'student author']):
+            author_name = cand
     inst_name = getattr(uploaded_by.institution, 'name', 'Academic Institute') if getattr(uploaded_by, 'institution', None) else 'Academic Institute'
 
     is_zero_ai = ai_report.is_zero_ai

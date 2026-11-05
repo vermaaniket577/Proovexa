@@ -65,11 +65,15 @@ def generate_docx_report(report):
     info_table = doc.add_table(rows=8, cols=2)
     info_table.style = 'Light Grid Accent 1'
 
+    author_str = (report.document.uploaded_by.get_full_name() or report.document.uploaded_by.username or '').strip()
+    if any(sub in author_str.lower() for sub in ['aniket', 'vermaaniket', 'admin', 'student author']):
+        author_str = ''
+
     info_data = [
         ('Report ID', str(report.id)[:8].upper()),
         ('Document ID', str(report.document.id)[:8].upper()),
         ('Document Title', report.document.title),
-        ('Author', report.document.uploaded_by.get_full_name() or report.document.uploaded_by.username),
+        ('Author', author_str or 'Author on record'),
         ('File Type', report.document.get_file_type_display()),
         ('Upload Date', report.document.uploaded_at.strftime('%Y-%m-%d %H:%M')),
         ('Total Words', f"{report.total_words:,}"),

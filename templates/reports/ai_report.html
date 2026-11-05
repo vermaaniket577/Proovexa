@@ -397,7 +397,9 @@
             <div class="turnitin-sheet-content">
                 <!-- Title Block -->
                 <div class="pt-5 pb-3" style="max-width: 100%; min-width: 0; word-break: break-word; overflow-wrap: anywhere;">
+                    {% if author_name and author_name|lower != 'aniket verma' and author_name|lower != 'aniket' and author_name != 'Student Author' %}
                     <div class="cover-author-title">{{ author_name }}</div>
+                    {% endif %}
                     <div class="cover-doc-filename">{{ document.original_filename }}</div>
                     <div class="cover-inst-line">
                         <i class="bi bi-mortarboard-fill me-1 text-primary"></i> {{ institution_name }}

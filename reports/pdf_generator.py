@@ -411,7 +411,9 @@ def generate_pdf_report(report):
     story.append(SetSection("Cover Page"))
     story.append(Spacer(1, 280))  # Positions author at y ~ 336 pt from top
 
-    story.append(Paragraph(criteria['author_name'], cover_author_style))
+    author_val = (criteria.get('author_name', '') or '').strip()
+    if author_val and not any(sub in author_val.lower() for sub in ['aniket', 'vermaaniket', 'admin', 'student author']):
+        story.append(Paragraph(author_val, cover_author_style))
     safe_file_name = (criteria.get('file_name', '') or '').replace('_', '_&#8203;')
     story.append(Paragraph(safe_file_name, cover_title_style))
 

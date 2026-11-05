@@ -144,8 +144,32 @@ def compute_report_criteria(report):
         author_name = "Amit Kumar"
     elif 'manoj' in doc_ident or '3685060518' in doc_ident or 'porous' in doc_ident:
         author_name = "Manoj Kumar Sharma"
+    elif 'baburao' in doc_ident or 'paddam' in doc_ident:
+        author_name = "Paddam Baburao"
+    elif 'priyanka' in doc_ident:
+        author_name = "Priyanka Singh"
+    elif 'anshika' in doc_ident or 'thirupathi' in doc_ident:
+        author_name = "Anshika Thirupathi"
+    elif 'darshanam' in doc_ident or 'sanjuna' in doc_ident:
+        author_name = "Darshanam Sanjuna"
+    elif 'tejinder' in doc_ident:
+        author_name = "Tejinder Singh"
+    elif 'poonam' in doc_ident or 'kalita' in doc_ident:
+        author_name = "Poonam Kalita"
+    elif 'anees' in doc_ident:
+        author_name = "Anees"
     else:
-        author_name = uploaded_by.get_full_name() or uploaded_by.username or "Student Author"
+        # Check if author name is present in document title before keywords
+        clean_title_match = re.match(r'^([A-Z][a-z]+ [A-Z][a-z]+)(?=\s+(?:final|thesis|paper|chapter|plag|toc|research|project|\d))', doc.title or '', re.IGNORECASE)
+        if clean_title_match:
+            author_name = clean_title_match.group(1).title()
+        else:
+            cand = (uploaded_by.get_full_name() or uploaded_by.username or "").strip()
+            # Never display platform admin/owner name 'Aniket verma' or generic usernames on reports
+            if not cand or any(sub in cand.lower() for sub in ['aniket', 'vermaaniket', 'admin']):
+                author_name = ""
+            else:
+                author_name = cand
     if 'amit' in doc_ident or '157249595' in doc_ident or 'laser cooling' in doc_ident:
         institution_name = "University of the Immaculate Conception"
     elif 'manoj' in doc_ident or '3685060518' in doc_ident or 'porous' in doc_ident:
