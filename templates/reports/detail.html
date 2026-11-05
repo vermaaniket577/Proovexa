@@ -654,7 +654,7 @@ mark.turnitin-highlight:hover {
 
 {% block content %}
 <!-- Top Action Toolbar -->
-<div class="card mb-4" style="overflow: visible !important; position: relative; z-index: 1050;">
+<div class="card mb-4 border-0 shadow-sm" style="overflow: visible !important; position: relative; z-index: 10;">
     <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3" style="overflow: visible !important;">
         <div class="d-flex align-items-center gap-3">
             <span class="badge bg-primary px-3 py-2 fw-bold text-uppercase" id="badge-report-mode">
@@ -667,8 +667,8 @@ mark.turnitin-highlight:hover {
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
             <!-- Dynamic Download PDF Button: downloads current active report -->
-            <a href="{% url 'reports:download_pdf' report.id %}" class="btn btn-danger fw-semibold px-3 py-2 shadow-sm" id="btn-download-pdf">
-                <i class="bi bi-file-earmark-pdf-fill me-1"></i> <span id="btn-download-pdf-label">Download {{ report.document.plag_report_filename }}</span>
+            <a href="{% url 'reports:download_pdf' report.id %}" class="btn btn-dark fw-semibold px-3 py-2 shadow-sm d-inline-flex align-items-center gap-1.5" id="btn-download-pdf" title="Download {{ report.document.plag_report_filename }}">
+                <i class="bi bi-file-earmark-pdf-fill text-danger"></i> <span id="btn-download-pdf-label">Download PDF</span>
             </a>
 
 
@@ -729,7 +729,7 @@ mark.turnitin-highlight:hover {
 {% endif %}
 
 <!-- Plagiarism Page View Switcher -->
-<div class="d-flex justify-content-center mb-4" id="switcher-plag-pages">
+<div class="justify-content-center mb-4" id="switcher-plag-pages" style="display: flex;">
     <div class="btn-group shadow-sm p-1 bg-white border rounded-pill flex-wrap" role="group">
         <button type="button" class="btn btn-sm btn-outline-primary active rounded-pill px-3 m-1" onclick="showReportSection('all', this)">
             <i class="bi bi-grid-fill me-1"></i> Full Report Flow
@@ -752,7 +752,7 @@ mark.turnitin-highlight:hover {
 </div>
 
 <!-- AI Page View Switcher -->
-<div class="d-flex justify-content-center mb-4" id="switcher-ai-pages" style="display: none;">
+<div class="justify-content-center mb-4" id="switcher-ai-pages" style="display: none;">
     <div class="btn-group shadow-sm p-1 bg-white border rounded-pill flex-wrap" role="group">
         <button type="button" class="btn btn-sm btn-outline-info active rounded-pill px-3 m-1" onclick="showAiSection('all', this)">
             <i class="bi bi-grid-fill me-1"></i> Full AI Flow
@@ -1586,9 +1586,10 @@ function switchMainReport(mode) {
             {% else %}
             btnDownload.href = "#";
             {% endif %}
+            btnDownload.setAttribute('title', "Download {{ report.document.ai_report_filename }}");
         }
         if (btnDownloadLabel) {
-            btnDownloadLabel.innerText = "Download {{ report.document.ai_report_filename }}";
+            btnDownloadLabel.innerText = "Download AI PDF";
         }
         if (simContainer) simContainer.style.display = 'none';
         if (aiContainer) aiContainer.style.display = 'block';
@@ -1611,9 +1612,10 @@ function switchMainReport(mode) {
         }
         if (btnDownload) {
             btnDownload.href = "{% url 'reports:download_pdf' report.id %}";
+            btnDownload.setAttribute('title', "Download {{ report.document.plag_report_filename }}");
         }
         if (btnDownloadLabel) {
-            btnDownloadLabel.innerText = "Download {{ report.document.plag_report_filename }}";
+            btnDownloadLabel.innerText = "Download PDF";
         }
         if (simContainer) simContainer.style.display = 'block';
         if (aiContainer) aiContainer.style.display = 'none';

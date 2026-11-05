@@ -14,7 +14,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="{% static 'css/main.css' %}?v=2.2" rel="stylesheet">
+    <link href="{% static 'css/main.css' %}?v=2.3" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -156,6 +156,9 @@
                 </div>
             </div>
         </nav>
+
+        <!-- Sidebar Mobile / Responsive Backdrop Overlay -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
         <!-- Main Content Shell -->
         <main class="main-content">
