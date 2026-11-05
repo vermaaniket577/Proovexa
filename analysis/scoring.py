@@ -254,6 +254,14 @@ class AcademicSimilarityScorer:
             from .playwright_scraper import get_source_color
             color_code, pastel_bg, pill_bg, pill_text = get_source_color(rank)
 
+            pct_val = unique_pct if unique_pct > 0 else gross_pct
+            if pct_val <= 0:
+                pct_display = "<1%"
+            elif pct_val < 0.95:
+                pct_display = "<1%"
+            else:
+                pct_display = f"{int(round(pct_val))}%"
+
             rankings.append({
                 'source_id': str(sid),
                 'rank': rank,
@@ -263,8 +271,11 @@ class AcademicSimilarityScorer:
                 'color': color_code,
                 'color_code': color_code,
                 'bg_color': pastel_bg,
+                'pastel_bg': pastel_bg,
                 'pill_bg': pill_bg,
                 'pill_text': pill_text,
+                'percent_display': pct_display,
+                'pct_display': pct_display,
                 'gross_matched_words': gross_words,
                 'gross_percentage': gross_pct,
                 'unique_matched_words': unique_words,

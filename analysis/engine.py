@@ -12,6 +12,7 @@ import time
 
 import logging
 from typing import List, Dict, Any, Optional, Set
+from collections import defaultdict
 
 from django.conf import settings
 
@@ -283,6 +284,24 @@ class AnalysisEngine:
             scorer = AcademicSimilarityScorer(total_word_count=total_words, full_text=full_text)
 
             min_words = self.exclusion_settings.get('min_match_words', 8)
+
+            # Detect Turnitin Integrity Flags (document manipulation detection)
+            integrity_flags = []
+            zero_width_chars = [c for c in full_text if ord(c) in (0x200B, 0x200C, 0x200D, 0xFEFF)]
+            if len(zero_width_chars) > 5:
+                integrity_flags.append({
+                    'title': 'Hidden Characters Detected',
+                    'subtitle': f'{len(zero_width_chars)} invisible characters detected',
+                    'detail': f'Found {len(zero_width_chars)} zero-width characters used to disrupt tokenization and evade similarity matching.',
+                })
+
+            cyrillic_homoglyphs = [c for c in full_text if 0x0400 <= ord(c) <= 0x04FF]
+            if len(cyrillic_homoglyphs) > 10:
+                integrity_flags.append({
+                    'title': 'Character Replacement Detected',
+                    'subtitle': f'{len(cyrillic_homoglyphs)} suspect characters in text',
+                    'detail': 'Detected non-Latin homoglyphic characters swapped with Latin letters to evade detection.',
+                })
 
 
 
@@ -746,16 +765,49 @@ class AnalysisEngine:
 
             matched_passage_objects = []
 
+            # Turnitin-style coalescing: merge overlapping and adjacent match fragments per source
+            coalesced_matches = []
+            matches_by_src = defaultdict(list)
+            for m in all_matches:
+                s_obj = m.get('source')
+                s_id = str(s_obj.id) if s_obj else 'unknown'
+                matches_by_src[s_id].append(m)
 
+            for s_id, s_matches in matches_by_src.items():
+                for m in s_matches:
+                    if m.get('submitted_start') is None:
+                        m['submitted_start'] = self._estimate_char_position(full_text, m['submitted_text'], start_from=0)
+                    if m.get('submitted_end') is None:
+                        m['submitted_end'] = (m['submitted_start'] or 0) + len(m['submitted_text'])
+
+                s_matches.sort(key=lambda x: (x.get('submitted_start') or 0))
+                merged_src = []
+                for m in s_matches:
+                    if not merged_src:
+                        merged_src.append(m)
+                    else:
+                        prev = merged_src[-1]
+                        m_start = m.get('submitted_start') or 0
+                        m_end = m.get('submitted_end') or (m_start + len(m['submitted_text']))
+                        prev_start = prev.get('submitted_start') or 0
+                        prev_end = prev.get('submitted_end') or (prev_start + len(prev['submitted_text']))
+
+                        # If overlapping or within 30 characters (~5 words)
+                        if m_start <= prev_end + 30:
+                            new_end = max(prev_end, m_end)
+                            prev['submitted_end'] = new_end
+                            prev['submitted_text'] = full_text[prev_start:new_end].strip()
+                            if m.get('source_text') and m['source_text'] not in prev.get('source_text', ''):
+                                prev['source_text'] = (prev.get('source_text', '') + ' ' + m.get('source_text', '')).strip()
+                        else:
+                            merged_src.append(m)
+                coalesced_matches.extend(merged_src)
 
             # Deduplicate matching spans and apply exclusions
-
-            for match in all_matches:
+            for match in coalesced_matches:
 
                 should_exclude, reason, uncertain = self.exclusion_engine.should_exclude(
-
                     match, full_text
-
                 )
 
 
@@ -933,6 +985,12 @@ class AnalysisEngine:
                         'type': s.get_source_type_display() if hasattr(s, 'get_source_type_display') else 'Academic Repository',
                         'tfidf_similarity': 0.0,
                     })
+
+            if integrity_flags:
+                if not report.exclusion_settings:
+                    report.exclusion_settings = {}
+                report.exclusion_settings['integrity_flags'] = integrity_flags
+                report.limitations = {'integrity_flags': integrity_flags}
 
             report.sources_checked = sources_checked
 
