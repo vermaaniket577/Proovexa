@@ -848,7 +848,7 @@ class TurnitinAIPipeline:
         if raw_ai_pct == 0.0:
             turnitin_display_score = "0%"
         elif raw_ai_pct < 20.0:
-            turnitin_display_score = f"{int(round(raw_ai_pct))}%*"
+            turnitin_display_score = f"{int(round(raw_ai_pct))}%"
             is_masked = True
             # Keep highlights intact so verified detection is visible
         else:
@@ -900,7 +900,7 @@ class TurnitinAIPipeline:
         if error_payload is not None:
             return TurnitinDetectionReport(
                 status=error_payload.get("status", "insufficient_prose"),
-                turnitin_display_score="*%" if error_payload.get("status") == "insufficient_prose" else "0%",
+                turnitin_display_score="0%",
                 is_masked_asterisk=True,
                 overall_ai_percentage=0.0,
                 ai_generated_cyan_pct=0.0,

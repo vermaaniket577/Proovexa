@@ -479,15 +479,9 @@
                             <span class="ai-score-num">{{ overall_ai_display }}</span>
                             <span class="ai-score-title">detected as AI</span>
                         </div>
-                        {% if is_zero_ai %}
-                        <div class="ai-score-subtext">
-                            AI detection includes the possibility of false positives. Although some text in this submission is likely AI generated, scores below the 20% threshold are not surfaced because they have a higher likelihood of false positives.
-                        </div>
-                        {% else %}
                         <div class="ai-score-subtext">
                             The percentage indicates the combined amount of likely AI-generated text as well as likely AI-generated text that was also likely revised by AI.
                         </div>
-                        {% endif %}
                     </div>
 
                     <!-- Right: Light Blue Caution Callout Card -->
@@ -618,22 +612,9 @@
                     <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Overall AI Score</div>
                     <div class="d-flex align-items-center justify-content-center gap-2">
                         <span class="display-5 fw-bold text-dark">{{ overall_ai_display }}</span>
-                        {% if 0 < ai_report.overall_ai_score and ai_report.overall_ai_score < 20 %}
-                        <span class="badge bg-warning text-dark border border-warning" title="Masked below 20% to prevent false positives">
-                            <i class="bi bi-shield-exclamation me-1"></i>Masked
-                        </span>
-                        {% endif %}
                     </div>
                     <div class="small text-muted mt-1">detected as AI</div>
                 </div>
-
-                {% if 0 < ai_report.overall_ai_score and ai_report.overall_ai_score < 20 %}
-                <!-- Asterisk Masking Tooltip Banner -->
-                <div class="alert alert-warning small py-2 px-3 mb-3 border-0" style="background-color: #fffbeb; color: #b45309; border-left: 4px solid #f59e0b !important;">
-                    <i class="bi bi-info-circle-fill me-1"></i>
-                    <strong>*% Masking Rule:</strong> Turnitin suppresses AI writing scores between 1% and 19% as <code>*%</code> to ensure the document false-positive rate remains strictly below 1% and prevent false accusations.
-                </div>
-                {% endif %}
 
                 <!-- Dual-Category Highlights & Progress Bars -->
                 <div class="mb-3">

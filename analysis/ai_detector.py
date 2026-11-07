@@ -180,7 +180,7 @@ class AIDetectionEngine:
         if not sentences:
             return {
                 'overall_ai_score': 0.0,
-                'turnitin_display_score': '*%',
+                'turnitin_display_score': '0%',
                 'is_below_threshold': True,
                 'status': 'Empty',
                 'sentences': [],
@@ -247,7 +247,7 @@ class AIDetectionEngine:
             except Exception as api_err:
                 logger.warning(f"External AI API validation skipped: {api_err}")
 
-        display_score = "*%" if raw_ai_score < 20.0 else f"{int(round(raw_ai_score))}%"
+        display_score = f"{int(round(raw_ai_score))}%" if raw_ai_score >= 1.0 else "0%"
 
         return {
             'overall_ai_score': raw_ai_score,

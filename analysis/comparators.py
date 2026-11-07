@@ -203,7 +203,8 @@ class NGramComparator:
         # Group consecutive matching n-grams into passages
         matched_passages = self._group_matches(common, sub_ngrams, src_ngrams,
                                                 submitted_text, source_text,
-                                                sub_words=sub_words, src_words=src_words)
+                                                sub_words=sub_words, src_words=src_words,
+                                                sub_tokens=sub_tokens, src_tokens=src_tokens)
 
         for passage in matched_passages:
             sub_page, sub_para = self._find_location(
@@ -214,6 +215,10 @@ class NGramComparator:
                 submitted_text=passage['submitted_text'],
                 source_text=passage['source_text'],
                 similarity=passage['similarity'],
+                submitted_start=passage.get('submitted_start'),
+                submitted_end=passage.get('submitted_end'),
+                source_start=passage.get('source_start'),
+                source_end=passage.get('source_end'),
                 submitted_page=sub_page,
                 submitted_para=sub_para,
             )
@@ -241,7 +246,8 @@ class NGramComparator:
         return text.split()
 
     def _group_matches(self, common_ngrams, sub_ngrams, src_ngrams,
-                       submitted_text, source_text, sub_words=None, src_words=None):
+                       submitted_text, source_text, sub_words=None, src_words=None,
+                       sub_tokens=None, src_tokens=None):
         """Group consecutive matching n-grams into larger passages."""
         passages = []
 
@@ -292,12 +298,21 @@ class NGramComparator:
             word_count = len(sub_passage.split())
             min_w = getattr(self, 'min_passage_words', 8)
             if word_count >= min_w:
-                passages.append({
+                p_item = {
                     'submitted_text': sub_passage,
                     'source_text': src_passage,
                     'similarity': 0.9,  # N-gram matches are high confidence
                     'word_count': word_count,
-                })
+                }
+                if sub_tokens and start_pos < len(sub_tokens):
+                    p_item['submitted_start'] = sub_tokens[start_pos].start_char
+                    e_idx = min(end_pos - 1, len(sub_tokens) - 1)
+                    p_item['submitted_end'] = sub_tokens[e_idx].end_char
+                if src_tokens and src_positions and src_start < len(src_tokens):
+                    p_item['source_start'] = src_tokens[src_start].start_char
+                    e_src = min(src_end - 1, len(src_tokens) - 1)
+                    p_item['source_end'] = src_tokens[e_src].end_char
+                passages.append(p_item)
 
         return passages
 

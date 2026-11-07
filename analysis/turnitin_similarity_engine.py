@@ -987,6 +987,30 @@ class TurnitinSimilarityPipeline:
 
         return report
 
+    def generate_turnitin_payload(
+        self,
+        submitted_text: str,
+        candidate_sources: List[Dict[str, Any]],
+        submission_id: Optional[str] = None,
+        filename: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Runs the Bilingual Winnowing + Greedy Weighted Set Cover engine and
+        returns Turnitin-style structured JSON payload.
+        """
+        from .plagiarism_engine import PlagiarismDetectionEngine
+        engine = PlagiarismDetectionEngine(
+            min_match_words=self.min_word_match,
+            exclude_bibliography=self.preprocessor.exclude_bibliography,
+            exclude_quotations=self.preprocessor.exclude_quotes,
+        )
+        return engine.analyze(
+            document=submitted_text,
+            candidate_sources=candidate_sources,
+            filename=filename or "submission.docx",
+            submission_id=submission_id,
+        )
+
 
 # =============================================================================
 # SAMPLE EXECUTION & BENCHMARK SUITE

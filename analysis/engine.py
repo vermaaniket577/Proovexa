@@ -625,25 +625,27 @@ class AnalysisEngine:
 
 
 
-                for phrase in exact_phrases:
-                    all_matches.append({
-                        'submitted_text': phrase,
-                        'source_text': phrase,
-                        'similarity': 1.0,
-                        'match_type': 'phrase',
-                        'source': source,
-                        'source_index': source_index,
-                    })
+                if winnow_count == 0 and exact_count == 0:
+                    for phrase in exact_phrases:
+                        all_matches.append({
+                            'submitted_text': phrase,
+                            'source_text': phrase,
+                            'similarity': 1.0,
+                            'match_type': 'phrase',
+                            'source': source,
+                            'source_index': source_index,
+                        })
 
                 for pair in flagged_pairs:
-                    all_matches.append({
-                        'submitted_text': pair['submitted_sentence'],
-                        'source_text': pair['matched_source_sentence'],
-                        'similarity': pair['similarity'] / 100.0,
-                        'match_type': 'exact' if pair['match_type'] == 'Exact/Near-Exact' else 'fuzzy',
-                        'source': source,
-                        'source_index': source_index,
-                    })
+                    if pair.get('similarity', 0) >= 80.0 or (winnow_count == 0 and exact_count == 0 and phrase_count == 0):
+                        all_matches.append({
+                            'submitted_text': pair['submitted_sentence'],
+                            'source_text': pair['matched_source_sentence'],
+                            'similarity': pair['similarity'] / 100.0,
+                            'match_type': 'exact' if pair['match_type'] == 'Exact/Near-Exact' else 'fuzzy',
+                            'source': source,
+                            'source_index': source_index,
+                        })
 
 
 
@@ -718,17 +720,16 @@ class AnalysisEngine:
 
 
             def _resolve_page_para(c_start):
-
                 if not et_records or c_start is None:
-
                     return 1, 1
-
+                for et in et_records:
+                    s = et.get('char_start')
+                    e = et.get('char_end')
+                    if s is not None and e is not None and s <= c_start <= e:
+                        return et['page_number'], et['paragraph_number']
                 idx = bisect.bisect_right(et_starts, c_start) - 1
-
                 if 0 <= idx < len(et_records):
-
                     return et_records[idx]['page_number'], et_records[idx]['paragraph_number']
-
                 return 1, 1
 
 
@@ -950,7 +951,7 @@ class AnalysisEngine:
                 elif getattr(self, 'last_search_meta', {}).get('failed_sources'):
                     report.status = SimilarityReport.Status.PARTIALLY_CHECKED
                 else:
-                    report.status = SimilarityReport.Status.NO_MATCHES_FOUND
+                    report.status = SimilarityReport.Status.COMPLETED
             else:
                 report.status = SimilarityReport.Status.COMPLETED
 

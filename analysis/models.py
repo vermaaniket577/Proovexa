@@ -369,13 +369,10 @@ class AIReport(models.Model):
         """
         Format Turnitin AI display score:
         - 0% if no AI detected (< 1.0%)
-        - XX%* if score is between 1% and 19% (Turnitin asterisk notation for sub-20% review disclaimer)
-        - XX% if score is >= 20%
+        - XX% if score is >= 1%
         """
         if self.overall_ai_score < 1.0:
             return "0%"
-        elif self.overall_ai_score < 20.0:
-            return f"{int(round(self.overall_ai_score))}%*"
         return f"{int(round(self.overall_ai_score))}%"
 
     def __str__(self):

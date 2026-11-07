@@ -375,11 +375,9 @@ def generate_ai_pdf_report(ai_report):
     story.append(PageBreak())
     story.append(SetSection("AI Writing Overview"))
 
-    is_zero_ai = ai_report.overall_ai_score < 20.0
+    is_zero_ai = ai_report.overall_ai_score < 1.0
     if ai_report.overall_ai_score < 1.0:
         score_display = "0%"
-    elif ai_report.overall_ai_score < 20.0:
-        score_display = "*%"
     else:
         score_display = f"{int(round(ai_report.overall_ai_score))}%"
 
@@ -395,17 +393,10 @@ def generate_ai_pdf_report(ai_report):
         textColor=colors.HexColor('#191919')
     )
 
-    if is_zero_ai:
-        subtext_desc = (
-            "AI detection includes the possibility of false positives. Although some text in this "
-            "submission is likely AI generated, scores below the 20% threshold are not surfaced "
-            "because they have a higher likelihood of false positives."
-        )
-    else:
-        subtext_desc = (
-            "The percentage indicates the combined amount of likely AI-generated text as "
-            "well as likely AI-generated text that was also likely revised by AI."
-        )
+    subtext_desc = (
+        "The percentage indicates the combined amount of likely AI-generated text as "
+        "well as likely AI-generated text that was also likely revised by AI."
+    )
 
     left_cells = [
         [Paragraph(f"<b>{score_display} detected as AI</b>", score_heading_style)],

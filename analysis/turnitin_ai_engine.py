@@ -280,7 +280,7 @@ class TurnitinAIDetector:
         sentences = self.split_sentences(clean_prose)
         if not sentences:
             return {
-                "turnitin_display_score": "*%",
+                "turnitin_display_score": "0%",
                 "raw_total_ai_pct": 0.0,
                 "ai_generated_only_cyan_pct": 0.0,
                 "ai_paraphrased_purple_pct": 0.0,
@@ -383,8 +383,6 @@ class TurnitinAIDetector:
         # Turnitin False-Positive Suppression Rule (<20% display with asterisk note)
         if total_ai_pct < 1.0:
             turnitin_display_score = "0%"
-        elif total_ai_pct < 20.0:
-            turnitin_display_score = "*%"
         else:
             turnitin_display_score = f"{int(round(total_ai_pct))}%"
 
