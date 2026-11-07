@@ -57,8 +57,8 @@ def ensure_document_extracted(document):
         document.processed_at = timezone.now()
         document.save(update_fields=['page_count', 'word_count', 'status', 'processed_at'])
 
-        # Automatically index into the internal document database for cross-document similarity
-        index_document_into_internal_database(document, full_text=result.full_text)
+        # Pipeline sequencing: Do not index into ReferenceSource before comparison runs.
+        # This prevents the document from self-matching against its own newly created reference record.
         return True, ""
 
     except Exception as e:
@@ -149,6 +149,12 @@ def generate_similarity_report(document, user=None, exclusion_settings=None):
     engine = AnalysisEngine(exclusion_settings=exclusion_settings)
     report = engine.analyze_document(document, user=user)
     ensure_report_passages(report)
+
+    # Sequence pipeline: safely index into internal repository only after comparison is done
+    try:
+        index_document_into_internal_database(document)
+    except Exception as idx_err:
+        logger.warning("Post-analysis document indexing note: %s", idx_err)
 
     if user and user.is_authenticated:
         AuditLog.objects.create(

@@ -83,6 +83,8 @@ def multi_source_search(
     max_results_per_source: int = 3,
     connectors: Optional[List[BaseSourceConnector]] = None,
     timeout_seconds: float = 15.0,
+    exclude_document_id: Optional[Any] = None,
+    target_document: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """
     Executes parallel search across all available academic and web source connectors.
@@ -92,6 +94,8 @@ def multi_source_search(
         max_results_per_source: Number of records per query per connector
         connectors: Optional explicit list of connectors to query
         timeout_seconds: Maximum wall time for network calls
+        exclude_document_id: Current document ID to exclude from match queries (prevents self-matching)
+        target_document: Target document object to guard against self-comparison
         
     Returns:
         Dict with:
@@ -134,9 +138,15 @@ def multi_source_search(
     seen_urls = set()
     seen_titles = set()
 
+    target_id_str = str(exclude_document_id or (getattr(target_document, 'id', None) or ''))
+    target_title_clean = (getattr(target_document, 'title', '') or '').strip().lower()
+
     def _query_connector(conn: BaseSourceConnector, q: str):
         try:
-            res = conn.search(q, max_results=max_results_per_source)
+            if conn.id == 'local_documents':
+                res = conn.search(q, max_results=max_results_per_source, exclude_document_id=exclude_document_id, target_document=target_document)
+            else:
+                res = conn.search(q, max_results=max_results_per_source)
             return conn.id, conn.name, res, True
         except Exception as conn_err:
             logger.debug(f"Connector {conn.name} query failed: {conn_err}")
@@ -160,6 +170,13 @@ def multi_source_search(
                     else:
                         failed_sources.add(conn_name)
                     for item in res_list:
+                        # Exclude self-matching items that reference the current document ID
+                        if target_id_str:
+                            if target_id_str in (item.url or ''):
+                                continue
+                            if target_title_clean and (item.title or '').strip().lower() == target_title_clean:
+                                continue
+
                         # Deduplication key by URL or DOI or normalized Title
                         norm_title = "".join(c for c in item.title.lower() if c.isalnum())
                         key_url = item.url or (f"doi:{item.doi}" if item.doi else norm_title)

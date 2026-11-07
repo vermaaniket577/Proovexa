@@ -1158,16 +1158,31 @@ class AnalysisEngine:
                         queries=queries,
                         max_results_per_source=3,
                         timeout_seconds=15.0,
+                        exclude_document_id=document.id,
+                        target_document=document,
                     )
                     search_metadata['sources_checked'] = search_res.get('sources_checked', [])
                     search_metadata['failed_sources'] = search_res.get('failed_sources', [])
 
                     inst = document.uploaded_by.institution if (document and document.uploaded_by) else None
+                    doc_id_str = str(document.id) if document else None
+                    doc_title_clean = (document.title or '').strip().lower() if document else ''
+
                     for prov_res in search_res.get('results', []):
+                        if doc_id_str:
+                            if doc_id_str in (prov_res.url or ''):
+                                continue
+                            if doc_title_clean and (prov_res.title or '').strip().lower() == doc_title_clean:
+                                continue
                         if prov_res.text and len(prov_res.text.strip()) > 25:
                             ref_obj = prov_res.to_reference_source(institution=inst)
-                            if ref_obj and not any(str(s.id) == str(ref_obj.id) for s in sources):
-                                sources.append(ref_obj)
+                            if ref_obj:
+                                if ref_obj.document_id and str(ref_obj.document_id) == doc_id_str:
+                                    continue
+                                if doc_id_str and doc_id_str in (ref_obj.url or ''):
+                                    continue
+                                if not any(str(s.id) == str(ref_obj.id) for s in sources):
+                                    sources.append(ref_obj)
             except Exception as search_e:
                 logger.warning(f"Multi-source academic/web search exception: {search_e}")
 
@@ -1267,9 +1282,23 @@ class AnalysisEngine:
 
 
 
-        logger.info(f"_get_comparison_sources: {len(sources)} sources found for '{document.title}'")
+        # Absolute guarantee: eliminate any candidate that matches the target document itself
+        clean_sources = []
+        doc_id_str = str(document.id) if document else None
+        doc_title_clean = (document.title or '').strip().lower() if document else ''
+        for s in sources:
+            if doc_id_str:
+                if s.document_id and str(s.document_id) == doc_id_str:
+                    continue
+                if s.url and doc_id_str in s.url:
+                    continue
+                if s.source_type == ReferenceSource.SourceType.UPLOADED and (s.title or '').strip().lower() == doc_title_clean:
+                    continue
+            clean_sources.append(s)
 
-        return sources
+        logger.info(f"_get_comparison_sources: {len(clean_sources)} sources found for '{document.title}'")
+
+        return clean_sources
 
 
 

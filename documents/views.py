@@ -117,11 +117,8 @@ def upload_view(request):
                 doc.processed_at = timezone.now()
                 doc.save(update_fields=['page_count', 'word_count', 'status', 'processed_at'])
 
-                # Automatically index into internal database for cross-document similarity comparison
-                from analysis.services import index_document_into_internal_database
-                index_document_into_internal_database(doc, full_text=result.full_text)
-
-                # Automatically generate both Plagiarism Similarity Report and AI Report immediately on upload
+                # Sequence pipeline: run plagiarism comparison & AI detection first (in-memory)
+                # and only index into reference search index after scoring to eliminate self-matching
                 try:
                     from analysis.services import generate_both_reports
                     sim_report, ai_report = generate_both_reports(doc, user=request.user)
@@ -135,6 +132,10 @@ def upload_view(request):
                         request,
                         f'Document "{doc.title}" uploaded and text extracted successfully ({result.word_count} words).'
                     )
+
+                # Index into internal database only after comparison is complete
+                from analysis.services import index_document_into_internal_database
+                index_document_into_internal_database(doc, full_text=result.full_text)
 
                 return redirect('documents:detail', doc_id=doc.id)
 

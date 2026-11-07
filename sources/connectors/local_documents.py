@@ -35,7 +35,7 @@ class LocalDocumentConnector(BaseSourceConnector):
     def is_available(self) -> bool:
         return True
 
-    def search(self, query_text: str, max_results: int = 10) -> List[SourceProviderResult]:
+    def search(self, query_text: str, max_results: int = 10, exclude_document_id: str = None, target_document=None) -> List[SourceProviderResult]:
         from documents.models import ReferenceSource, Document
 
         if not query_text or len(query_text.strip()) < 4:
@@ -47,7 +47,18 @@ class LocalDocumentConnector(BaseSourceConnector):
         for w in words:
             q_obj |= Q(title__icontains=w) | Q(retrieved_text__icontains=w)
 
-        refs = ReferenceSource.objects.filter(is_active=True).filter(q_obj)[:max_results]
+        qs = ReferenceSource.objects.filter(is_active=True)
+
+        # Exclude current document ID to prevent self-comparison
+        target_id = exclude_document_id or (getattr(target_document, 'id', None))
+        if target_id:
+            target_str = str(target_id)
+            qs = qs.exclude(document_id=target_id).exclude(url__icontains=target_str)
+            if target_document and getattr(target_document, 'title', None):
+                target_title = target_document.title.strip().lower()
+                qs = qs.exclude(source_type=ReferenceSource.SourceType.UPLOADED, title__iexact=target_title)
+
+        refs = qs.filter(q_obj)[:max_results]
         results = []
 
         for r in refs:
