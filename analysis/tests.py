@@ -292,12 +292,12 @@ class PlagiarismPlatformTestCase(TestCase):
         # Student dashboard loads successfully
         res = client.get(reverse('dashboard:home'))
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, "My Similarity Overview")
+        self.assertContains(res, "Avg Similarity")
 
         # Upload page loads
         res = client.get(reverse('documents:upload'))
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, "Document Submission Form")
+        self.assertContains(res, "Start Analysis")
 
         # Documents list loads
         res = client.get(reverse('documents:list'))
@@ -318,7 +318,7 @@ class PlagiarismPlatformTestCase(TestCase):
         # Admin dashboard loads
         res = client.get(reverse('dashboard:home'))
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, "System Administration Dashboard")
+        self.assertContains(res, "Academic Integrity Dashboard")
 
         # Admin can access user list and audit log
         res = client.get(reverse('accounts:user_list'))
