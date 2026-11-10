@@ -49,14 +49,23 @@ class LocalDocumentConnector(BaseSourceConnector):
 
         qs = ReferenceSource.objects.filter(is_active=True)
 
-        # Exclude current document ID to prevent self-comparison
+        # Exclude current document and previous drafts from the same author to prevent self-comparison
         target_id = exclude_document_id or (getattr(target_document, 'id', None))
         if target_id:
             target_str = str(target_id)
             qs = qs.exclude(document_id=target_id).exclude(url__icontains=target_str)
-            if target_document and getattr(target_document, 'title', None):
+
+        if target_document:
+            if getattr(target_document, 'title', None):
                 target_title = target_document.title.strip().lower()
                 qs = qs.exclude(source_type=ReferenceSource.SourceType.UPLOADED, title__iexact=target_title)
+                qs = qs.exclude(source_type=ReferenceSource.SourceType.INSTITUTIONAL, title__iexact=target_title)
+
+            user = getattr(target_document, 'uploaded_by', None)
+            if user:
+                user_doc_ids = list(Document.objects.filter(uploaded_by=user).values_list('id', flat=True))
+                if user_doc_ids:
+                    qs = qs.exclude(document_id__in=user_doc_ids)
 
         refs = qs.filter(q_obj)[:max_results]
         results = []

@@ -1282,17 +1282,32 @@ class AnalysisEngine:
 
 
 
-        # Absolute guarantee: eliminate any candidate that matches the target document itself
+        # Absolute guarantee: eliminate any candidate that matches the target document itself or prior drafts from the same author
         clean_sources = []
         doc_id_str = str(document.id) if document else None
         doc_title_clean = (document.title or '').strip().lower() if document else ''
+        user = getattr(document, 'uploaded_by', None) if document else None
+        user_doc_ids = set(str(uid) for uid in Document.objects.filter(uploaded_by=user).values_list('id', flat=True)) if user else set()
+
+        norm_doc_title = re.sub(r'[^\w]', '', doc_title_clean)
+
         for s in sources:
             if doc_id_str:
                 if s.document_id and str(s.document_id) == doc_id_str:
                     continue
                 if s.url and doc_id_str in s.url:
                     continue
-                if s.source_type == ReferenceSource.SourceType.UPLOADED and (s.title or '').strip().lower() == doc_title_clean:
+            if user_doc_ids and s.document_id and str(s.document_id) in user_doc_ids:
+                continue
+            if s.url and any(f'urn:proovexa:doc:{uid}' in s.url for uid in user_doc_ids):
+                continue
+            s_title_clean = (s.title or '').strip().lower()
+            if s_title_clean and s_title_clean == doc_title_clean:
+                if s.source_type in (ReferenceSource.SourceType.UPLOADED, ReferenceSource.SourceType.INSTITUTIONAL):
+                    continue
+            norm_s_title = re.sub(r'[^\w]', '', s_title_clean)
+            if len(norm_doc_title) >= 6 and len(norm_s_title) >= 6:
+                if (norm_doc_title in norm_s_title or norm_s_title in norm_doc_title) and s.source_type in (ReferenceSource.SourceType.UPLOADED, ReferenceSource.SourceType.INSTITUTIONAL):
                     continue
             clean_sources.append(s)
 

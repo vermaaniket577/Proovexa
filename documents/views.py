@@ -33,7 +33,7 @@ def upload_view(request):
                     messages.error(request, error)
                 return render(request, 'documents/upload.html', {'form': form})
 
-            # Check for duplicate by hash
+            # Check for duplicate by hash or updated version with same title
             import hashlib
             sha256 = hashlib.sha256()
             for chunk in uploaded_file.chunks(8192):
@@ -41,34 +41,51 @@ def upload_view(request):
             file_hash = sha256.hexdigest()
             uploaded_file.seek(0)
 
-            existing = Document.objects.filter(
+            clean_title = form.cleaned_data['title'].strip()
+
+            existing_by_hash = Document.objects.filter(
                 file_hash=file_hash,
                 uploaded_by=request.user,
                 is_deleted=False
             ).first()
-            if existing:
-                messages.warning(
-                    request,
-                    f'This file has already been uploaded as "{existing.title}". '
-                    f'You can view it in your document history.'
-                )
-                return redirect('documents:detail', doc_id=existing.id)
 
-            # Create document
-            doc = Document(
-                title=form.cleaned_data['title'],
-                original_filename=uploaded_file.name,
-                file=uploaded_file,
-                file_type=file_type,
-                file_size=uploaded_file.size,
-                file_hash=file_hash,
-                mime_type=uploaded_file.content_type,
+            existing_by_title = Document.objects.filter(
+                title__iexact=clean_title,
                 uploaded_by=request.user,
-                assignment=form.cleaned_data.get('assignment'),
-                is_reference=form.cleaned_data.get('is_reference', False),
-                status=Document.Status.PENDING,
-            )
-            doc.save()
+                is_deleted=False
+            ).first()
+
+            existing = existing_by_hash or existing_by_title
+            is_recheck = bool(existing)
+
+            if existing:
+                doc = existing
+                doc.file = uploaded_file
+                doc.original_filename = uploaded_file.name
+                doc.file_type = file_type
+                doc.file_size = uploaded_file.size
+                doc.file_hash = file_hash
+                doc.mime_type = uploaded_file.content_type
+                doc.title = clean_title
+                if form.cleaned_data.get('assignment'):
+                    doc.assignment = form.cleaned_data.get('assignment')
+                doc.status = Document.Status.PENDING
+                doc.save()
+            else:
+                doc = Document(
+                    title=clean_title,
+                    original_filename=uploaded_file.name,
+                    file=uploaded_file,
+                    file_type=file_type,
+                    file_size=uploaded_file.size,
+                    file_hash=file_hash,
+                    mime_type=uploaded_file.content_type,
+                    uploaded_by=request.user,
+                    assignment=form.cleaned_data.get('assignment'),
+                    is_reference=form.cleaned_data.get('is_reference', False),
+                    status=Document.Status.PENDING,
+                )
+                doc.save()
 
             # Audit log
             AuditLog.objects.create(
@@ -94,6 +111,13 @@ def upload_view(request):
                     doc.save(update_fields=['status', 'error_message'])
                     messages.error(request, f'Text extraction failed: {doc.error_message}')
                     return redirect('documents:detail', doc_id=doc.id)
+
+                # Clear previous extracted text on recheck
+                if is_recheck:
+                    doc.extracted_texts.all().delete()
+                    # Also purge any previous ReferenceSource for this document to prevent self-matching
+                    ReferenceSource.objects.filter(document=doc).delete()
+                    ReferenceSource.objects.filter(url__icontains=str(doc.id)).delete()
 
                 # Save extracted text
                 char_offset = 0
@@ -122,9 +146,10 @@ def upload_view(request):
                 try:
                     from analysis.services import generate_both_reports
                     sim_report, ai_report = generate_both_reports(doc, user=request.user)
+                    action_verb = "rechecked" if is_recheck else "uploaded & analyzed"
                     messages.success(
                         request,
-                        f'Document "{doc.title}" uploaded & analyzed! '
+                        f'Document "{doc.title}" {action_verb}! '
                         f'Plagiarism: {sim_report.similarity_display} • AI: {ai_report.overall_ai_score:.0f}%'
                     )
                 except Exception as analysis_err:
