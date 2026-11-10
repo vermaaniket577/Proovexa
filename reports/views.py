@@ -221,7 +221,7 @@ def report_detail_view(request, report_id):
                 src_sim_pct = f"{int(round((m.similarity_score or 1.0) * 100))}%"
 
                 replacement = (
-                    f'<mark class="turnitin-highlight source-match-{m_idx}" '
+                    f'<mark class="turnitin-highlight source-match-{m_idx} match-type-{m.match_type}" '
                     f'data-source-index="{m_idx}" data-source-title="{src_title}" '
                     f'data-source-author="{src_author}" data-source-category="{src_category}" '
                     f'data-source-url="{src_url}" data-source-doi="{src_doi}" data-source-date="{src_date}" '
@@ -246,7 +246,7 @@ def report_detail_view(request, report_id):
                         def _repl(match_obj):
                             found_text = match_obj.group(0)
                             return (
-                                f'<mark class="turnitin-highlight source-match-{m_idx}" '
+                                f'<mark class="turnitin-highlight source-match-{m_idx} match-type-{m.match_type}" '
                                 f'data-source-index="{m_idx}" data-source-title="{src_title}" '
                                 f'data-source-author="{src_author}" data-source-category="{src_category}" '
                                 f'data-source-url="{src_url}" data-source-doi="{src_doi}" data-source-date="{src_date}" '
