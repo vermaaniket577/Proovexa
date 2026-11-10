@@ -1197,62 +1197,6 @@ mark.turnitin-highlight:hover {
     </div>
 
     {% if sp.is_first_page %}
-    <!-- Match Groups & Database Breakdown Snapshot (Top of Page 3 per Turnitin Image 2) -->
-    <div class="row g-4 mb-2">
-        <!-- Match Groups -->
-        <div class="col-md-7">
-            <div class="turnitin-section-header mb-2">Match Groups</div>
-            <div class="d-flex flex-column" style="gap: 7px;">
-                {% for mg in criteria.match_groups %}
-                <div class="d-flex align-items-start">
-                    {% if mg.icon == 'files' %}
-                    <span class="mg-badge-icon me-2" style="background-color: {{ mg.color }};">
-                        <i class="bi bi-files" style="font-size:0.65rem;"></i>
-                    </span>
-                    {% else %}
-                    <span class="mg-circle-icon me-2" style="background-color: {{ mg.color }};">
-                        {% if mg.icon == 'quote' %}
-                            <i class="bi bi-quote" style="font-size:0.95rem; line-height: 1;"></i>
-                        {% elif mg.icon == 'citation' %}
-                            <i class="bi bi-card-text" style="font-size:0.7rem;"></i>
-                        {% elif mg.icon == 'mortarboard' %}
-                            <i class="bi bi-mortarboard-fill" style="font-size:0.65rem;"></i>
-                        {% endif %}
-                    </span>
-                    {% endif %}
-                    <div>
-                        <div style="line-height: 1.25;">
-                            <span class="mg-item-title">{{ mg.count }} {{ mg.name }}</span>
-                            <span class="mg-item-pct">{{ mg.percent }}</span>
-                        </div>
-                        <div class="mg-item-desc">
-                            {{ mg.description }}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Top Sources Database Categories -->
-        <div class="col-md-5">
-            <div class="turnitin-section-header mb-2">Top Sources</div>
-            <div class="d-flex flex-column pt-1" style="gap: 5px;">
-                {% for db in criteria.database_sources %}
-                <div class="turnitin-top-source-row d-flex align-items-center">
-                    <span class="ts-pct">{{ db.percent }}</span>
-                    <span class="ts-icon">
-                        <i class="bi {{ db.icon_class }}"></i>
-                    </span>
-                    <span class="ts-name">{{ db.name }}</span>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <div class="turnitin-sheet-divider my-2"></div>
-
     <!-- Top Sources Title & Subtitle -->
     <div class="mb-2 d-flex justify-content-between align-items-center">
         <div>

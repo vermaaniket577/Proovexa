@@ -628,19 +628,6 @@ def build_turnitin_overview_elements(criteria, styles=None, f_reg='Helvetica', f
         story.append(SetSection("Integrity Overview"))
 
         if sp.get('is_first_page'):
-            # Match groups & Database sources snapshot (Page 3 top)
-            mg_ts_split_p3 = Table([[_create_match_groups_table(), _create_top_sources_db_table()]], colWidths=[261.64, 261.64])
-            mg_ts_split_p3.setStyle(TableStyle([
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-                ('TOPPADDING', (0, 0), (-1, -1), 0),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-            ]))
-            story.append(mg_ts_split_p3)
-            story.append(Spacer(1, 6))
-            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=8))
-
             story.append(Paragraph("<b>Top Sources</b>", h2_style))
             story.append(Paragraph(
                 "The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.",
