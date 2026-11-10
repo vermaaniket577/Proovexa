@@ -1318,17 +1318,23 @@ class AnalysisEngine:
 
         """Convert a Document to a persisted ReferenceSource."""
 
+        from reports.criteria import extract_academic_title_from_doc
+        acad_title = extract_academic_title_from_doc(document)
+        source_title = (acad_title or document.title)[:500]
+
         ref, _ = ReferenceSource.objects.get_or_create(
 
             document=document,
 
             defaults={
 
-                'title': document.title,
+                'title': source_title,
 
                 'author': document.uploaded_by.get_full_name() if document.uploaded_by else '',
 
                 'source_type': ReferenceSource.SourceType.UPLOADED,
+
+                'url': f'/documents/{document.id}/',
 
                 'is_active': True,
 

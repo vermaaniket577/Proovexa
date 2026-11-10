@@ -1287,11 +1287,13 @@ mark.turnitin-highlight:hover {
             <div class="source-line-2">
                 <div class="source-title-text text-truncate pe-2">
                     {% if s.url %}
-                    <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer" class="source-title-link" onclick="event.stopPropagation();" title="{{ s.url }}">
+                    <a href="{{ s.url }}" {% if s.url|slice:":4" == "http" %}target="_blank" rel="noopener noreferrer"{% endif %} class="source-title-link" onclick="event.stopPropagation();" title="{{ s.url }}">
                         {{ s.title }}
                     </a>
                     {% else %}
-                    {{ s.title }}
+                    <a href="javascript:void(0)" class="source-title-link" onclick="event.stopPropagation(); inspectSourceFromOverview({{ s.index }});" title="Click to inspect source details and attribution">
+                        {{ s.title }}
+                    </a>
                     {% endif %}
                 </div>
                 <div class="source-pct-text d-flex align-items-center gap-1.5">

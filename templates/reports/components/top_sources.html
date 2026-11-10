@@ -134,11 +134,13 @@
       </div>
       <div class="source-title" title="{{ s.source_name|default:s.title }}">
         {% if s.source_url or s.url %}
-        <a href="{{ s.source_url|default:s.url }}" target="_blank" rel="noopener noreferrer">
+        <a href="{{ s.source_url|default:s.url }}" {% if (s.source_url|default:s.url)|slice:":4" == "http" %}target="_blank" rel="noopener noreferrer"{% endif %}>
           {{ s.source_name|default:s.title }}
         </a>
         {% else %}
-        {{ s.source_name|default:s.title }}
+        <a href="javascript:void(0)" onclick="inspectSourceFromOverview({{ s.rank|default:s.index }})">
+          {{ s.source_name|default:s.title }}
+        </a>
         {% endif %}
       </div>
     </div>

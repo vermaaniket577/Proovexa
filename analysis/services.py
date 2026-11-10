@@ -88,13 +88,17 @@ def index_document_into_internal_database(document, full_text=None):
     stype = ReferenceSource.SourceType.INSTITUTIONAL if document.is_reference else ReferenceSource.SourceType.UPLOADED
     author_name = getattr(document, 'author', '') or (document.uploaded_by.get_full_name() if document.uploaded_by else '')
 
+    from reports.criteria import extract_academic_title_from_doc
+    acad_title = extract_academic_title_from_doc(document)
+    source_title = (acad_title or document.title)[:500]
+
     ref, created = ReferenceSource.objects.get_or_create(
         document=document,
         defaults={
-            'title': document.title[:500],
+            'title': source_title,
             'author': author_name[:500],
             'source_type': stype,
-            'url': f'urn:proovexa:doc:{document.id}',
+            'url': f'/documents/{document.id}/',
             'retrieved_text': full_text,
             'word_count': len(full_text.split()),
             'retrieval_timestamp': timezone.now(),
@@ -103,14 +107,15 @@ def index_document_into_internal_database(document, full_text=None):
         }
     )
 
-    if not created and (ref.retrieved_text != full_text or ref.word_count == 0):
-        ref.title = document.title[:500]
+    if not created and (ref.retrieved_text != full_text or ref.word_count == 0 or ref.url.startswith('urn:')):
+        ref.title = source_title
         ref.author = author_name[:500]
         ref.source_type = stype
+        ref.url = f'/documents/{document.id}/'
         ref.retrieved_text = full_text
         ref.word_count = len(full_text.split())
         ref.is_active = True
-        ref.save(update_fields=['title', 'author', 'source_type', 'retrieved_text', 'word_count', 'is_active'])
+        ref.save(update_fields=['title', 'author', 'source_type', 'url', 'retrieved_text', 'word_count', 'is_active'])
 
     return ref
 

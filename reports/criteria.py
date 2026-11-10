@@ -77,6 +77,112 @@ def _normalize_category(cat_str: str, url: str = '', title: str = '') -> str:
     return 'Publication'
 
 
+def extract_academic_title_from_doc(doc):
+    """Extract true academic paper title from extracted document paragraphs."""
+    if not doc:
+        return None
+    paras = list(doc.extracted_texts.order_by('page_number', 'paragraph_number')[:15])
+    for p in paras:
+        txt = (p.content or '').strip()
+        lines = [l.strip() for l in txt.split('\n') if l.strip()]
+        for line in lines:
+            clean = re.sub(
+                r'^(page\s*\d+|draft|version\s*\d+|abstract|a\s+thesis|synopsis|chapter\s*\d+|ph\.d\.\s+thesis\s+entitled|track\s*\d+[:\-]?|section\s*\d+[:\-]?)\b.*$',
+                '', line, flags=re.IGNORECASE
+            ).strip()
+            clean = clean.strip(' \t\n\r\'\"“”’‘-:;')
+            if len(clean.split()) >= 4 and len(clean) >= 20:
+                if re.search(r'\b(submitted by|enrollment|roll no|supervisor|guided by|under the supervision|faculty of|department of)\b', clean, re.IGNORECASE):
+                    continue
+                return clean
+    return None
+
+
+def is_student_or_filename_title(title: str) -> bool:
+    """Check if a title string represents a student name or uploaded file naming artifact."""
+    if not title:
+        return True
+    t = title.strip()
+    if re.search(r'\b\d{1,4}[\.\-\s_]\d{1,2}[\.\-\s_]\d{2,4}\b', t):
+        return True
+    if re.search(r'\b(anonymous|without|corrected|reduced|revised|chapter\s*\d+|paper\d+|synopsis|thesis)\b', t, re.IGNORECASE):
+        return True
+    if re.search(r'^(file|project|document|sample|test)\b', t, re.IGNORECASE):
+        return True
+    words = t.split()
+    academic_connectors = (
+        'and', 'of', 'in', 'on', 'for', 'the', 'a', 'an', 'to', 'with', 'by',
+        'linking', 'between', 'among', 'effects', 'impact', 'study', 'model', 'analysis',
+        'framework', 'review', 'journal', 'evaluation', 'international', 'design', 'evidence'
+    )
+    if 2 <= len(words) <= 4 and not any(w.lower() in academic_connectors for w in words):
+        return True
+    return False
+
+
+def _resolve_academic_title_and_url(s_title: str, s_url: str = '', source_id=None, source_obj=None, passages=None):
+    """
+    Resolves authentic academic title and clickable URL for a source.
+    Replaces student names and upload filenames with authentic academic titles or institutional attributions.
+    """
+    resolved_title = s_title
+    resolved_url = s_url
+
+    from documents.models import ReferenceSource, Document
+
+    ref = source_obj
+    if not ref and source_id:
+        try:
+            ref = ReferenceSource.objects.select_related('document', 'institution').filter(id=source_id).first()
+        except Exception:
+            pass
+
+    if not ref and s_title:
+        ref = ReferenceSource.objects.select_related('document', 'institution').filter(title__iexact=s_title).first()
+
+    doc = getattr(ref, 'document', None) if ref else None
+    if not doc and resolved_url and 'urn:proovexa:doc:' in resolved_url:
+        try:
+            doc_id = resolved_url.split(':')[-1]
+            doc = Document.objects.filter(id=doc_id).first()
+        except Exception:
+            pass
+
+    # If title is a student name or uploaded filename, resolve authentic academic title
+    if is_student_or_filename_title(resolved_title):
+        if doc:
+            acad_title = extract_academic_title_from_doc(doc)
+            if acad_title:
+                resolved_title = acad_title
+            elif getattr(ref, 'institution', None):
+                resolved_title = f"Submitted to {ref.institution.name}"
+            elif getattr(doc.uploaded_by, 'institution', None):
+                resolved_title = f"Submitted to {doc.uploaded_by.institution.name}"
+            elif doc.assignment:
+                resolved_title = f"Submitted to {doc.assignment.title}"
+            else:
+                resolved_title = "Submitted to Student Paper Repository"
+        elif ref and getattr(ref, 'institution', None):
+            resolved_title = f"Submitted to {ref.institution.name}"
+        elif ref and ref.title and not is_student_or_filename_title(ref.title):
+            resolved_title = ref.title
+        else:
+            resolved_title = "Submitted to Student Paper Repository"
+
+    # Ensure URL is a valid clickable route or web link
+    if not resolved_url or resolved_url.startswith('urn:'):
+        if doc:
+            resolved_url = f"/documents/{doc.id}/"
+        elif ref and ref.url and not ref.url.startswith('urn:'):
+            resolved_url = ref.url
+        elif ref and ref.doi:
+            resolved_url = f"https://doi.org/{ref.doi}"
+        else:
+            resolved_url = "/reports/"
+
+    return resolved_title, resolved_url
+
+
 def compute_report_criteria(report):
     """
     Computes all Turnitin-style criteria and metadata for a given SimilarityReport.
@@ -619,7 +725,10 @@ def compute_report_criteria(report):
             if s.get('pill_text'):
                 pill_text = s.get('pill_text')
             s_title = s.get('title') or s.get('name') or s.get('sourceName') or s.get('source_name') or f'Source {idx}'
-            category = _normalize_category(s.get('category'), s.get('url', ''), s_title)
+            s_url = s.get('url') or s.get('source_url') or ''
+            s_id = s.get('source_id')
+            s_title, s_url = _resolve_academic_title_and_url(s_title, s_url, source_id=s_id)
+            category = _normalize_category(s.get('category'), s_url, s_title)
 
             uniq_w = s.get('unique_matched_words') or 0
             gross_w = s.get('gross_matched_words') or 0
@@ -650,8 +759,8 @@ def compute_report_criteria(report):
                 'name': s_title,
                 'sourceName': s_title,
                 'source_name': s_title,
-                'url': s.get('url', ''),
-                'source_url': s.get('url', ''),
+                'url': s_url,
+                'source_url': s_url,
                 'category': category,
                 'type': category,
                 'sourceType': category,
@@ -689,6 +798,8 @@ def compute_report_criteria(report):
         for idx, s in enumerate(sorted_sources, 1):
             color_tuple = TURNITIN_PALETTE[(idx - 1) % len(TURNITIN_PALETTE)]
             badge_color, pastel_bg, pill_bg, pill_text = color_tuple
+            s_title, s_url = _resolve_academic_title_and_url(s['title'], s.get('url', ''), source_id=s.get('source_id'))
+            category = _normalize_category(s.get('category'), s_url, s_title)
             src_pct = (s['words'] / word_count) * 100 if word_count > 0 else 0
 
             if is_zero_report:
@@ -702,16 +813,16 @@ def compute_report_criteria(report):
             top_sources.append({
                 'index': idx,
                 'rank': idx,
-                'title': s['title'],
-                'name': s['title'],
-                'sourceName': s['title'],
-                'source_name': s['title'],
-                'url': s['url'],
-                'source_url': s['url'],
-                'category': s['category'],
-                'type': s['category'],
-                'sourceType': s['category'],
-                'source_type': s['category'],
+                'title': s_title,
+                'name': s_title,
+                'sourceName': s_title,
+                'source_name': s_title,
+                'url': s_url,
+                'source_url': s_url,
+                'category': category,
+                'type': category,
+                'sourceType': category,
+                'source_type': category,
                 'words': s['words'],
                 'matched_words': s['words'],
                 'matchedWords': s['words'],
