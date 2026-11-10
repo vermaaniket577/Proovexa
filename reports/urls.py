@@ -7,6 +7,7 @@ app_name = 'reports'
 urlpatterns = [
     path('', views.report_list_view, name='list'),
     path('<uuid:report_id>/', views.report_detail_view, name='detail'),
+    path('<uuid:report_id>/status/', views.report_status_view, name='status'),
     path('<uuid:report_id>/pdf/', views.download_pdf_view, name='download_pdf'),
     path('<uuid:report_id>/docx/', views.download_docx_view, name='download_docx'),
     path('<uuid:report_id>/json/', views.download_json_view, name='download_json'),

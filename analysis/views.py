@@ -82,11 +82,27 @@ def start_analysis_view(request, doc_id):
 
 @login_required
 def analysis_status_view(request, doc_id):
-    """Check analysis status (for AJAX polling)."""
+    """
+    Check analysis status (for AJAX polling).
+    Guards against returning premature 0% scores by checking for COMPLETE status
+    and exposing similarity_ready, can_render_report, and uppercase status.
+    """
+    from django.urls import reverse
+
     document = get_object_or_404(Document, id=doc_id)
     latest_report = SimilarityReport.objects.filter(document=document).order_by('-created_at').first()
 
+    is_complete = bool(latest_report and latest_report.status == SimilarityReport.Status.COMPLETED)
+    is_failed = (document.status == Document.Status.FAILED) or (latest_report and latest_report.status == SimilarityReport.Status.FAILED)
+    is_processing = not is_complete and not is_failed
+
+    normalized_status = "COMPLETE" if is_complete else ("FAILED" if is_failed else "PROCESSING")
+
     data = {
+        'status': normalized_status,
+        'similarity_ready': is_complete,
+        'is_ready': is_complete,
+        'can_render_report': is_complete,
         'document_status': document.status,
         'document_title': document.title,
     }
@@ -95,8 +111,25 @@ def analysis_status_view(request, doc_id):
         data.update({
             'report_id': str(latest_report.id),
             'report_status': latest_report.status,
-            'overall_similarity': latest_report.overall_similarity,
+            'overall_similarity': latest_report.overall_similarity if is_complete else None,
+            'source_count': latest_report.source_count if is_complete else 0,
         })
+        if is_complete:
+            try:
+                data['report_url'] = reverse('reports:detail', kwargs={'report_id': latest_report.id})
+                data['pdf_url'] = reverse('reports:download_pdf', kwargs={'report_id': latest_report.id})
+            except Exception:
+                pass
+    else:
+        data.update({
+            'report_id': None,
+            'report_status': 'pending' if document.status == Document.Status.ANALYZING else 'not_started',
+            'overall_similarity': None,
+            'source_count': 0,
+        })
+
+    if is_failed:
+        data['error_message'] = getattr(document, 'error_message', None) or (latest_report.error_message if latest_report else "Analysis failed.")
 
     return JsonResponse(data)
 

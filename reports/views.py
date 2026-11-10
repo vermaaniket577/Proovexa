@@ -20,6 +20,62 @@ from .ai_pdf_generator import generate_ai_pdf_report
 from analysis.ai_detector import AIDetectionEngine
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def wait_for_report_completion(report, max_retries: int = 15, initial_delay: float = 0.5, backoff_factor: float = 1.4, max_delay: float = 4.0) -> bool:
+    """
+    Asynchronous polling helper with exponential backoff.
+    Guarantees similarity analysis, indexing, and match computing are finalized
+    before rendering reports (eliminating premature 0% reports caused by race conditions).
+    """
+    import time
+    delay = initial_delay
+    attempts = 0
+    while attempts < max_retries:
+        report.refresh_from_db()
+        if report.status in [SimilarityReport.Status.COMPLETED, 'ready']:
+            return True
+        if report.status == SimilarityReport.Status.FAILED:
+            return False
+        time.sleep(delay)
+        delay = min(max_delay, delay * backoff_factor)
+        attempts += 1
+    return False
+
+
+@login_required
+def report_status_view(request, report_id):
+    """
+    Check similarity report status directly (for asynchronous polling).
+    Returns COMPLETE / PROCESSING / FAILED with boolean similarity_ready flag.
+    """
+    report = get_object_or_404(SimilarityReport.objects.select_related('document'), id=report_id)
+    if not _can_view_report(request.user, report):
+        return HttpResponseForbidden("You don't have permission to view this report.")
+
+    is_complete = (report.status == SimilarityReport.Status.COMPLETED)
+    is_failed = (report.status == SimilarityReport.Status.FAILED)
+    normalized_status = "COMPLETE" if is_complete else ("FAILED" if is_failed else "PROCESSING")
+
+    data = {
+        'status': normalized_status,
+        'similarity_ready': is_complete,
+        'is_ready': is_complete,
+        'can_render_report': is_complete,
+        'report_id': str(report.id),
+        'report_status': report.status,
+        'overall_similarity': report.overall_similarity if is_complete else None,
+        'matched_words': report.matched_words if is_complete else 0,
+        'total_words': report.total_words,
+        'source_count': report.source_count if is_complete else 0,
+        'error_message': report.error_message if is_failed else None,
+    }
+    return JsonResponse(data)
+
+
 @login_required
 def report_detail_view(request, report_id):
     """View a similarity report."""
@@ -30,6 +86,10 @@ def report_detail_view(request, report_id):
 
     if not _can_view_report(request.user, report):
         return HttpResponseForbidden("You don't have permission to view this report.")
+
+    # Asynchronous polling race condition check: if still processing, poll with exponential backoff
+    if report.status in [SimilarityReport.Status.PROCESSING, SimilarityReport.Status.PENDING, 'queued']:
+        wait_for_report_completion(report)
 
     # Log report view
     AuditLog.objects.create(
@@ -272,6 +332,21 @@ def download_pdf_view(request, report_id):
     if not _can_view_report(request.user, report):
         return HttpResponseForbidden()
 
+    # Race condition check: poll with exponential backoff if analysis is in progress
+    if report.status in [SimilarityReport.Status.PROCESSING, SimilarityReport.Status.PENDING, 'queued']:
+        wait_for_report_completion(report)
+
+    if report.status != SimilarityReport.Status.COMPLETED:
+        if report.status == SimilarityReport.Status.FAILED:
+            return HttpResponse(
+                f"Cannot download report: Plagiarism analysis failed ({report.error_message})",
+                status=500
+            )
+        return HttpResponse(
+            "Plagiarism analysis is still in progress. Please wait for completion before downloading the report.",
+            status=425
+        )
+
     AuditLog.objects.create(
         user=request.user,
         action=AuditLog.Action.REPORT_DOWNLOAD,
@@ -295,6 +370,21 @@ def download_docx_view(request, report_id):
     report = get_object_or_404(SimilarityReport, id=report_id)
     if not _can_view_report(request.user, report):
         return HttpResponseForbidden()
+
+    # Race condition check: poll with exponential backoff if analysis is in progress
+    if report.status in [SimilarityReport.Status.PROCESSING, SimilarityReport.Status.PENDING, 'queued']:
+        wait_for_report_completion(report)
+
+    if report.status != SimilarityReport.Status.COMPLETED:
+        if report.status == SimilarityReport.Status.FAILED:
+            return HttpResponse(
+                f"Cannot download report: Plagiarism analysis failed ({report.error_message})",
+                status=500
+            )
+        return HttpResponse(
+            "Plagiarism analysis is still in progress. Please wait for completion before downloading the report.",
+            status=425
+        )
 
     AuditLog.objects.create(
         user=request.user,
@@ -322,6 +412,21 @@ def download_json_view(request, report_id):
     report = get_object_or_404(SimilarityReport, id=report_id)
     if not _can_view_report(request.user, report):
         return HttpResponseForbidden()
+
+    # Race condition check: poll with exponential backoff if analysis is in progress
+    if report.status in [SimilarityReport.Status.PROCESSING, SimilarityReport.Status.PENDING, 'queued']:
+        wait_for_report_completion(report)
+
+    if report.status != SimilarityReport.Status.COMPLETED:
+        if report.status == SimilarityReport.Status.FAILED:
+            return HttpResponse(
+                f"Cannot download report: Plagiarism analysis failed ({report.error_message})",
+                status=500
+            )
+        return HttpResponse(
+            "Plagiarism analysis is still in progress. Please wait for completion before downloading the report.",
+            status=425
+        )
 
     data = generate_json_report(report)
     filename = f"{report.document.clean_basename}-plag report.json"

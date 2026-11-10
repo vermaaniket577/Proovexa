@@ -64,36 +64,41 @@ class AnalysisEngine:
 
 
 
-    def __init__(self, exclusion_settings=None):
+    def __init__(self, exclusion_settings=None, search_repositories=None, min_match_words=None):
 
-        self.exclusion_settings = exclusion_settings or {
-
+        default_settings = {
             'exclude_bibliography': False,
-
             'exclude_quotations': False,
-
             'exclude_citations': False,
-
-            'min_match_words': getattr(settings, 'MIN_MATCH_WORD_COUNT', 8),
-
+            'min_match_words': min(int(getattr(settings, 'MIN_MATCH_WORD_COUNT', 8)), 8),
+            'exclude_small_matches': 8,
             'exclude_common_phrases': False,
-
             'common_phrases_list': [],
-
             'exclude_sources': [],
-
             'exclude_self_match': True,
-
             'check_web_sources': True,
-
+            'search_repositories': ["INTERNET", "PUBLICATIONS", "SUBMITTED_WORKS"],
         }
+        self.exclusion_settings = dict(default_settings)
+        if exclusion_settings:
+            self.exclusion_settings.update(exclusion_settings)
+        if search_repositories is not None:
+            self.exclusion_settings['search_repositories'] = search_repositories
+        if min_match_words is not None:
+            self.exclusion_settings['min_match_words'] = min_match_words
+
+        if 'search_repositories' not in self.exclusion_settings:
+            self.exclusion_settings['search_repositories'] = ["INTERNET", "PUBLICATIONS", "SUBMITTED_WORKS"]
+        if 'min_match_words' in self.exclusion_settings:
+            # Ensure exclude_small_matches is not set to an impossibly high value
+            self.exclusion_settings['min_match_words'] = min(int(self.exclusion_settings['min_match_words']), 14)
 
 
 
         # Initialize comparators
-
         min_words = self.exclusion_settings.get('min_match_words', 8)
-
+        self.search_repositories = self.exclusion_settings['search_repositories']
+        self.min_match_words = min_words
         ngram_size = getattr(settings, 'NGRAM_SIZE', 5)
 
 
@@ -306,27 +311,19 @@ class AnalysisEngine:
 
 
             # Detect document-level exclusion regions (e.g. bibliography sections)
-
             if self.exclusion_settings.get('exclude_bibliography'):
-
-                bib_matches = list(re.finditer(r'(?:^|\n)\s*(?:References|Bibliography|Works Cited)\s*(?:\n|$)', full_text, re.IGNORECASE))
-
+                bib_pattern = r'(?im)^\s*(?:references|bibliography|works\s+cited|reference\s+list|cited\s+literature|संदर्भ\s*सूची|ग्रंथसूची)\s*[:.]?\s*$'
+                bib_matches = list(re.finditer(bib_pattern, full_text))
                 valid_bib = None
-
+                doc_len = len(full_text)
                 for m in bib_matches:
-
-                    if m.start() > 2000 or m.start() > len(full_text) * 0.3:
-
+                    # Only treat as bibliography if located in the latter portion (> 50% or after 2500 chars)
+                    if m.start() >= doc_len * 0.50 or (doc_len > 3000 and m.start() >= 2500):
                         valid_bib = m
-
                         break
-
                 if valid_bib:
-
                     bib_char_start = valid_bib.start()
-
                     bib_w_start, bib_w_end = self._char_span_to_word_span(sub_tokens, bib_char_start, len(full_text))
-
                     scorer.add_exclusion_span(bib_w_start, bib_w_end)
 
 

@@ -193,10 +193,15 @@ class AcademicSimilarityScorer:
             'excluded_words': len(self.excluded_word_positions),
             'matched_words': filtered_matched_words,
             'unfiltered_matched_words': unfiltered_matched_words,
-            'source_count': len(self.source_spans),
+            'source_count': len(source_rankings),
             'status': status_text,
             'formula': "Similarity % = (Unique Eligible Matched Words / Total Eligible Words) × 100",
             'sources': source_rankings,
+            'top_sources': source_rankings,
+            'top_sources_header': {
+                'title': 'Top Sources',
+                'description': 'The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.'
+            },
         }
 
     def _compute_source_rankings(self, eligible_set: Set[int], E_count: int) -> List[Dict[str, Any]]:
@@ -223,10 +228,13 @@ class AcademicSimilarityScorer:
         )
 
         # Step 3: Compute unique marginal contribution (preventing double-counting)
+        from .top_sources_service import TOP_SOURCES_THEMES, normalize_source_type, format_similarity_percentage
+
         covered_so_far: Set[int] = set()
         rankings = []
+        rank = 1
 
-        for rank, sid in enumerate(sorted_sources, 1):
+        for sid in sorted_sources:
             gross_indices = source_gross_words[sid]
             gross_words = len(gross_indices)
             gross_pct = round((gross_words / E_count) * 100, 2)
@@ -234,9 +242,13 @@ class AcademicSimilarityScorer:
             # Unique marginal words not covered by higher-ranked sources
             unique_indices = gross_indices - covered_so_far
             unique_words = len(unique_indices)
-            unique_pct = round((unique_words / E_count) * 100, 2)
 
-            covered_so_far.update(gross_indices)
+            # Omit sources with 0 non-overlapping words
+            if unique_words == 0:
+                continue
+
+            unique_pct = round((unique_words / E_count) * 100, 2)
+            covered_so_far.update(unique_indices)
 
             meta = self.source_metadata.get(sid, {})
             spans = self.source_spans[sid]
@@ -251,31 +263,52 @@ class AcademicSimilarityScorer:
             exact_matched_words = len(exact_indices & eligible_set)
             exact_pct = round((exact_matched_words / E_count) * 100, 2)
 
-            from .playwright_scraper import get_source_color
-            color_code, pastel_bg, pill_bg, pill_text = get_source_color(rank)
+            # Turnitin 4-Color Theme Cycling (1: pink, 2: blue, 3: teal, 4: purple)
+            theme_idx = (rank - 1) % len(TOP_SOURCES_THEMES)
+            theme = TOP_SOURCES_THEMES[theme_idx]
+            theme_name = theme['theme_name']
+            color_code = theme['rank_badge_bg']
+            pill_bg = theme['pill_bg']
+            pill_text = theme['pill_text']
 
-            pct_val = unique_pct if unique_pct > 0 else gross_pct
-            if pct_val <= 0:
-                pct_display = "<1%"
-            elif pct_val < 0.95:
-                pct_display = "<1%"
-            else:
-                pct_display = f"{int(round(pct_val))}%"
+            pct_display, _ = format_similarity_percentage(unique_words, E_count)
+            if pct_display is None:
+                continue
+
+            source_title = meta.get('title', f"Source #{rank}")
+            source_url = meta.get('url', '')
+            source_type = normalize_source_type(meta.get('category'), source_url, source_title)
 
             rankings.append({
                 'source_id': str(sid),
                 'rank': rank,
-                'title': meta.get('title', f"Source #{rank}"),
-                'category': meta.get('category', 'Submitted Document'),
-                'url': meta.get('url', ''),
+                'index': rank,
+                'source_name': source_title,
+                'sourceName': source_title,
+                'name': source_title,
+                'title': source_title,
+                'source_type': source_type,
+                'sourceType': source_type,
+                'type': source_type,
+                'category': source_type,
+                'source_url': source_url,
+                'url': source_url,
+                'color_theme': theme_name,
                 'color': color_code,
                 'color_code': color_code,
-                'bg_color': pastel_bg,
-                'pastel_bg': pastel_bg,
+                'badge_color': color_code,
+                'bg_color': pill_bg,
+                'pastel_bg': pill_bg,
                 'pill_bg': pill_bg,
                 'pill_text': pill_text,
+                'similarity_display': pct_display,
                 'percent_display': pct_display,
                 'pct_display': pct_display,
+                'percent': pct_display,
+                'percentage': unique_pct,
+                'similarityPercentage': unique_pct,
+                'matched_words': unique_words,
+                'words': unique_words,
                 'gross_matched_words': gross_words,
                 'gross_percentage': gross_pct,
                 'unique_matched_words': unique_words,
@@ -292,6 +325,7 @@ class AcademicSimilarityScorer:
                 'exact_matched_shingles': meta.get('exact_matched_shingles', []),
                 'flagged_sentences': meta.get('flagged_sentences', []),
             })
+            rank += 1
 
         return rankings
 

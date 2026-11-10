@@ -37,24 +37,25 @@ def get_turnitin_logo_data_uri():
     return _LOGO_DATA_URI
 
 
-# Standard Turnitin 16-color signature palette: (badge_solid, pastel_bg, pill_bg, pill_text)
+# Standard Turnitin 4-Color & Signature Cycling Palette: (badge_solid, pastel_bg, pill_bg, pill_text)
+TOP_4_THEMES = ['pink', 'blue', 'teal', 'purple']
 TURNITIN_PALETTE = [
-    ('#e91e63', '#fce4ec', '#fce4ec', '#191919'),  # 1: Magenta / Pink
-    ('#1976d2', '#e3f2fd', '#e0f2fe', '#191919'),  # 2: Royal Blue
-    ('#2e7d32', '#e8f5e9', '#dcfce7', '#191919'),  # 3: Forest Green
-    ('#7b1fa2', '#f3e5f5', '#ede9fe', '#191919'),  # 4: Deep Purple
-    ('#c2185b', '#fce4ec', '#fce7f3', '#191919'),  # 5: Rose
-    ('#0288d1', '#e1f5fe', '#e0f2fe', '#191919'),  # 6: Sky Blue
-    ('#00897b', '#e0f2f1', '#ccfbf1', '#191919'),  # 7: Teal
-    ('#5e35b1', '#ede7f6', '#ede9fe', '#191919'),  # 8: Violet
-    ('#d81b60', '#fce4ec', '#ffe4e6', '#191919'),  # 9: Ruby Magenta
-    ('#0d47a1', '#e8eaf6', '#e0f2fe', '#191919'),  # 10: Navy
-    ('#ec407a', '#f8bbd0', '#fce4ec', '#191919'),  # 11: Soft Pink
-    ('#1565c0', '#bbdefb', '#e0f2fe', '#191919'),  # 12: Classic Blue
-    ('#00695c', '#b2dfdb', '#d1fae5', '#191919'),  # 13: Pine Green
-    ('#e65100', '#fff3e0', '#ffedd5', '#191919'),  # 14: Burnt Orange
-    ('#4e342e', '#efebe9', '#f3f4f6', '#191919'),  # 15: Warm Umber
-    ('#37474f', '#eceff1', '#f1f5f9', '#191919'),  # 16: Slate Grey
+    ('#C2185B', '#FCE4EC', '#FCE4EC', '#880E4F'),  # 1: Pink
+    ('#1976D2', '#E3F2FD', '#E3F2FD', '#0D47A1'),  # 2: Blue
+    ('#00796B', '#E0F2F1', '#E0F2F1', '#004D40'),  # 3: Teal
+    ('#6A1B9A', '#F3E5F5', '#F3E5F5', '#4A148C'),  # 4: Purple
+    ('#C2185B', '#FCE4EC', '#FCE7F3', '#880E4F'),  # 5: Rose
+    ('#0288D1', '#E1F5FE', '#E0F2FE', '#0D47A1'),  # 6: Sky Blue
+    ('#00897B', '#E0F2F1', '#CCFBF1', '#004D40'),  # 7: Teal
+    ('#5E35B1', '#EDE7F6', '#EDE9FE', '#4A148C'),  # 8: Violet
+    ('#D81B60', '#FCE4EC', '#FFE4E6', '#880E4F'),  # 9: Ruby Magenta
+    ('#0D47A1', '#E8EAF6', '#E0F2FE', '#0D47A1'),  # 10: Navy
+    ('#EC407A', '#F8BBD0', '#FCE4EC', '#880E4F'),  # 11: Soft Pink
+    ('#1565C0', '#BBDEFB', '#E0F2FE', '#0D47A1'),  # 12: Classic Blue
+    ('#00695C', '#B2DFDB', '#D1FAE5', '#004D40'),  # 13: Pine Green
+    ('#E65100', '#FFF3E0', '#FFEDD5', '#9A3412'),  # 14: Burnt Orange
+    ('#4E342E', '#EFEBE9', '#F3F4F6', '#262626'),  # 15: Warm Umber
+    ('#37474F', '#ECEFF1', '#F1F5F9', '#1E293B'),  # 16: Slate Grey
 ]
 
 
@@ -617,7 +618,7 @@ def compute_report_criteria(report):
                 pill_bg = s.get('pill_bg')
             if s.get('pill_text'):
                 pill_text = s.get('pill_text')
-            s_title = s.get('title') or s.get('source_name', f'Source {idx}')
+            s_title = s.get('title') or s.get('name') or s.get('sourceName') or s.get('source_name') or f'Source {idx}'
             category = _normalize_category(s.get('category'), s.get('url', ''), s_title)
 
             uniq_w = s.get('unique_matched_words') or 0
@@ -626,7 +627,8 @@ def compute_report_criteria(report):
             exact_pct = float(s.get('exact_percentage') or 0.0)
             uniq_pct = float(s.get('unique_percentage') or 0.0)
             gross_pct = float(s.get('gross_percentage') or 0.0)
-            effective_pct = max(uniq_pct, gross_pct * 0.7)
+            raw_pct = float(s.get('percentage') or s.get('similarityPercentage') or s.get('similarity_percentage') or s.get('pct') or 0.0)
+            effective_pct = max(uniq_pct, gross_pct * 0.7, exact_pct, raw_pct)
 
             if is_zero_report:
                 pct_display = "*"
@@ -639,19 +641,40 @@ def compute_report_criteria(report):
             else:
                 pct_display = "<1%"
 
+            s_pct_float = exact_pct if exact_pct > 0 else (uniq_pct if uniq_pct > 0 else (gross_pct if gross_pct > 0 else raw_pct))
+            color_theme = TOP_4_THEMES[(idx - 1) % len(TOP_4_THEMES)]
             top_sources.append({
                 'index': idx,
-                'title': s.get('title') or s.get('source_name', f'Source {idx}'),
+                'rank': idx,
+                'title': s_title,
+                'name': s_title,
+                'sourceName': s_title,
+                'source_name': s_title,
                 'url': s.get('url', ''),
+                'source_url': s.get('url', ''),
                 'category': category,
+                'type': category,
+                'sourceType': category,
+                'source_type': category,
                 'words': gross_w or uniq_w,
+                'matched_words': gross_w or uniq_w,
+                'matchedWords': gross_w or uniq_w,
                 'exact_matched_words': exact_w,
                 'exact_percentage': exact_pct,
+                'percentage': s_pct_float,
+                'similarityPercentage': s_pct_float,
+                'similarity_percentage': s_pct_float,
                 'exact_matches': s.get('exact_matches', 0),
                 'percent': pct_display,
+                'percent_display': pct_display,
+                'pct_display': pct_display,
+                'similarity_display': pct_display,
+                'color_theme': color_theme,
                 'color': badge_color,
                 'color_code': badge_color,
+                'badge_color': badge_color,
                 'pastel_bg': pastel_bg,
+                'bg_color': pastel_bg,
                 'pill_bg': pill_bg,
                 'pill_text': pill_text,
                 'composite_similarity_pct': s.get('composite_similarity_pct', pct_display.replace('%', '').replace('<', '')),
@@ -675,19 +698,39 @@ def compute_report_criteria(report):
             else:
                 pct_display = "<1%"
 
+            color_theme = TOP_4_THEMES[(idx - 1) % len(TOP_4_THEMES)]
             top_sources.append({
                 'index': idx,
+                'rank': idx,
                 'title': s['title'],
+                'name': s['title'],
+                'sourceName': s['title'],
+                'source_name': s['title'],
                 'url': s['url'],
+                'source_url': s['url'],
                 'category': s['category'],
+                'type': s['category'],
+                'sourceType': s['category'],
+                'source_type': s['category'],
                 'words': s['words'],
+                'matched_words': s['words'],
+                'matchedWords': s['words'],
                 'exact_matched_words': s.get('exact_words', s['words']),
                 'exact_percentage': round(src_pct, 1),
+                'percentage': round(src_pct, 1),
+                'similarityPercentage': round(src_pct, 1),
+                'similarity_percentage': round(src_pct, 1),
                 'exact_matches': s.get('exact_matches', 1),
                 'percent': pct_display,
+                'percent_display': pct_display,
+                'pct_display': pct_display,
+                'similarity_display': pct_display,
+                'color_theme': color_theme,
                 'color': badge_color,
                 'color_code': badge_color,
+                'badge_color': badge_color,
                 'pastel_bg': pastel_bg,
+                'bg_color': pastel_bg,
                 'pill_bg': pill_bg,
                 'pill_text': pill_text,
                 'composite_similarity_pct': pct_display.replace('%', '').replace('<', ''),
@@ -780,16 +823,61 @@ def compute_report_criteria(report):
         'character_count': char_count,
         'is_zero_report': is_zero_report,
         'overall_similarity_display': score_display,
+        'overallSimilarityDisplay': score_display,
         'score_display': score_display,
         'overall_similarity': total_sim,
+        'overallSimilarity': total_sim,
+        'overallSimilarityPercentage': total_sim,
         'overall_similarity_float': report.overall_similarity,
         'filtered_from_report': filtered_items,
+        'filteredFromReport': filtered_items,
         'match_groups': match_groups,
+        'matchGroups': match_groups,
+        'match_groups_dict': {
+            'not_cited_or_quoted': nc_count,
+            'notCited': nc_count,
+            'not_cited_or_quoted_percent': nc_pct,
+            'notCitedPercent': nc_pct,
+            'missing_quotations': mq_count,
+            'missingQuotes': mq_count,
+            'missing_quotations_percent': mq_pct,
+            'missingQuotesPercent': mq_pct,
+            'missing_citation': mc_count,
+            'missingCitation': mc_count,
+            'missing_citation_percent': mc_pct,
+            'missingCitationPercent': mc_pct,
+            'cited_and_quoted': cq_count,
+            'citedAndQuoted': cq_count,
+            'cited_and_quoted_percent': cq_pct,
+            'citedAndQuotedPercent': cq_pct,
+        },
         'database_sources': database_sources,
+        'databaseSources': database_sources,
+        'database_sources_dict': {
+            'internet_percent': internet_pct,
+            'internetPercent': internet_pct,
+            'publications_percent': publications_pct,
+            'publicationsPercent': publications_pct,
+            'submitted_works_percent': submitted_works_pct,
+            'submittedWorksPercent': submitted_works_pct,
+        },
         'integrity_flags': integrity_flags,
+        'integrityFlags': integrity_flags,
         'flags_count': flags_count,
+        'flagsCount': flags_count,
+        'top_sources_header': {
+            'title': 'Top Sources',
+            'description': 'The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.'
+        },
+        'topSourcesHeader': {
+            'title': 'Top Sources',
+            'description': 'The sources with the highest number of matches within the submission. Overlapping sources will not be displayed.'
+        },
         'top_sources': top_sources,
+        'topSources': top_sources,
         'sources_pages': sources_pages,
+        'sourcesPages': sources_pages,
         'source_count': len(top_sources),
+        'sourceCount': len(top_sources),
         'logo_data_uri': get_turnitin_logo_data_uri(),
     }

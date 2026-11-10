@@ -10,6 +10,7 @@ Implements the exact layout and criteria from Turnitin academic similarity repor
 import io
 import os
 import re
+import logging
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -25,6 +26,9 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Rect, String, Circle, Line, Polygon, Ellipse
 
 from .criteria import compute_report_criteria
+from analysis.models import SimilarityReport
+
+logger = logging.getLogger(__name__)
 
 
 def _register_turnitin_fonts():
@@ -194,20 +198,20 @@ def _build_source_table_rows(s):
        Total width: 523.28 pt (colWidths: 473.28, 50)
     """
     f_reg, f_bold, _ = _register_turnitin_fonts()
-    # 1. Colored number badge (oval pill)
-    badge_w = 21 if s['index'] < 10 else (27 if s['index'] < 100 else 33)
-    badge_d = Drawing(badge_w, 14)
-    badge_d.add(Rect(0, 0, badge_w, 14, rx=7, ry=7, fillColor=colors.HexColor(s['color']), strokeColor=None))
-    badge_d.add(String(badge_w / 2.0, 4.0, str(s['index']), fontName=f_bold, fontSize=8.0, fillColor=colors.white, textAnchor='middle'))
+    # 1. Colored number badge (oval pill matching Turnitin layout)
+    badge_w = 26 if s['index'] < 10 else (32 if s['index'] < 100 else 38)
+    badge_d = Drawing(badge_w, 16)
+    badge_d.add(Rect(0, 0, badge_w, 16, rx=8, ry=8, fillColor=colors.HexColor(s['color']), strokeColor=None))
+    badge_d.add(String(badge_w / 2.0, 4.5, str(s['index']), fontName=f_bold, fontSize=8.5, fillColor=colors.white, textAnchor='middle'))
 
-    # 2. Category pill tag (matching source's pastel tone with dark neutral text)
+    # 2. Category pill tag (matching source's theme pastel tone and colored text)
     pill_bg = colors.HexColor(s.get('pill_bg', '#fce4ec'))
-    pill_text = colors.HexColor('#111827')
-    cat_text = s.get('category', 'Internet')
-    pill_w = 54 if len(cat_text) <= 8 else (70 if len(cat_text) <= 12 else 84)
-    pill_d = Drawing(pill_w, 14)
-    pill_d.add(Rect(0, 0, pill_w, 14, rx=7, ry=7, fillColor=pill_bg, strokeColor=None))
-    pill_d.add(String(pill_w / 2.0, 4.0, cat_text, fontName=f_reg, fontSize=7.2, fillColor=pill_text, textAnchor='middle'))
+    pill_text = colors.HexColor(s.get('pill_text', '#880e4f'))
+    cat_text = s.get('source_type') or s.get('category', 'Publication')
+    pill_w = 58 if len(cat_text) <= 8 else (74 if len(cat_text) <= 12 else 92)
+    pill_d = Drawing(pill_w, 16)
+    pill_d.add(Rect(0, 0, pill_w, 16, rx=8, ry=8, fillColor=pill_bg, strokeColor=None))
+    pill_d.add(String(pill_w / 2.0, 4.5, cat_text, fontName=f_bold, fontSize=7.2, fillColor=pill_text, textAnchor='middle'))
 
     # Top line container table: Badge and Pill side by side
     exact_w = s.get('exact_matched_words', 0)
@@ -302,41 +306,14 @@ def _build_arrow_bullet():
     return d
 
 
-def generate_pdf_report(report):
+def build_turnitin_overview_elements(criteria, styles=None, f_reg='Helvetica', f_bold='Helvetica-Bold', f_italic='Helvetica-Oblique'):
     """
-    Generate the Turnitin-styled similarity report with:
-    1. Cover Page (Page 1)
-    2. Integrity Overview (Page 2: Similarity score, filtering, match groups, database sources, flags)
-    3. Integrity Overview (Page 3: Match Groups & Top Sources snapshot & Sources 1-10)
-    4. Integrity Overview (Page 4: Sources continuation 11-13+)
-    5. Integrity Submission (Pages 5+: Document text with inline highlights & margin badges)
+    Builds the ReportLab story elements for Cover Page (Page 1) and
+    Integrity Overview Pages (Pages 2 to N with Top Sources).
     """
-    try:
-        from reports.turnitin_engine import TurnitinPDFEngine
-        return TurnitinPDFEngine.generate_report(report)
-    except Exception:
-        pass
+    if styles is None:
+        styles = getSampleStyleSheet()
 
-    criteria = compute_report_criteria(report)
-
-    buffer = io.BytesIO()
-    # Standard A4: 595.28 x 841.89 pt. Margins: 36.0 pt each side. Usable width: 523.28 pt.
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=36.0,
-        leftMargin=36.0,
-        topMargin=48.0,
-        bottomMargin=48.0,
-    )
-
-    styles = getSampleStyleSheet()
-    f_reg, f_bold, f_italic = _register_turnitin_fonts()
-
-    # Exact Typography styles from Turnitin samples (Inter/Arial)
-    # 2% Overall Similarity: Inter or Arial, Bold/Semibold, ~22–23 px (17.0 pt)
-    # Filtered from the Report: Inter or Arial, Semibold, ~14 px (10.5 pt)
-    # Description and list items: Inter or Arial, Regular, ~10–11 px (7.8–8.0 pt)
     cover_author_style = ParagraphStyle(
         'CoverAuthor', parent=styles['Normal'],
         fontName=f_bold, fontSize=20.0, leading=24.0,
@@ -421,7 +398,7 @@ def generate_pdf_report(report):
     inst_icon = Drawing(16, 11)
     inst_icon.add(Polygon([8, 10.5, 14, 7.5, 8, 4.5, 2, 7.5], fillColor=colors.HexColor('#636363'), strokeColor=None))
     inst_icon.add(Rect(5.5, 2.0, 5.0, 3.0, rx=0.5, ry=0.5, fillColor=colors.HexColor('#636363'), strokeColor=None))
-    inst_p = Paragraph(criteria['institution_name'], cover_inst_style)
+    inst_p = Paragraph(criteria.get('institution_name', 'University Repository'), cover_inst_style)
     inst_table = Table([[inst_icon, inst_p]], colWidths=[20, 503.28])
     inst_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -435,20 +412,18 @@ def generate_pdf_report(report):
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=12))
     story.append(Paragraph("Document Details", h2_style))
 
-    # Details table: Left Column (Metadata) vs Right Column (Summary Card)
-    # Total width = 523.28 pt (348.28 + 175.0)
     left_meta_cells = [
         [Paragraph("Submission Date", detail_label)],
-        [Paragraph(criteria['submission_date'], detail_val)],
+        [Paragraph(criteria.get('submission_date', ''), detail_val)],
         [Spacer(1, 4)],
         [Paragraph("Download Date", detail_label)],
-        [Paragraph(criteria['download_date'], detail_val)],
+        [Paragraph(criteria.get('download_date', ''), detail_val)],
         [Spacer(1, 4)],
         [Paragraph("File Name", detail_label)],
-        [Paragraph(criteria['file_name'], detail_val)],
+        [Paragraph(criteria.get('file_name', ''), detail_val)],
         [Spacer(1, 4)],
         [Paragraph("File Size", detail_label)],
-        [Paragraph(criteria['file_size_display'], detail_val)],
+        [Paragraph(criteria.get('file_size_display', ''), detail_val)],
     ]
     left_table = Table(left_meta_cells, colWidths=[348.28])
     left_table.setStyle(TableStyle([
@@ -459,9 +434,9 @@ def generate_pdf_report(report):
     ]))
 
     right_box_cells = [
-        [Paragraph(f"{criteria['page_count']} Pages", stat_box_text)],
-        [Paragraph(f"{criteria['word_count']:,} Words", stat_box_text)],
-        [Paragraph(f"{criteria['character_count']:,} Characters", stat_box_text)],
+        [Paragraph(f"{criteria.get('page_count', 1)} Pages", stat_box_text)],
+        [Paragraph(f"{criteria.get('word_count', 0):,} Words", stat_box_text)],
+        [Paragraph(f"{criteria.get('character_count', 0):,} Characters", stat_box_text)],
     ]
     right_table = Table(right_box_cells, colWidths=[175.0])
     right_table.setStyle(TableStyle([
@@ -491,7 +466,7 @@ def generate_pdf_report(report):
     story.append(SetSection("Integrity Overview"))
 
     # 1. Overall Similarity Header
-    score_val = criteria.get('overall_similarity_display', str(int(criteria['overall_similarity'])) + '%')
+    score_val = criteria.get('overall_similarity_display', str(int(criteria.get('overall_similarity', 0))) + '%')
     score_display_str = f"<b>{score_val} Overall Similarity</b>"
     story.append(Paragraph(score_display_str, overview_score_style))
     story.append(Paragraph(
@@ -501,7 +476,7 @@ def generate_pdf_report(report):
 
     # 2. Filtered from the Report
     story.append(Paragraph("<b>Filtered from the Report</b>", filtered_hdr_style))
-    for item in criteria['filtered_from_report']:
+    for item in criteria.get('filtered_from_report', []):
         bullet_d = _build_arrow_bullet()
         item_p = Paragraph(item, filtered_item_style)
         item_t = Table([[bullet_d, item_p]], colWidths=[12, 511.28])
@@ -520,14 +495,14 @@ def generate_pdf_report(report):
     # 3. Two Columns: Match Groups (Left 261.64 pt) & Top Sources Database Breakdown (Right 261.64 pt)
     def _create_match_groups_table():
         mg_left_rows = [[Paragraph("<b>Match Groups</b>", h2_style)]]
-        for mg in criteria['match_groups']:
+        for mg in criteria.get('match_groups', []):
             icon_circle = _build_match_group_icon(mg)
             title_p = Paragraph(
-                f"{mg['count']} {mg['name']} &nbsp;{mg['percent']}",
+                f"{mg.get('count', 0)} {mg.get('name', '')} &nbsp;{mg.get('percent', '0%')}",
                 ParagraphStyle('MgTitle', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919'))
             )
             desc_p = Paragraph(
-                mg['description'],
+                mg.get('description', ''),
                 ParagraphStyle('MgDesc', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#636363'))
             )
             row_content = Table([[icon_circle, [title_p, desc_p]]], colWidths=[18, 243.64])
@@ -552,10 +527,10 @@ def generate_pdf_report(report):
 
     def _create_top_sources_db_table():
         ts_right_rows = [[Paragraph("<b>Top Sources</b>", h2_style)]]
-        for db in criteria['database_sources']:
-            pct_p = Paragraph(f"{db['percent']}", ParagraphStyle('DbPct', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919')))
+        for db in criteria.get('database_sources', []):
+            pct_p = Paragraph(f"{db.get('percent', '0%')}", ParagraphStyle('DbPct', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919')))
             icon_d = _build_database_source_icon(db)
-            name_p = Paragraph(db['name'], ParagraphStyle('DbName', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919')))
+            name_p = Paragraph(db.get('name', ''), ParagraphStyle('DbName', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919')))
             row_t = Table([[pct_p, icon_d, name_p]], colWidths=[24, 16, 221.64])
             row_t.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -590,10 +565,11 @@ def generate_pdf_report(report):
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e2e8f0'), spaceAfter=12))
 
     # 4. Integrity Flags (Left 261.64 pt) & Advisory Callout Box (Right 261.64 pt)
+    flags_cnt = criteria.get('flags_count', 0)
     flags_left_rows = [
         [Paragraph("<b>Integrity Flags</b>", h2_style)],
-        [Paragraph(f"<b>{criteria['flags_count']} Integrity Flags for Review</b>", ParagraphStyle('FlagHdr', fontName=f_bold, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919')))],
-        [Paragraph("No suspicious text manipulations found." if criteria['flags_count'] == 0 else "Anomalies detected in submission text.", ParagraphStyle('FlagSub', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363')))],
+        [Paragraph(f"<b>{flags_cnt} Integrity Flags for Review</b>", ParagraphStyle('FlagHdr', fontName=f_bold, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#191919')))],
+        [Paragraph("No suspicious text manipulations found." if flags_cnt == 0 else "Anomalies detected in submission text.", ParagraphStyle('FlagSub', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363')))],
     ]
     flags_left_table = Table(flags_left_rows, colWidths=[261.64])
     flags_left_table.setStyle(TableStyle([
@@ -689,6 +665,82 @@ def generate_pdf_report(report):
                 ])
             t.setStyle(TableStyle(t_style))
             story.append(t)
+
+    return story
+
+
+def generate_turnitin_overview_pdf(criteria) -> io.BytesIO:
+    """
+    Builds the Turnitin Cover Page + Integrity Overview Pages (Section A + Section B).
+    Returns a BytesIO stream of the compiled PDF.
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=36.0,
+        leftMargin=36.0,
+        topMargin=48.0,
+        bottomMargin=48.0,
+    )
+    styles = getSampleStyleSheet()
+    f_reg, f_bold, f_italic = _register_turnitin_fonts()
+    story = build_turnitin_overview_elements(criteria, styles, f_reg, f_bold, f_italic)
+
+    def canvas_maker(*args, **kwargs):
+        c = TurnitinReportCanvas(*args, **kwargs)
+        c.submission_id = criteria.get('submission_id', '')
+        c.total_pages_override = criteria.get('total_overview_pages')
+        return c
+
+    doc.build(story, canvasmaker=canvas_maker)
+    buffer.seek(0)
+    return buffer
+
+
+def generate_pdf_report(report):
+    """
+    Generate the Turnitin-styled similarity report with:
+    1. Cover Page (Page 1)
+    2. Integrity Overview (Page 2: Similarity score, filtering, match groups, database sources, flags)
+    3. Integrity Overview (Page 3: Match Groups & Top Sources snapshot & Sources 1-10)
+    4. Integrity Overview (Page 4: Sources continuation 11-13+)
+    5. Integrity Submission (Pages 5+: Document text with inline highlights & margin badges)
+    """
+    # Race condition check: ensure analysis is finalized
+    if report.status in [SimilarityReport.Status.PROCESSING, SimilarityReport.Status.PENDING, 'queued']:
+        from reports.views import wait_for_report_completion
+        wait_for_report_completion(report)
+
+    criteria = compute_report_criteria(report)
+
+    # Assertion logging for top sources data binding
+    logger.info(
+        "PDF generation for report %s: status=%s, similarity=%s, top_sources=%d, match_groups=%d",
+        report.id, report.status, criteria.get('overall_similarity_display'), len(criteria.get('top_sources', [])), len(criteria.get('match_groups', []))
+    )
+
+    try:
+        from reports.turnitin_engine import TurnitinPDFEngine
+        return TurnitinPDFEngine.generate_report(report)
+    except Exception as e:
+        logger.debug("TurnitinPDFEngine fallback: %s", e)
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=36.0,
+        leftMargin=36.0,
+        topMargin=48.0,
+        bottomMargin=48.0,
+    )
+
+    styles = getSampleStyleSheet()
+    f_reg, f_bold, f_italic = _register_turnitin_fonts()
+
+    # Build Cover Page + Integrity Overview
+    story = build_turnitin_overview_elements(criteria, styles, f_reg, f_bold, f_italic)
 
     # =========================================================================
     # PAGES 5+: INTEGRITY SUBMISSION

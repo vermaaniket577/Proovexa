@@ -293,3 +293,29 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+{% if document.status == 'pending' or document.status == 'extracting' or document.status == 'analyzing' %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (window.ReportPoller) {
+        var statusUrl = "{% url 'analysis:status' document.id %}";
+        ReportPoller.getCompletedReport(statusUrl, {
+            maxRetries: 25,
+            initialDelayMs: 2000,
+            backoffFactor: 1.3,
+            maxDelayMs: 6000,
+            onProgress: function (data, attempt) {
+                console.log("[Analysis Polling] Attempt " + attempt + ": status=" + (data.status || 'PROCESSING'));
+            }
+        }).then(function (data) {
+            // Document analysis completed, reload to show completed state and report
+            window.location.reload();
+        }).catch(function (err) {
+            console.warn("[Analysis Polling] Poller finished:", err.message);
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

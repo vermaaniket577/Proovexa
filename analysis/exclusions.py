@@ -8,6 +8,37 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def filter_bibliography(text: str) -> str:
+    """
+    Filter bibliography / references from document text.
+    Requires section header to be standalone on its own line and appear in the latter
+    half of the document (preventing premature truncation on abstract/introductory mentions).
+    """
+    if not text:
+        return text
+    pattern = r'(?im)^\s*(references|bibliography|works\s+cited|reference\s+list|cited\s+literature|संदर्भ\s*सूची|ग्रंथसूची)\s*[:.]?\s*$'
+    split_parts = re.split(pattern, text)
+
+    # If header found, ensure it is in the latter portion of the document
+    if len(split_parts) > 1:
+        prefix = split_parts[0]
+        # Only truncate if the bibliography appears towards the end (> 50% or after 2500 chars)
+        if len(prefix) >= len(text) * 0.50 or (len(text) > 3000 and len(prefix) >= 2500):
+            return prefix
+    return text
+
+
+def filter_quotes(text: str) -> str:
+    """
+    Filter quoted text from document text.
+    Only treats as quote if enclosed by matching quotation marks and under 250 words / 1500 chars.
+    Prevents an unclosed quote at document start from clearing the entire body.
+    """
+    if not text:
+        return text
+    return re.sub(r'["“«][^"”»\n]{5,1500}["”»]', ' ', text)
+
+
 class ExclusionEngine:
     """Apply exclusion rules to matched passages."""
 
@@ -84,6 +115,8 @@ class ExclusionEngine:
     def _is_bibliography(self, text, full_text, match_data=None):
         """
         Check if text appears to be in a bibliography/reference section.
+        Requires section headers to be standalone on their own line and situated
+        in the latter portion of the document.
         Returns (is_bibliography, is_certain).
         """
         # Check if the text itself looks like a reference entry
@@ -100,18 +133,20 @@ class ExclusionEngine:
             if re.search(pattern, text, re.IGNORECASE):
                 return True, True
 
-        # Check if text appears after bibliography headers in the full document
+        # Check if text appears after standalone bibliography headers in the full document
         if full_text:
             if getattr(self, '_cached_doc_id', None) != id(full_text):
                 self._cached_doc_id = id(full_text)
                 self._cached_bib_start = None
-                bib_headers = [
-                    r'\bReferences\b', r'\bBibliography\b', r'\bWorks\s+Cited\b',
-                    r'\bReference\s+List\b', r'\bCited\s+Literature\b',
-                ]
-                for header in bib_headers:
-                    hm = re.search(header, full_text, re.IGNORECASE)
-                    if hm:
+                # Standalone header anchor check (supports English and Hindi)
+                header_pattern = re.compile(
+                    r'(?im)^\s*(?:references|bibliography|works\s+cited|reference\s+list|cited\s+literature|संदर्भ\s*सूची|ग्रंथसूची)\s*[:.]?\s*$'
+                )
+                matches = list(header_pattern.finditer(full_text))
+                doc_len = len(full_text)
+                # Only treat as bibliography if header appears in the latter half of the document
+                for hm in matches:
+                    if hm.start() >= doc_len * 0.50 or (doc_len > 3000 and hm.start() >= 2500):
                         self._cached_bib_start = hm.start()
                         break
 
@@ -120,35 +155,49 @@ class ExclusionEngine:
                 text_pos = match_data.get('submitted_start') if match_data else None
                 if text_pos is None:
                     text_pos = full_text.find(text)
-                if text_pos is not None and text_pos > bib_start:
-                    return True, False
+                if text_pos is not None and text_pos >= bib_start:
+                    return True, True
 
         return False, False
 
     def _is_quotation(self, text, full_text, match_data=None):
         """
         Check if text appears to be a direct quotation.
+        Guarantees that quotes must be paired and under 250 words / 1500 chars.
+        Prevents an unclosed quote from flagging following paragraphs.
         Returns (is_quotation, is_certain).
         """
         stripped = text.strip()
-        if (stripped.startswith('"') and stripped.endswith('"')) or \
-           (stripped.startswith('\u201c') and stripped.endswith('\u201d')) or \
-           (stripped.startswith("'") and stripped.endswith("'")):
-            return True, True
+        # Direct quotes must be enclosed by matching quotation marks and bounded
+        paired_quotes = [
+            ('"', '"'),
+            ('“', '”'),
+            ('«', '»'),
+            ("'", "'"),
+        ]
+        for q_open, q_close in paired_quotes:
+            if stripped.startswith(q_open) and stripped.endswith(q_close) and len(stripped) > 2:
+                # Bound maximum quote block: only treat as quote if under 250 words / 1500 chars (prevents runaway quotes)
+                if len(stripped.split()) <= 250 and len(stripped) <= 1500:
+                    return True, True
 
         if full_text:
             text_pos = match_data.get('submitted_start') if match_data else None
             if text_pos is None:
                 text_pos = full_text.find(stripped)
-            if text_pos is not None and text_pos > 0:
-                before = full_text[max(0, text_pos - 5):text_pos].strip()
-                after_end = min(len(full_text), text_pos + len(text) + 5)
-                after = full_text[text_pos + len(text):after_end].strip()
+            if text_pos is not None and text_pos >= 0:
+                # Scan full_text for strictly enclosed quote blocks bounded by max length
+                if getattr(self, '_cached_quotes_doc_id', None) != id(full_text):
+                    self._cached_quotes_doc_id = id(full_text)
+                    self._cached_quote_spans = []
+                    # Only treat as quote if enclosed and under 1500 chars (prevents runaway quotes)
+                    for qm in re.finditer(r'["“«][^"”»\n]{5,1500}["”»]', full_text):
+                        self._cached_quote_spans.append((qm.start(), qm.end()))
 
-                if before.endswith('"') or before.endswith('\u201c'):
-                    if after.startswith('"') or after.startswith('\u201d'):
+                text_end = text_pos + len(text)
+                for q_start, q_end in getattr(self, '_cached_quote_spans', []):
+                    if q_start <= text_pos and text_end <= q_end:
                         return True, True
-                    return True, False
 
         return False, False
 

@@ -216,3 +216,47 @@ def generate_both_reports(document, user=None, exclusion_settings=None):
     sim_report = generate_similarity_report(document, user=user, exclusion_settings=exclusion_settings)
     ai_report = generate_ai_report(document, user=user)
     return sim_report, ai_report
+
+
+def get_completed_report(submission_id_or_report, max_retries: int = 15, initial_delay: float = 0.5, backoff_factor: float = 1.4, max_delay: float = 4.0):
+    """
+    Ensure the report generator checks for status === 'COMPLETE' or status === 'READY'
+    rather than triggering on status === 'PROCESSING' or status === 'QUEUED'.
+    Implements an exponential backoff retry loop guaranteeing matches are finalized
+    before rendering the PDF/HTML report.
+    """
+    import time
+    from analysis.models import SimilarityReport
+    if isinstance(submission_id_or_report, SimilarityReport):
+        report = submission_id_or_report
+    else:
+        report = SimilarityReport.objects.get(id=submission_id_or_report)
+
+    delay = initial_delay
+    attempts = 0
+    while attempts < max_retries:
+        report.refresh_from_db()
+        if report.status in [SimilarityReport.Status.COMPLETED, 'ready']:
+            return report
+        if report.status == SimilarityReport.Status.FAILED:
+            raise ValueError(f"Plagiarism analysis failed: {report.error_message}")
+        time.sleep(delay)
+        delay = min(max_delay, delay * backoff_factor)
+        attempts += 1
+
+    raise TimeoutError("Plagiarism analysis timed out before completion.")
+
+
+def wait_for_report_completion(report, max_retries: int = 15, initial_delay: float = 0.5, backoff_factor: float = 1.4, max_delay: float = 4.0) -> bool:
+    """
+    Convenience boolean helper for wait_for_report_completion.
+    Returns True when report completes; False if failed or timed out.
+    """
+    from analysis.models import SimilarityReport
+    try:
+        res = get_completed_report(report, max_retries=max_retries, initial_delay=initial_delay, backoff_factor=backoff_factor, max_delay=max_delay)
+        return bool(res and res.status in [SimilarityReport.Status.COMPLETED, 'ready'])
+    except Exception as exc:
+        logger.warning("wait_for_report_completion stopped: %s", exc)
+        return False
+

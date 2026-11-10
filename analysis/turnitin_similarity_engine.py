@@ -158,11 +158,13 @@ class Preprocessor:
         self,
         exclude_quotes: bool = True,
         exclude_bibliography: bool = True,
-        min_word_match: int = 14,
+        min_word_match: int = 8,
+        exclude_small_matches: int = 8,
     ):
         self.exclude_quotes = exclude_quotes
         self.exclude_bibliography = exclude_bibliography
-        self.min_word_match = min_word_match
+        self.min_word_match = min(min_word_match, exclude_small_matches)
+        self.exclude_small_matches = self.min_word_match
 
     def parse_document(self, text: str) -> Dict[str, Any]:
         """
@@ -216,14 +218,14 @@ class Preprocessor:
         # 1. Bibliography / References Section Exclusion
         if self.exclude_bibliography:
             ref_pattern = re.compile(
-                r"\n\s*(?:references|bibliography|works cited|literature cited)\s*[:\n]",
-                re.IGNORECASE,
+                r"(?im)^\s*(?:references|bibliography|works\s+cited|literature\s+cited|reference\s+list|संदर्भ\s*सूची|ग्रंथसूची)\s*[:.]?\s*$",
             )
             matches = list(ref_pattern.finditer(text))
+            doc_len = len(text)
             if matches:
                 for m in reversed(matches):
-                    # Only treat as bibliography if in the latter half or after 1000 characters
-                    if m.start() > 1000 or m.start() >= len(text) * 0.35:
+                    # Only treat as bibliography if in the latter half (> 50% or after 2500 chars)
+                    if m.start() >= doc_len * 0.50 or (doc_len > 3000 and m.start() >= 2500):
                         exclusions.append(
                             ExcludedRegion(
                                 start_char=m.start(),
@@ -233,13 +235,13 @@ class Preprocessor:
                         )
                         break
 
-        # 2. Quotation Marks Exclusion
+        # 2. Quotation Marks Exclusion (strictly paired and bounded under 250 words / 1500 chars)
         if self.exclude_quotes:
             quote_patterns = [
-                r'"([^"\n]{10,})"',  # Straight double quotes
-                r'“([^”\n]{10,})”',  # Curly double quotes
-                r'«([^»\n]{10,})»',  # Guillemets
-                r'^\s*>\s+.*$',      # Blockquotes
+                r'"([^"\n]{5,1500})"',  # Straight double quotes (bounded)
+                r'“([^”\n]{5,1500})”',  # Curly double quotes (bounded)
+                r'«([^»\n]{5,1500})»',  # Guillemets (bounded)
+                r'^\s*>\s+.*$',         # Blockquotes
             ]
             for pat in quote_patterns:
                 for match in re.finditer(pat, text, flags=re.MULTILINE):
@@ -882,17 +884,23 @@ class TurnitinSimilarityPipeline:
         self,
         exclude_quotes: bool = True,
         exclude_bibliography: bool = True,
-        min_word_match: int = 14,
-        k_shingle_size: int = 14,
-        semantic_threshold: float = 0.78,
+        min_word_match: int = 8,
+        k_shingle_size: int = 8,
+        semantic_threshold: float = 0.70,
+        search_repositories: Optional[List[str]] = None,
+        exclude_small_matches: int = 8,
         ai_provider: str = "auto",
         openai_api_key: str = "",
         gemini_api_key: str = "",
     ):
+        effective_min_words = min(min_word_match, exclude_small_matches)
+        self.search_repositories = search_repositories or ["INTERNET", "PUBLICATIONS", "SUBMITTED_WORKS"]
+        self.exclude_small_matches = effective_min_words
         self.preprocessor = Preprocessor(
             exclude_quotes=exclude_quotes,
             exclude_bibliography=exclude_bibliography,
-            min_word_match=min_word_match,
+            min_word_match=effective_min_words,
+            exclude_small_matches=effective_min_words,
         )
         self.fingerprinter = WinnowingFingerprinter(k_shingle_size=k_shingle_size)
         self.semantic_matcher = SemanticMatcher(
@@ -905,7 +913,7 @@ class TurnitinSimilarityPipeline:
             openai_api_key=openai_api_key,
             gemini_api_key=gemini_api_key,
         )
-        self.min_word_match = min_word_match
+        self.min_word_match = effective_min_words
 
     def analyze(
         self,
