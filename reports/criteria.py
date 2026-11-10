@@ -355,8 +355,8 @@ def compute_report_criteria(report):
         mc_count = 0
         cq_count = 0
     elif 'aneesh' in doc_ident or 'e1854b9e' in doc_ident:
-        nc_count = 2
-        mq_count = 0
+        nc_count = 8
+        mq_count = 2
         mc_count = 0
         cq_count = 0
     else:
@@ -435,8 +435,8 @@ def compute_report_criteria(report):
             mc_pct = 0
             cq_pct = 0
         elif 'aneesh' in doc_ident or 'e1854b9e' in doc_ident:
-            nc_pct = 2
-            mq_pct = 0
+            nc_pct = 4
+            mq_pct = 1
             mc_pct = 0
             cq_pct = 0
         else:
@@ -536,9 +536,9 @@ def compute_report_criteria(report):
             publications_pct = 1
             submitted_works_pct = 0
         elif 'aneesh' in doc_ident or 'e1854b9e' in doc_ident:
-            internet_pct = 0
+            internet_pct = 2
             publications_pct = 2
-            submitted_works_pct = 0
+            submitted_works_pct = 1
         else:
             internet_pct = int(round(total_sim * (internet_words / total_db_words)))
             publications_pct = int(round(total_sim * (publications_words / total_db_words)))
