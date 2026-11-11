@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Similarity Report: {{ report.document.title }}{% endblock %}
-{% block page_title %}Turnitin-Style Academic Similarity Report{% endblock %}
+{% block page_title %}Similarity Report{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -860,58 +860,68 @@ mark.turnitin-highlight:hover {
 
 {% block content %}
 <!-- Top Action Toolbar -->
-<div class="card mb-4 border-0 shadow-sm" style="overflow: visible !important; position: relative; z-index: 10;">
-    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3" style="overflow: visible !important;">
-        <div class="d-flex align-items-center gap-3">
-            <span class="badge bg-primary px-3 py-2 fw-bold text-uppercase" id="badge-report-mode">
-                <i class="bi bi-shield-check me-1"></i>turnitin report
-            </span>
-            <div>
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <h4 class="mb-0 fw-bold">{{ report.document.title }}</h4>
-                    <span class="badge bg-{{ report.verification_status_badge }} px-2.5 py-1 text-white fw-semibold" style="font-size: 0.75rem;" title="Turnitin-Standard Source Verification Status">
-                        <i class="bi bi-patch-check-fill me-1"></i>{{ report.verification_status_label }}
-                    </span>
+<div class="card mb-4 border-0 shadow-sm" style="overflow: visible !important; position: relative; z-index: 10; border-radius: 12px; background: #ffffff;">
+    <div class="card-body p-4" style="overflow: visible !important;">
+        <!-- Tier 1: Document Identification & Report Switcher -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 mb-3 border-bottom">
+            <div class="d-flex align-items-center gap-2.5 min-w-0">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 fw-bold text-uppercase" id="badge-report-mode" style="font-size: 0.72rem; letter-spacing: 0.05em; border-radius: 6px;">
+                    <i class="bi bi-shield-check me-1"></i>turnitin report
+                </span>
+                <div class="min-w-0">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <h4 class="mb-0 fw-bold text-dark text-truncate" style="max-width: 540px;" title="{{ report.document.title }}">{{ report.document.title }}</h4>
+                        <span class="badge bg-{{ report.verification_status_badge }} px-2.5 py-1 text-white fw-semibold rounded-pill" style="font-size: 0.72rem;" title="Turnitin-Standard Source Verification Status">
+                            <i class="bi bi-patch-check-fill me-1"></i>{{ report.verification_status_label }}
+                        </span>
+                    </div>
                 </div>
-                <small class="text-muted">Submission ID: <strong id="header-submission-id">{{ criteria.submission_id }}</strong> &bull; Generated on {{ criteria.download_date }}</small>
             </div>
-        </div>
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <!-- Dynamic Download PDF Button: downloads current active report -->
-            <a href="{% url 'reports:download_pdf' report.id %}" class="btn btn-dark fw-semibold px-3 py-2 shadow-sm d-inline-flex align-items-center gap-1.5" id="btn-download-pdf" title="Download {{ report.document.plag_report_filename }}">
-                <i class="bi bi-file-earmark-pdf-fill text-danger"></i> <span id="btn-download-pdf-label">Download PDF</span>
-            </a>
 
-
-            <!-- 1-Click Toggle: Plagiarism vs AI Report -->
-            <div class="btn-group shadow-sm" role="group" aria-label="Report View Selector">
-                <button type="button" class="btn btn-primary active fw-semibold px-3 py-2" id="btn-tab-plag" onclick="switchMainReport('plag')">
+            <!-- 1-Click Toggle: Plagiarism vs AI Report Segmented Control -->
+            <div class="btn-group shadow-sm p-1 bg-light rounded-pill border" role="group" aria-label="Report View Selector">
+                <button type="button" class="btn btn-sm btn-primary active fw-semibold px-3 py-1.5 rounded-pill" id="btn-tab-plag" onclick="switchMainReport('plag')">
                     <i class="bi bi-shield-check me-1"></i> Plagiarism Report <span class="badge bg-white text-primary ms-1 fw-bold">{{ report.overall_similarity|floatformat:0 }}%</span>
                 </button>
-                <button type="button" class="btn btn-outline-info fw-semibold px-3 py-2" id="btn-tab-ai" onclick="switchMainReport('ai')">
+                <button type="button" class="btn btn-sm btn-outline-info fw-semibold px-3 py-1.5 rounded-pill" id="btn-tab-ai" onclick="switchMainReport('ai')">
                     <i class="bi bi-robot me-1"></i> AI Writing Report <span class="badge bg-info text-white ms-1 fw-bold">{{ overall_ai_display }}</span>
                 </button>
             </div>
+        </div>
 
-            <!-- Direct Word DOCX Download Button -->
-            <a href="{% url 'reports:download_docx' report.id %}" class="btn btn-primary fw-semibold px-3 py-2 shadow-sm" id="btn-download-docx">
-                <i class="bi bi-file-earmark-word-fill me-1"></i> Word (.docx)
-            </a>
+        <!-- Tier 2: Metadata & Export Action Controls -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="text-muted small d-flex align-items-center gap-2">
+                <i class="bi bi-file-earmark-check text-primary" style="font-size: 1.1rem;"></i>
+                <span>Submission ID: <strong class="text-dark font-monospace" id="header-submission-id">{{ criteria.submission_id }}</strong> &bull; Generated on {{ criteria.download_date }}</span>
+            </div>
 
-            <!-- Direct JSON Export Button -->
-            <a href="{% url 'reports:download_json' report.id %}" class="btn btn-outline-secondary fw-semibold px-3 py-2 shadow-sm" id="btn-download-json">
-                <i class="bi bi-filetype-json me-1"></i> JSON
-            </a>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <!-- Dynamic Download PDF Button -->
+                <a href="{% url 'reports:download_pdf' report.id %}" class="btn btn-primary btn-sm fw-semibold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5 rounded-pill" id="btn-download-pdf" title="Download {{ report.document.plag_report_filename }}">
+                    <i class="bi bi-file-earmark-pdf-fill"></i> <span id="btn-download-pdf-label">Download PDF</span>
+                </a>
 
-            <!-- Customize Scan / Exclusions -->
-            <a href="{% url 'analysis:start' report.document.id %}" class="btn btn-outline-secondary fw-semibold px-3 py-2 shadow-sm" id="btn-customize-scan" title="Customize Scan Settings & Exclusions">
-                <i class="bi bi-sliders me-1"></i> Customize Scan
-            </a>
+                <!-- Word DOCX Export -->
+                <a href="{% url 'reports:download_docx' report.id %}" class="btn btn-outline-secondary btn-sm fw-semibold px-3 py-1.5 rounded-pill bg-white" id="btn-download-docx">
+                    <i class="bi bi-file-earmark-word-fill text-primary me-1"></i> Word (.docx)
+                </a>
 
-            <!-- Back to Document -->
-            <a href="{% url 'documents:detail' report.document.id %}" class="btn btn-outline-dark fw-semibold px-3 py-2" id="btn-view-doc">
-                <i class="bi bi-file-text me-1"></i> Document
-            </a>
+                <!-- JSON Export -->
+                <a href="{% url 'reports:download_json' report.id %}" class="btn btn-outline-secondary btn-sm fw-semibold px-3 py-1.5 rounded-pill bg-white" id="btn-download-json">
+                    <i class="bi bi-filetype-json me-1"></i> JSON
+                </a>
+
+                <!-- Customize Scan -->
+                <a href="{% url 'analysis:start' report.document.id %}" class="btn btn-outline-secondary btn-sm fw-semibold px-3 py-1.5 rounded-pill bg-white" id="btn-customize-scan" title="Customize Scan Settings & Exclusions">
+                    <i class="bi bi-sliders me-1"></i> Customize Scan
+                </a>
+
+                <!-- Back to Document -->
+                <a href="{% url 'documents:detail' report.document.id %}" class="btn btn-outline-secondary btn-sm fw-semibold px-3 py-1.5 rounded-pill bg-white" id="btn-view-doc">
+                    <i class="bi bi-file-text me-1"></i> Document
+                </a>
+            </div>
         </div>
     </div>
 </div>
