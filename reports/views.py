@@ -502,8 +502,15 @@ def ai_report_view(request, doc_id):
         ip_address=_get_client_ip(request),
     )
 
-    # Latest similarity report for navigation toggle
-    similarity_report = document.similarity_reports.order_by('-created_at').first()
+    # Latest similarity report for navigation toggle - always ensure similarity report exists also
+    similarity_report = document.similarity_reports.filter(status=SimilarityReport.Status.COMPLETED).order_by('-created_at').first()
+    if not similarity_report:
+        try:
+            from analysis.services import generate_similarity_report
+            similarity_report = generate_similarity_report(document, user=request.user)
+        except Exception as sim_err:
+            logger.warning("Could not auto-generate companion similarity report in ai_report_view for doc %s: %s", document.id, sim_err)
+            similarity_report = document.similarity_reports.order_by('-created_at').first()
 
     num_seed = abs(hash(str(ai_report.id))) % 900000000 + 100000000
     submission_id = f"trn:oid:::1:{num_seed}"
@@ -598,6 +605,14 @@ def download_ai_pdf_view(request, ai_report_id):
         details={'format': 'ai_pdf'},
         ip_address=_get_client_ip(request),
     )
+
+    # Always ensure companion similarity report is generated also
+    if not ai_report.document.similarity_reports.filter(status=SimilarityReport.Status.COMPLETED).exists():
+        try:
+            from analysis.services import generate_similarity_report
+            generate_similarity_report(ai_report.document, user=request.user)
+        except Exception as sim_err:
+            logger.warning("Could not companion-generate similarity report on AI PDF download: %s", sim_err)
 
     pdf_buffer = generate_ai_pdf_report(ai_report)
     filename = ai_report.document.ai_report_filename

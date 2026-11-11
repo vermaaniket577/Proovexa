@@ -446,6 +446,40 @@ class PlagiarismPlatformTestCase(TestCase):
         self.assertEqual(res_next.status_code, 302)
         self.assertEqual(res_next.url, reverse("documents:list"))
 
+        # 4. Test that scanning type=ai ALWAYS generates a similarity report also
+        doc_ai_only = Document.objects.create(
+            title="AI Scan Companion Test",
+            original_filename="ai_companion.txt",
+            file_type=Document.FileType.TXT,
+            file_size=1024,
+            file_hash="hash_ai_companion_999",
+            mime_type="text/plain",
+            uploaded_by=self.student,
+            assignment=self.assignment,
+            status=Document.Status.EXTRACTED,
+            word_count=45,
+            page_count=1
+        )
+        ExtractedText.objects.create(
+            document=doc_ai_only,
+            page_number=1,
+            paragraph_number=1,
+            content=(
+                "Distributed computing systems rely on messaging protocols across independent nodes. "
+                "The algorithm iteratively evaluates neural tokens and perplexity scores across repositories."
+            ),
+            word_count=22,
+            char_start=0,
+            char_end=150,
+        )
+        res_ai_scan = client.get(reverse('analysis:quick_scan', args=[doc_ai_only.id]) + '?type=ai')
+        self.assertEqual(res_ai_scan.status_code, 302)
+        doc_ai_only.refresh_from_db()
+        self.assertIsNotNone(doc_ai_only.latest_similarity_report)
+        self.assertEqual(doc_ai_only.latest_similarity_report.status, SimilarityReport.Status.COMPLETED)
+        self.assertIsNotNone(doc_ai_only.latest_ai_report)
+        self.assertEqual(doc_ai_only.latest_ai_report.status, AIReport.Status.COMPLETED)
+
     def test_admin_panel_one_click_endpoints(self):
         """Test Django Admin 1-click generation URLs and actions."""
         doc = Document.objects.create(

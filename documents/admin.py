@@ -165,14 +165,14 @@ class DocumentAdmin(admin.ModelAdmin):
     def generate_ai_view(self, request, object_id):
         doc = get_object_or_404(Document, pk=object_id)
         try:
-            ai = generate_ai_report(doc, user=request.user)
+            sim, ai = generate_both_reports(doc, user=request.user)
             self.message_user(
                 request,
-                f"AI Detection Report generated for '{doc.title}': {ai.overall_ai_score:.0f}% AI",
+                f"Both Reports generated for '{doc.title}': AI: {ai.overall_ai_score:.0f}% | Plagiarism: {sim.similarity_display}",
                 messages.SUCCESS
             )
         except Exception as e:
-            self.message_user(request, f"AI generation failed: {str(e)}", messages.ERROR)
+            self.message_user(request, f"Generation failed: {str(e)}", messages.ERROR)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('admin:documents_document_changelist'))
 
     @admin.action(description="⚡ 1-Click Generate BOTH Reports (Similarity + AI)")
@@ -213,20 +213,20 @@ class DocumentAdmin(admin.ModelAdmin):
         if error_count:
             self.message_user(request, f"Failed on {error_count} document(s).", messages.ERROR)
 
-    @admin.action(description="🤖 Generate AI Writing Detection Reports")
+    @admin.action(description="🤖 Generate AI Writing & Similarity Reports")
     def action_generate_ai_reports(self, request, queryset):
         success_count = 0
         error_count = 0
         for doc in queryset:
             try:
-                generate_ai_report(doc, user=request.user)
+                generate_both_reports(doc, user=request.user)
                 success_count += 1
             except Exception:
                 error_count += 1
         if success_count:
             self.message_user(
                 request,
-                f"Successfully generated AI Detection Reports for {success_count} document(s).",
+                f"Successfully generated AI Detection & Similarity Reports for {success_count} document(s).",
                 messages.SUCCESS
             )
         if error_count:

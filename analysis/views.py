@@ -163,10 +163,10 @@ def quick_scan_view(request, doc_id):
             return redirect('reports:detail', report_id=sim_report.id)
 
         elif scan_type == 'ai':
-            ai_report = generate_ai_report(document, user=request.user)
+            sim_report, ai_report = generate_both_reports(document, user=request.user)
             messages.success(
                 request,
-                f"1-Click AI Detection Scan complete for '{document.title}'! Score: {ai_report.overall_ai_score:.0f}% AI"
+                f"1-Click Scan complete for '{document.title}'! Score: {ai_report.overall_ai_score:.0f}% AI • Similarity: {sim_report.similarity_display}"
             )
             if next_url:
                 return redirect(next_url)

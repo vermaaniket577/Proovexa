@@ -153,10 +153,18 @@ def upload_view(request):
                         f'Plagiarism: {sim_report.similarity_display} • AI: {ai_report.overall_ai_score:.0f}%'
                     )
                 except Exception as analysis_err:
-                    messages.success(
-                        request,
-                        f'Document "{doc.title}" uploaded and text extracted successfully ({result.word_count} words).'
-                    )
+                    try:
+                        from analysis.services import generate_similarity_report
+                        sim_report = generate_similarity_report(doc, user=request.user)
+                        messages.success(
+                            request,
+                            f'Document "{doc.title}" uploaded! Plagiarism Similarity: {sim_report.similarity_display}'
+                        )
+                    except Exception:
+                        messages.success(
+                            request,
+                            f'Document "{doc.title}" uploaded and text extracted successfully ({result.word_count} words).'
+                        )
 
                 # Index into internal database only after comparison is complete
                 from analysis.services import index_document_into_internal_database
@@ -227,9 +235,16 @@ def document_detail_view(request, doc_id):
 
     extracted_texts = doc.extracted_texts.all().order_by('page_number', 'paragraph_number')
 
-    # Check if analysis has been run
+    # Check if analysis has been run - always ensure similarity report exists also
     from analysis.models import SimilarityReport
     reports = SimilarityReport.objects.filter(document=doc).order_by('-created_at')
+    if not reports.filter(status=SimilarityReport.Status.COMPLETED).exists() and doc.status in [Document.Status.EXTRACTED, Document.Status.COMPLETED]:
+        try:
+            from analysis.services import generate_similarity_report
+            new_sim = generate_similarity_report(doc, user=request.user)
+            reports = SimilarityReport.objects.filter(document=doc).order_by('-created_at')
+        except Exception:
+            pass
 
     return render(request, 'documents/detail.html', {
         'document': doc,

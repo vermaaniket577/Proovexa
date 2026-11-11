@@ -17,9 +17,12 @@ def ensure_document_extracted(document):
     from documents.models import Document, ExtractedText
     from documents.extractors import extract_text
 
-    if document.status in [Document.Status.EXTRACTED, Document.Status.COMPLETED] and document.extracted_texts.exists():
+    if document.extracted_texts.exists():
         index_document_into_internal_database(document)
         return True, ""
+
+    if not document.file or not getattr(document.file, 'name', None):
+        return False, "No file attached or extracted text available for this document."
 
     try:
         document.status = Document.Status.EXTRACTING
@@ -191,8 +194,10 @@ def generate_similarity_report(document, user=None, exclusion_settings=None):
 def generate_ai_report(document, user=None):
     """
     Generate or re-generate AI writing detection report for a document.
+    Also guarantees that a companion Similarity (Plagiarism) report is generated.
     """
     from analysis.ai_detector import AIDetectionEngine
+    from analysis.models import SimilarityReport
 
     ok, error = ensure_document_extracted(document)
     if not ok:
@@ -200,6 +205,17 @@ def generate_ai_report(document, user=None):
 
     engine = AIDetectionEngine()
     ai_report = engine.analyze_document(document, user=user)
+
+    # Always generate similar report also
+    has_sim = SimilarityReport.objects.filter(
+        document=document,
+        status=SimilarityReport.Status.COMPLETED
+    ).exists()
+    if not has_sim:
+        try:
+            generate_similarity_report(document, user=user)
+        except Exception as sim_err:
+            logger.warning("Could not companion-generate similarity report for doc %s: %s", document.id, sim_err)
 
     if user and user.is_authenticated:
         AuditLog.objects.create(
