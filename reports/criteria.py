@@ -11,6 +11,7 @@ Extracts and computes:
 import base64
 import os
 import re
+import urllib.parse
 from datetime import datetime
 
 _LOGO_DATA_URI = None
@@ -65,14 +66,16 @@ def _normalize_category(cat_str: str, url: str = '', title: str = '') -> str:
     t = (title or '').lower().strip()
     u = (url or '').lower()
 
-    if 'submitted' in c or 'submitted' in t or 'student' in c or 'student' in t or 'uploaded' in c or 'institutional' in c or 'university' in t or 'üniversitesi' in t or 'institute of technology' in t or 'college' in t:
+    if 'submitted' in c or 'submitted' in t or 'student' in c or 'student' in t or 'uploaded' in c:
         return 'Submitted works'
-    if 'open access' in c or 'open_access' in c or 'academic' in c or 'publication' in c or 'journal' in c or 'doi.org' in u:
+    if re.search(r'\.(?:org|edu|ac|com|net|gov|io|ai|dz|ke|za|uk|ph|my|np|th|hk|us|et|lk|gh|nz|se|it|tr)\b', t) or re.search(r'\.(?:org|edu|ac|com|net|gov|io|ai|dz|ke|za|uk|ph|my|np|th|hk|us|et|lk|gh|nz|se|it|tr)\b', u):
+        if 'doi.org' not in u and 'crossref' not in u:
+            return 'Internet'
+    if 'institutional' in c or 'university' in t or 'üniversitesi' in t or 'institute of technology' in t or 'college' in t:
+        return 'Submitted works'
+    if 'open access' in c or 'open_access' in c or 'academic' in c or 'publication' in c or 'journal' in c or 'doi.org' in u or 'crossref' in u:
         return 'Publication'
     if 'web' in c or 'internet' in c:
-        return 'Internet'
-    # If title has domain extension, it's an Internet repository source
-    if re.search(r'\.(?:org|edu|ac|com|net|gov|io|ai|dz|ke|za|uk|ph|my|np|th|hk|us|et|lk|gh|nz)\b', t):
         return 'Internet'
     return 'Publication'
 
@@ -1004,6 +1007,22 @@ def compute_report_criteria(report):
             s_title, s_url = _resolve_academic_title_and_url(s_title, s_url, source_id=s_id)
             category = _normalize_category(s.get('category'), s_url, s_title)
 
+            # UI Display Formatting Rules (Domain for Internet, <=75 chars with ... for Publication)
+            if category == 'Internet':
+                if s_url and s_url.startswith('http'):
+                    parsed_host = urllib.parse.urlparse(s_url).netloc.lower()
+                    if parsed_host:
+                        s_title = parsed_host
+                elif s_title.startswith('http'):
+                    parsed_host = urllib.parse.urlparse(s_title).netloc.lower()
+                    if parsed_host:
+                        s_title = parsed_host
+                elif '/' in s_title and not s_title.startswith('Submitted to'):
+                    s_title = s_title.split('/')[0].strip()
+            elif category in ('Publication', 'Submitted works'):
+                if len(s_title) > 75 and not s_title.endswith('...'):
+                    s_title = s_title[:72].rstrip() + ' ...'
+
             uniq_w = s.get('unique_matched_words') or 0
             gross_w = s.get('gross_matched_words') or 0
             exact_w = s.get('exact_matched_words') or 0
@@ -1083,6 +1102,22 @@ def compute_report_criteria(report):
             badge_color, pastel_bg, pill_bg, pill_text = color_tuple
             s_title, s_url = _resolve_academic_title_and_url(s['title'], s.get('url', ''), source_id=s.get('source_id'))
             category = _normalize_category(s.get('category'), s_url, s_title)
+
+            # UI Display Formatting Rules (Domain for Internet, <=75 chars with ... for Publication)
+            if category == 'Internet':
+                if s_url and s_url.startswith('http'):
+                    parsed_host = urllib.parse.urlparse(s_url).netloc.lower()
+                    if parsed_host:
+                        s_title = parsed_host
+                elif s_title.startswith('http'):
+                    parsed_host = urllib.parse.urlparse(s_title).netloc.lower()
+                    if parsed_host:
+                        s_title = parsed_host
+                elif '/' in s_title and not s_title.startswith('Submitted to'):
+                    s_title = s_title.split('/')[0].strip()
+            elif category in ('Publication', 'Submitted works'):
+                if len(s_title) > 75 and not s_title.endswith('...'):
+                    s_title = s_title[:72].rstrip() + ' ...'
             if category == 'Submitted works' or 'submitted' in s_title.lower():
                 if s_url == '/reports/' or s_url.startswith('/documents/'):
                     s_url = ''

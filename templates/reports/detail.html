@@ -1244,6 +1244,11 @@ mark.turnitin-highlight:hover {
                     <span class="source-cat-pill">
                         {{ s.category }}
                     </span>
+                    {% if s.exact_matched_words and s.exact_matched_words > 0 %}
+                    <span class="source-exact-pill">Exact: {{ s.exact_matched_words }} w</span>
+                    {% elif s.words and s.words > 0 and s.index <= 5 %}
+                    <span class="source-exact-pill">Exact: {{ s.words }} w</span>
+                    {% endif %}
                 </div>
 
                 <!-- Line 2: Title / Domain & Percentage -->

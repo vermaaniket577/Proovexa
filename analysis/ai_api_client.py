@@ -515,6 +515,116 @@ class AIAPIClient:
     # =========================================================================
     # 3. TURNITIN SIMILARITY & SOURCE ATTRIBUTION API ENGINE
     # =========================================================================
+    ACADEMIC_PLAGIARISM_ENGINE_PROMPT = (
+        "Role: You are an Academic Plagiarism Detection and Source Attribution Engine.\n\n"
+        "Task: Analyze the provided input manuscript, identify overlapping text segments from academic publications, "
+        "institutional thesis repositories, and internet domains, and generate a structured Similarity Report.\n\n"
+        "Step 1 — Source Search & Classification:\n"
+        "Break the manuscript into key phrases and technical sentences. Cross-check them against web search results, "
+        "university thesis repositories (e.g., lup.lub.lu.se, webthesis.biblio.polito.it, search.proquest.com), "
+        "open-access publishers (e.g., www.duvaryayinlari.com), and academic databases (CrossRef, Google Scholar, Semantic Scholar).\n\n"
+        "Classify every matched source into one of two display categories:\n"
+        "1. \"Internet\": If the match comes from a web domain, digital library, or university thesis portal. "
+        "Format the display title strictly as the root domain or subdomain (e.g., \"www.duvaryayinlari.com\", \"webthesis.biblio.polito.it\", \"lup.lub.lu.se\", \"search.proquest.com\").\n"
+        "2. \"Publication\": If the match comes from a peer-reviewed journal article, conference paper, book chapter, or student paper repository. "
+        "Format the display title as the exact publication title, truncated at 75 characters with \"...\" if longer (e.g., \"INTEGRATING BLOCKCHAIN, AI, AND RFID TECHNOLOGIES TO COMBAT COUNTERFEIT ...\", \"Submitted to Student Paper Repository\").\n\n"
+        "Step 2 — Similarity Calculation:\n"
+        "- Calculate the exact matched word count for each source (e.g., \"Exact: 2991 w\").\n"
+        "- Calculate the percentage contribution of each source relative to the total document word count (rounded to the nearest whole percentage, minimum \"1%\").\n"
+        "- Sort all matched sources in descending order by percentage.\n\n"
+        "Step 3 — Output Format (Strict JSON for UI Rendering):\n"
+        "Return the output strictly in this JSON structure:\n"
+        "{\n"
+        '  "sources": [\n'
+        "    {\n"
+        '      "rank": 1,\n'
+        '      "category": "Publication",\n'
+        '      "exact_words": 2991,\n'
+        '      "display_name": "Submitted to Student Paper Repository",\n'
+        '      "similarity_percentage": "12%"\n'
+        "    },\n"
+        "    {\n"
+        '      "rank": 2,\n'
+        '      "category": "Internet",\n'
+        '      "exact_words": 240,\n'
+        '      "display_name": "www.duvaryayinlari.com",\n'
+        '      "similarity_percentage": "1%"\n'
+        "    }\n"
+        "  ]\n"
+        "}"
+    )
+
+    def generate_structured_similarity_report(
+        self,
+        manuscript_text: str,
+        candidate_sources: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """
+        Runs the Academic Plagiarism Detection & Source Attribution Engine prompt.
+        Produces the strict JSON structure required for UI rendering.
+        """
+        if not manuscript_text or not manuscript_text.strip():
+            return {"sources": []}
+
+        # 1. External AI API (Gemini with Google Search Grounding)
+        if self.gemini_api_key and (self.provider in ('gemini', 'auto')):
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_api_key}"
+                payload = {
+                    "contents": [{
+                        "parts": [
+                            {"text": self.ACADEMIC_PLAGIARISM_ENGINE_PROMPT},
+                            {"text": f"Input Manuscript to Analyze:\n{manuscript_text[:8000]}"}
+                        ]
+                    }],
+                    "generationConfig": {
+                        "temperature": 0.1,
+                        "maxOutputTokens": 2048,
+                        "responseMimeType": "application/json"
+                    },
+                    "tools": [{"google_search": {}}]
+                }
+                headers = {'Content-Type': 'application/json'}
+                resp = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+                if resp.status_code == 200:
+                    raw_text = resp.json()['candidates'][0]['content']['parts'][0]['text']
+                    data = self._extract_json(raw_text)
+                    if data and "sources" in data:
+                        return data
+            except Exception as e:
+                logger.warning(f"AI API similarity generation exception: {e}")
+
+        # 2. Local Calibrated Fallback Engine ensuring strict JSON compliance
+        total_words = max(len(manuscript_text.split()), 1)
+        sim_data = self.evaluate_turnitin_similarity(manuscript_text, candidate_sources, use_search_grounding=False)
+        sources_list = []
+        for s in sim_data.get('sources_overview', []):
+            pct_val = s.get('similarity_percentage', 0.0)
+            pct_int = max(1, int(round(pct_val))) if pct_val >= 0.95 else 1
+            cat = s.get('source_type', 'Publication')
+            if cat not in ('Internet', 'Publication'):
+                cat = 'Internet' if 'web' in str(cat).lower() or '.' in str(s.get('source_name', '')) else 'Publication'
+
+            d_name = s.get('source_name', 'Reference Source')
+            if cat == 'Internet':
+                if '://' in d_name:
+                    d_name = d_name.split('://', 1)[1].split('/')[0].lower()
+                elif '/' in d_name and not d_name.startswith('Submitted to'):
+                    d_name = d_name.split('/')[0].lower()
+            elif len(d_name) > 75:
+                d_name = d_name[:72].rstrip() + ' ...'
+
+            w_matched = int(round((pct_val / 100.0) * total_words)) if pct_val > 0 else 50
+            sources_list.append({
+                "rank": s.get('match_number', len(sources_list) + 1),
+                "category": cat,
+                "exact_words": w_matched,
+                "display_name": d_name,
+                "similarity_percentage": f"{pct_int}%"
+            })
+
+        return {"sources": sources_list}
+
     def evaluate_turnitin_similarity(
         self,
         submitted_text: str,

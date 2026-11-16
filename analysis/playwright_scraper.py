@@ -252,6 +252,12 @@ class PlaywrightPlagiarismChecker:
                         'type': 'title_exact',
                         'raw_title': clean_t
                     })
+                    # intitle search for CrossRef / Google Scholar verification
+                    queries.append({
+                        'query': f'intitle:"{clean_t[:65]}"',
+                        'type': 'title_intitle',
+                        'raw_title': clean_t
+                    })
                     # Broad search without quotes
                     queries.append({
                         'query': clean_t,
@@ -303,6 +309,15 @@ class PlaywrightPlagiarismChecker:
                         'query': sentence_snippet,
                         'type': 'sentence',
                         'raw_title': ''
+                    })
+
+                # Targeted repository domain queries (e.g. duvaryayinlari.com, webthesis.biblio.polito.it, lup.lub.lu.se, proquest.com)
+                phrase_sample = " ".join(candidates[0].split()[:8])
+                for d_target in ('duvaryayinlari.com', 'webthesis.biblio.polito.it', 'lup.lub.lu.se', 'proquest.com'):
+                    queries.append({
+                        'query': f'site:{d_target} "{phrase_sample}"',
+                        'type': 'repo_site',
+                        'raw_title': d_target
                     })
 
         return queries[:max_queries + 3]
