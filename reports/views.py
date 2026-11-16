@@ -123,7 +123,7 @@ def report_detail_view(request, report_id):
         source_groups[src_name]['passages'].append(p)
         source_groups[src_name]['total_words'] += p.word_count
 
-    from .criteria import compute_report_criteria
+    from .criteria import compute_report_criteria, _normalize_category
     criteria = compute_report_criteria(report)
 
     # Prepare document paragraphs with inline color-coded highlights matching Top Sources
@@ -149,12 +149,14 @@ def report_detail_view(request, report_id):
     paragraphs_data = []
 
     source_color_map = {}
+    source_meta_map = {}
     for s in criteria.get('top_sources', []):
         source_color_map[s['index']] = (
             s.get('color', '#e91e63'),
             s.get('pastel_bg', '#fce4ec'),
             s.get('color', '#e91e63'),
         )
+        source_meta_map[s['index']] = s
 
     for et in extracted_texts:
         raw_content = et.content
@@ -210,10 +212,19 @@ def report_detail_view(request, report_id):
                 m_text = m.submitted_text.strip()
                 m_escaped = html.escape(m_text)
                 src = m.source
-                src_title = html.escape(src.title if src else "Reference Database")
+                s_meta = source_meta_map.get(m_idx)
+                if s_meta:
+                    src_title = html.escape(s_meta.get('title') or 'Reference Database')
+                    src_category = html.escape(s_meta.get('category') or 'Submitted works')
+                    src_url = html.escape(s_meta.get('url') or '')
+                else:
+                    raw_type = src.source_type if src else ''
+                    raw_title = src.title if src else ''
+                    raw_url = src.url if src else ''
+                    src_title = html.escape(raw_title if raw_title else "Reference Database")
+                    src_category = html.escape(_normalize_category(raw_type, raw_url, raw_title))
+                    src_url = html.escape(raw_url)
                 src_author = html.escape(src.author if src and src.author else "Unspecified Author")
-                src_category = html.escape(src.get_source_type_display() if src and hasattr(src, 'get_source_type_display') else "Academic / Web Source")
-                src_url = html.escape(src.url if src and src.url else "")
                 src_doi = html.escape(src.doi if src and src.doi else "")
                 src_date = html.escape(str(src.publication_date) if src and src.publication_date else "")
                 raw_src_text = m.source_text.strip() if m.source_text else (src.retrieved_text[:1000] if src and src.retrieved_text else "No extractable source passage available.")

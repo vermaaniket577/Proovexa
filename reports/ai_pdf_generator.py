@@ -523,7 +523,7 @@ def generate_ai_pdf_report(ai_report):
     )
 
     story.append(Paragraph(doc_obj.title, doc_title_style))
-    story.append(HRFlowable(width="100%", thickness=1.2, color=colors.HexColor('#0084ff'), spaceAfter=8))
+    story.append(HRFlowable(width="100%", thickness=1.2, color=colors.HexColor('#191919'), spaceAfter=8))
     story.append(Paragraph(
         "Sentences highlighted in cyan indicate language patterns consistent with AI generation.",
         doc_sub_style

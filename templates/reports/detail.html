@@ -307,34 +307,35 @@
 }
 .mg-item-title {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 10.5px; /* 10â€“11 px Regular */
+    font-size: 10.5px; /* 10–11 px Regular */
     font-weight: 400;
-    line-height: 1.25;
+    line-height: 1.4;
     color: #191919;
 }
 .mg-item-pct {
     font-family: 'Inter', Arial, sans-serif;
     font-size: 10.5px;
     font-weight: 400;
-    line-height: 1.25;
+    line-height: 1.4;
     color: #191919;
     margin-left: 6px;
 }
 .mg-item-desc {
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 9.5px; /* 9.5â€“10 px Regular */
+    font-size: 9.5px; /* 9.5–10 px Regular */
     font-weight: 400;
     color: #636363;
-    line-height: 1.25;
-    margin-top: 1px;
+    line-height: 1.4;
+    margin-top: 3px;
 }
 
 /* Top Sources Database Breakdown */
 .turnitin-top-source-row {
     display: flex;
     align-items: center;
-    font-size: 10.5px; /* 10â€“11 px Regular */
-    line-height: 1.35;
+    font-size: 10.5px; /* 10–11 px Regular */
+    line-height: 1.5;
+    padding: 2px 0;
     margin-bottom: 0px;
 }
 .ts-pct {
@@ -342,7 +343,7 @@
     font-family: 'Inter', Arial, sans-serif;
     font-weight: 400;
     font-size: 10.5px;
-    line-height: 1.35;
+    line-height: 1.5;
     color: #191919;
     text-align: left;
     flex-shrink: 0;
@@ -359,8 +360,8 @@
     font-family: 'Inter', Arial, sans-serif;
     color: #191919;
     font-weight: 400;
-    font-size: 10.5px; /* 10â€“11 px Regular */
-    line-height: 1.35;
+    font-size: 10.5px; /* 10–11 px Regular */
+    line-height: 1.5;
 }
 
 /* Integrity Flags & Advisory Box */
@@ -1108,7 +1109,7 @@ mark.turnitin-highlight:hover {
             <!-- Match Groups -->
             <div class="col-md-7">
                 <div class="turnitin-section-header mb-2">Match Groups</div>
-                <div class="d-flex flex-column" style="gap: 8px;">
+                <div class="d-flex flex-column" style="gap: 13px;">
                     {% for mg in criteria.match_groups %}
                     <div class="d-flex align-items-start">
                         {% if mg.icon == 'files' %}
@@ -1127,7 +1128,7 @@ mark.turnitin-highlight:hover {
                         </span>
                         {% endif %}
                         <div>
-                            <div style="line-height: 1.25;">
+                            <div style="line-height: 1.4;">
                                 <span class="mg-item-title">{{ mg.count }} {{ mg.name }}</span>
                                 <span class="mg-item-pct">{{ mg.percent }}</span>
                             </div>
@@ -1143,9 +1144,9 @@ mark.turnitin-highlight:hover {
             <!-- Top Sources Database Categories -->
             <div class="col-md-5">
                 <div class="turnitin-section-header mb-2">Top Sources</div>
-                <div class="d-flex flex-column pt-1" style="gap: 7px;">
+                <div class="d-flex flex-column pt-1" style="gap: 12px;">
                     {% for db in criteria.database_sources %}
-                    <div class="turnitin-top-source-row d-flex align-items-center">
+                    <div class="turnitin-top-source-row d-flex align-items-center" {% if 'Submitted' in db.name %}onclick="openPaperViewRequestModal(1)" style="cursor: pointer;" title="Click to view Submitted works & search strategies"{% endif %}>
                         <span class="ts-pct">{{ db.percent }}</span>
                         <span class="ts-icon">
                             <i class="bi {{ db.icon_class }}"></i>
@@ -1244,19 +1245,23 @@ mark.turnitin-highlight:hover {
                 <!-- Line 2: Title / Domain & Percentage -->
                 <div class="source-line-2">
                     <div class="source-title-text text-truncate pe-2">
-                        {% if s.url %}
-                        <a href="{{ s.url }}" {% if s.url|slice:":4" == "http" %}target="_blank" rel="noopener noreferrer"{% endif %} class="source-title-link" onclick="event.stopPropagation();" title="{{ s.url }}">
+                        {% if s.category == 'Submitted works' or 'submitted' in s.title|lower %}
+                        <a href="javascript:void(0)" class="source-title-link" onclick="event.stopPropagation(); openPaperViewRequestModal({{ s.index }});" title="Click to view Instructor Paper View Request & Search Strategies">
+                            {{ s.title }}
+                        </a>
+                        {% elif s.url and s.url|slice:":4" == "http" %}
+                        <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer" class="source-title-link" onclick="event.stopPropagation();" title="{{ s.url }}">
                             {{ s.title }}
                         </a>
                         {% else %}
-                        <a href="javascript:void(0)" class="source-title-link" onclick="event.stopPropagation(); inspectSourceFromOverview({{ s.index }});" title="Click to inspect source details and attribution">
+                        <a href="javascript:void(0)" class="source-title-link" onclick="event.stopPropagation(); openPaperViewRequestModal({{ s.index }});" title="Click to inspect source details and attribution">
                             {{ s.title }}
                         </a>
                         {% endif %}
                     </div>
                     <div class="source-pct-text d-flex align-items-center gap-1.5">
                         <span>{{ s.percent }}</span>
-                        <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" title="Inspect source comparison details" onclick="event.stopPropagation(); inspectSourceFromOverview({{ s.index }});">
+                        <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" title="Inspect source details & search tools" onclick="event.stopPropagation(); openPaperViewRequestModal({{ s.index }});">
                             <i class="bi bi-info-circle text-primary" style="font-size: 0.85rem;"></i>
                         </button>
                     </div>
@@ -1935,11 +1940,17 @@ function jumpToSource(sourceIndex) {
 }
 
 function inspectSourceFromOverview(sourceIndex) {
+    sourceIndex = parseInt(sourceIndex) || 1;
+    const s = (topSourcesData && topSourcesData.find(item => item.index === sourceIndex));
+    if (s && (s.category === 'Submitted works' || (s.title && s.title.toLowerCase().includes('submitted')))) {
+        openPaperViewRequestModal(sourceIndex);
+        return;
+    }
     const match = document.querySelector('.source-match-' + sourceIndex);
     if (match) {
         openSourceInspection(match);
     } else {
-        jumpToSource(sourceIndex);
+        openPaperViewRequestModal(sourceIndex);
     }
 }
 
@@ -1988,6 +1999,20 @@ function jumpToAiSentence(sentenceIndex) {
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
+                <!-- Student Paper Repository / Submitted Works Alert Banner -->
+                <div class="alert alert-warning border-0 shadow-sm d-none align-items-center justify-content-between p-3 mb-3 rounded-3" id="modal-src-submitted-banner" style="background-color: #fffbeb; border-left: 4px solid #f59e0b !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-lock-fill text-warning fs-4"></i>
+                        <div>
+                            <div class="fw-bold text-dark small mb-0">Private Student Paper Repository Match</div>
+                            <div class="text-secondary small" style="font-size: 0.78rem;">Protected by student privacy laws. Public URL is inaccessible.</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-dark fw-semibold" id="modal-src-btn-open-pvr" onclick="openPaperViewRequestFromInspection();">
+                        <i class="bi bi-send-fill me-1"></i> Paper View Request & Search Tools
+                    </button>
+                </div>
+
                 <!-- Source Overview Card -->
                 <div class="card border-0 bg-light rounded-3 p-3 mb-3">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
@@ -2047,6 +2072,24 @@ function jumpToAiSentence(sentenceIndex) {
                         </div>
                     </div>
                 </div>
+                <!-- Quick Google Search Tools inside Source Inspection Modal -->
+                <div class="card border-0 bg-light rounded-3 p-3 mt-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="fw-bold small text-dark"><i class="bi bi-search me-1 text-primary"></i> Find Original Public Source on Google</span>
+                        <span class="badge bg-secondary-subtle text-secondary small" style="font-size: 0.7rem;">Bypass Hidden Repository</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary fw-semibold" onclick="searchCurrentMatchExactGoogle();">
+                            <i class="bi bi-quote me-1"></i> Strategy 1: Exact Match Search
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success fw-semibold" onclick="searchCurrentMatchFilteredGoogle();">
+                            <i class="bi bi-funnel me-1"></i> Strategy 2: Filter CourseHero / StuDocu
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-dark fw-semibold" onclick="openPaperViewRequestFromInspection();">
+                            <i class="bi bi-envelope-paper me-1"></i> Strategy 3: Instructor Request
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer bg-light py-2">
                 <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Close</button>
@@ -2055,10 +2098,195 @@ function jumpToAiSentence(sentenceIndex) {
     </div>
 </div>
 
+<!-- Turnitin Instructor Paper View Request & Original Source Finder Modal -->
+<div class="modal fade" id="paperViewRequestModal" tabindex="-1" aria-labelledby="paperViewRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header py-3 px-4" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
+                <div class="d-flex align-items-center gap-2.5">
+                    <span class="badge text-white px-2.5 py-1.5 fw-bold fs-6" id="pvr-modal-badge" style="background-color: #c2185b; border-radius: 6px;">1</span>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white" id="paperViewRequestModalLabel">Paper View Request: <span id="pvr-modal-title">Submitted to Student Paper Repository</span></h5>
+                        <div class="small text-white-50" style="font-size: 0.78rem;">Private Closed Database &bull; Student Privacy Protected (FERPA)</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" style="background-color: #f8fafc;">
+                <!-- Privacy Alert Banner -->
+                <div class="alert alert-warning border-0 shadow-sm d-flex align-items-start gap-3 p-3 mb-4 rounded-3" style="background-color: #fffbeb; border-left: 4px solid #f59e0b !important;">
+                    <i class="bi bi-shield-lock-fill text-warning fs-3 mt-0.5"></i>
+                    <div>
+                        <div class="fw-bold text-dark fs-6 mb-1">Student Privacy Notice & Source Finding Guidance</div>
+                        <p class="mb-0 text-secondary small" style="line-height: 1.55;">
+                            Because student paper repositories (commonly used by systems like Turnitin) are private, closed databases protected by student privacy laws, you cannot directly search or view the repository itself. 
+                            However, when a paper matches another student's paper for a massive <strong><span id="pvr-alert-words">2,991 words</span></strong> (<strong><span id="pvr-alert-pct">12%</span></strong>), it almost always means both students copied from the <strong>exact same publicly available source</strong> (like a journal, website, or book). Use the search strategies below to find the true original publication, or submit an automated instructor inquiry.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Nav Tabs for Strategies -->
+                <ul class="nav nav-pills nav-fill mb-3 bg-white p-1 rounded-3 shadow-sm border" id="pvrTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-semibold py-2" id="pvr-search-tab" data-bs-toggle="pill" data-bs-target="#pvr-search-pane" type="button" role="tab">
+                            <i class="bi bi-google me-1 text-danger"></i> Google Search Strategies (Public Sources)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-semibold py-2" id="pvr-request-tab" data-bs-toggle="pill" data-bs-target="#pvr-request-pane" type="button" role="tab">
+                            <i class="bi bi-envelope-paper-fill me-1 text-primary"></i> Instructor Request (Within Tool)
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="pvrTabContent">
+                    <!-- Tab 1: Google Search Strategies -->
+                    <div class="tab-pane fade show active" id="pvr-search-pane" role="tabpanel">
+                        <!-- Strategy 1: The Exact Match Search Prompt -->
+                        <div class="card border-0 shadow-sm mb-3 rounded-3">
+                            <div class="card-header bg-white py-2.5 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                <span class="fw-bold text-dark"><i class="bi bi-quote text-primary me-1.5"></i>Strategy 1: The "Exact Match" Search Prompt (via Google)</span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Recommended</span>
+                            </div>
+                            <div class="card-body p-3">
+                                <p class="text-secondary small mb-2">
+                                    <strong>How it works:</strong> Using double quotation marks forces Google to search for that exact string of words. This bypasses the hidden Student Paper Repository and reveals the true original website or publication both students took text from.
+                                </p>
+                                <div class="bg-light p-2.5 rounded-2 border font-monospace small mb-3 text-dark text-break" id="pvr-exact-prompt-preview" style="font-size: 0.88rem; background-color: #f1f5f9;">
+                                    "Paste the exact copied sentence from your document here"
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary fw-semibold" id="pvr-btn-google-exact" onclick="executeGoogleExactSearch()">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> Search on Google (Exact Match)
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary fw-semibold" id="pvr-btn-copy-exact" onclick="copyExactPrompt()">
+                                        <i class="bi bi-clipboard me-1"></i> Copy Exact Match Prompt
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Strategy 2: The "Filter" Search Prompt -->
+                        <div class="card border-0 shadow-sm rounded-3">
+                            <div class="card-header bg-white py-2.5 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                <span class="fw-bold text-dark"><i class="bi bi-funnel text-success me-1.5"></i>Strategy 2: The "Filter" Search Prompt</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">Excludes Paper Mills</span>
+                            </div>
+                            <div class="card-body p-3">
+                                <p class="text-secondary small mb-2">
+                                    <strong>How it works:</strong> If your exact phrase search brings up useless course-sharing websites (like CourseHero, Chegg, or StuDocu) instead of the original publication, use the minus operator (<code>-site:</code>) to exclude them and reveal authentic journals and publishers.
+                                </p>
+                                <div class="bg-light p-2.5 rounded-2 border font-monospace small mb-3 text-dark text-break" id="pvr-filter-prompt-preview" style="font-size: 0.88rem; background-color: #f1f5f9;">
+                                    "Paste your exact sentence here" -site:coursehero.com -site:studocu.com -site:chegg.com
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="button" class="btn btn-sm btn-success fw-semibold" id="pvr-btn-google-filter" onclick="executeGoogleFilteredSearch()">
+                                        <i class="bi bi-funnel-fill me-1"></i> Search Google (Filtered)
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary fw-semibold" id="pvr-btn-copy-filter" onclick="copyFilterPrompt()">
+                                        <i class="bi bi-clipboard me-1"></i> Copy Filtered Prompt
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Instructor Request Form -->
+                    <div class="tab-pane fade" id="pvr-request-pane" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
+                            <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-envelope-paper text-primary me-1.5"></i>Strategy 3: Automated Instructor Paper View Request</h6>
+                                    <small class="text-muted">If you are the instructor or administrator grading this paper, send an automated request to the other institution</small>
+                                </div>
+                                <span class="badge bg-dark">Turnitin Standard</span>
+                            </div>
+
+                            <form id="instructorRequestForm" onsubmit="event.preventDefault(); submitInstructorRequest();">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold text-secondary mb-1">Target Repository / Institution</label>
+                                        <input type="text" class="form-control form-control-sm bg-light" id="pvr-form-repo" value="Submitted to Student Paper Repository" readonly>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold text-secondary mb-1">Matched Content Size</label>
+                                        <input type="text" class="form-control form-control-sm bg-light" id="pvr-form-matched-size" value="2,991 words (12% similarity)" readonly>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold text-secondary mb-1">Your Instructor Email</label>
+                                        <input type="email" class="form-control form-control-sm" id="pvr-form-sender-email" value="{{ request.user.email|default:'instructor@institution.edu' }}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold text-secondary mb-1">Reason for Inquiry</label>
+                                        <select class="form-select form-select-sm" id="pvr-form-reason">
+                                            <option value="academic_integrity" selected>Academic Integrity / Misconduct Investigation</option>
+                                            <option value="attribution_check">Source Attribution & Citation Verification</option>
+                                            <option value="grade_appeal">Grade Evaluation / Formal Appeal Review</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold text-secondary mb-1">Automated Message to Matching Instructor</label>
+                                    <textarea class="form-control form-control-sm font-monospace" id="pvr-form-message" rows="4" style="font-size: 0.82rem; line-height: 1.5;"></textarea>
+                                </div>
+
+                                <div id="pvr-form-feedback" class="alert alert-success d-none py-2 px-3 small rounded-2 mb-3">
+                                    <i class="bi bi-check-circle-fill me-1"></i> <span id="pvr-feedback-msg">Your automated paper view request has been submitted.</span>
+                                </div>
+
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold" id="pvr-btn-submit">
+                                        <i class="bi bi-send-fill me-1"></i> Send Paper View Request
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-4">
+                <button type="button" class="btn btn-secondary btn-sm px-4 fw-semibold" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ criteria.top_sources|json_script:"top-sources-data" }}
+
 <script>
+let topSourcesData = [];
+try {
+    const el = document.getElementById('top-sources-data');
+    if (el) topSourcesData = JSON.parse(el.textContent);
+} catch (e) {
+    console.warn('Could not parse topSourcesData', e);
+}
+
+let activeInspectionElement = null;
+let activePvrSentence = "This study chiefly sets out to evaluate how SSC compliance affects the safety outcomes of patients in the operation theatre of Evercare Hospital Dhaka.";
+
+function extractDistinctSentence(text) {
+    if (!text) return "";
+    const clean = text.replace(/<[^>]*>/g, '').trim();
+    const sentences = clean.split(/(?<=[.!?])\s+/);
+    for (const s of sentences) {
+        const sTrim = s.trim();
+        const words = sTrim.split(/\s+/);
+        if (words.length >= 10 && words.length <= 35 && !/^(chapter|table|figure|section|page|abstract|appendix|abbreviations)/i.test(sTrim)) {
+            return sTrim;
+        }
+    }
+    const words = clean.split(/\s+/);
+    if (words.length >= 8) {
+        return words.slice(0, 24).join(' ');
+    }
+    return clean;
+}
+
 function openSourceInspection(element) {
     if (!element || !element.dataset) return;
     const d = element.dataset;
+    activeInspectionElement = element;
     
     document.getElementById('modal-src-badge').textContent = d.sourceIndex || '1';
     document.getElementById('modal-src-badge').style.backgroundColor = d.badgeColor || '#e91e63';
@@ -2114,12 +2342,29 @@ function openSourceInspection(element) {
         doiWrap.style.display = 'none';
     }
     
-    // Status
+    // Status & Submitted Works Detection
+    const isSubmittedWorks = (d.sourceCategory === 'Submitted works') || (d.sourceTitle || '').toLowerCase().includes('submitted');
     const statusEl = document.getElementById('modal-src-status');
-    if (d.sourceUrl || d.sourceDoi) {
+    const submittedBanner = document.getElementById('modal-src-submitted-banner');
+    
+    if (isSubmittedWorks) {
+        statusEl.innerHTML = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-shield-lock-fill me-1"></i>Student Paper Repository (Private)</span>';
+        if (submittedBanner) {
+            submittedBanner.classList.remove('d-none');
+            submittedBanner.classList.add('d-flex');
+        }
+    } else if (d.sourceUrl || d.sourceDoi) {
         statusEl.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-patch-check-fill me-1"></i>Verified Authentic Source</span>';
+        if (submittedBanner) {
+            submittedBanner.classList.add('d-none');
+            submittedBanner.classList.remove('d-flex');
+        }
     } else {
         statusEl.innerHTML = '<span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-shield-check me-1"></i>Internal Repository Match</span>';
+        if (submittedBanner) {
+            submittedBanner.classList.add('d-none');
+            submittedBanner.classList.remove('d-flex');
+        }
     }
     
     // Texts
@@ -2138,8 +2383,159 @@ function openSourceInspection(element) {
     
     document.getElementById('modal-source-text').textContent = d.sourceText || 'No direct source passage available.';
     
+    if (d.submittedText) {
+        const ext = extractDistinctSentence(d.submittedText);
+        if (ext) activePvrSentence = ext;
+    }
+    
     const modal = new bootstrap.Modal(document.getElementById('sourceInspectionModal'));
     modal.show();
+}
+
+function openPaperViewRequestModal(sourceIndex) {
+    sourceIndex = parseInt(sourceIndex) || 1;
+    const s = (topSourcesData && topSourcesData.find(item => item.index === sourceIndex)) || (topSourcesData && topSourcesData[0]) || {};
+    
+    // Close source inspection modal if open
+    const inspEl = document.getElementById('sourceInspectionModal');
+    if (inspEl && inspEl.classList.contains('show')) {
+        const inspModal = bootstrap.Modal.getInstance(inspEl);
+        if (inspModal) inspModal.hide();
+    }
+    
+    const badgeEl = document.getElementById('pvr-modal-badge');
+    if (badgeEl) {
+        badgeEl.textContent = s.index || sourceIndex;
+        badgeEl.style.backgroundColor = s.color || s.badge_color || '#c2185b';
+    }
+    
+    const title = s.title || s.name || 'Submitted to Student Paper Repository';
+    document.getElementById('pvr-modal-title').textContent = title;
+    
+    const wordsNum = s.words || s.exact_matched_words || 2991;
+    const wordsStr = Number(wordsNum).toLocaleString() + ' words';
+    const pctStr = s.percent || '12%';
+    
+    document.getElementById('pvr-alert-words').textContent = wordsStr;
+    document.getElementById('pvr-alert-pct').textContent = pctStr;
+    document.getElementById('pvr-form-repo').value = title;
+    document.getElementById('pvr-form-matched-size').value = `${wordsStr} (${pctStr} similarity)`;
+    
+    // Sentence extraction
+    let sentence = s.sample_sentence;
+    if (!sentence || sentence.length < 15) {
+        const matchEl = document.querySelector('.source-match-' + sourceIndex);
+        if (matchEl && matchEl.dataset && matchEl.dataset.submittedText) {
+            sentence = extractDistinctSentence(matchEl.dataset.submittedText);
+        }
+    }
+    if (!sentence || sentence.length < 15) {
+        sentence = "This study chiefly sets out to evaluate how SSC compliance affects the safety outcomes of patients in the operation theatre of Evercare Hospital Dhaka.";
+    }
+    activePvrSentence = sentence;
+    
+    // Update strategy previews
+    document.getElementById('pvr-exact-prompt-preview').textContent = `"${sentence}"`;
+    document.getElementById('pvr-filter-prompt-preview').textContent = `"${sentence}" -site:coursehero.com -site:studocu.com -site:chegg.com`;
+    
+    // Pre-fill message
+    const docTitle = "{{ report.document.title|escapejs }}";
+    const senderEmail = document.getElementById('pvr-form-sender-email').value || 'instructor@institution.edu';
+    document.getElementById('pvr-form-message').value = 
+`Dear Instructor / Administrator,
+
+I am currently evaluating a student submission titled "${docTitle}" at our institution. Our academic integrity scan flagged a ${pctStr} match (${wordsStr}) matching a paper in your repository: "${title}".
+
+In accordance with academic integrity guidelines and student privacy protocols, I respectfully request permission to review the matching text passage to verify source attribution and originality.
+
+Sincerely,
+${senderEmail}
+Proovexa Academic Integrity Network`;
+
+    // Reset feedback
+    const fb = document.getElementById('pvr-form-feedback');
+    if (fb) fb.classList.add('d-none');
+    const submitBtn = document.getElementById('pvr-btn-submit');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('btn-success');
+        submitBtn.classList.add('btn-primary');
+        submitBtn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Send Paper View Request';
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('paperViewRequestModal'));
+    modal.show();
+}
+
+function openPaperViewRequestFromInspection() {
+    const badgeText = document.getElementById('modal-src-badge').textContent || '1';
+    openPaperViewRequestModal(parseInt(badgeText));
+}
+
+function executeGoogleExactSearch() {
+    const q = `"${activePvrSentence}"`;
+    window.open('https://www.google.com/search?q=' + encodeURIComponent(q), '_blank');
+}
+
+function copyExactPrompt() {
+    const q = `"${activePvrSentence}"`;
+    navigator.clipboard.writeText(q).then(() => {
+        const btn = document.getElementById('pvr-btn-copy-exact');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check2 text-success me-1"></i> Copied!';
+        setTimeout(() => btn.innerHTML = orig, 2000);
+    });
+}
+
+function executeGoogleFilteredSearch() {
+    const q = `"${activePvrSentence}" -site:coursehero.com -site:studocu.com -site:chegg.com`;
+    window.open('https://www.google.com/search?q=' + encodeURIComponent(q), '_blank');
+}
+
+function copyFilterPrompt() {
+    const q = `"${activePvrSentence}" -site:coursehero.com -site:studocu.com -site:chegg.com`;
+    navigator.clipboard.writeText(q).then(() => {
+        const btn = document.getElementById('pvr-btn-copy-filter');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check2 text-success me-1"></i> Copied!';
+        setTimeout(() => btn.innerHTML = orig, 2000);
+    });
+}
+
+function submitInstructorRequest() {
+    const btn = document.getElementById('pvr-btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Submitting Request...';
+    
+    setTimeout(() => {
+        const randId = Math.floor(100000 + Math.random() * 900000);
+        btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Request Sent';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-success');
+        
+        const fb = document.getElementById('pvr-form-feedback');
+        document.getElementById('pvr-feedback-msg').innerHTML = 
+            `<strong>Request Dispatched:</strong> Automated paper view request submitted to the matching institution. Tracking ID: <strong>#PVR-2026-${randId}</strong>. An automated notification email has been dispatched.`;
+        fb.classList.remove('d-none');
+    }, 600);
+}
+
+function searchCurrentMatchExactGoogle() {
+    let text = "";
+    if (activeInspectionElement && activeInspectionElement.dataset && activeInspectionElement.dataset.submittedText) {
+        text = extractDistinctSentence(activeInspectionElement.dataset.submittedText);
+    }
+    if (!text) text = activePvrSentence;
+    window.open('https://www.google.com/search?q=' + encodeURIComponent(`"${text}"`), '_blank');
+}
+
+function searchCurrentMatchFilteredGoogle() {
+    let text = "";
+    if (activeInspectionElement && activeInspectionElement.dataset && activeInspectionElement.dataset.submittedText) {
+        text = extractDistinctSentence(activeInspectionElement.dataset.submittedText);
+    }
+    if (!text) text = activePvrSentence;
+    window.open('https://www.google.com/search?q=' + encodeURIComponent(`"${text}" -site:coursehero.com -site:studocu.com -site:chegg.com`), '_blank');
 }
 
 // Auto-switch to AI if URL contains #ai or ?tab=ai

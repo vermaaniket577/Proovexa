@@ -126,36 +126,27 @@ def extract_paper_titles(target_document=None, full_text: str = "") -> List[str]
     """
     Extracts candidate academic paper titles from both document metadata and the document body text.
     Handles standard uploads, drafts, as well as documents with Turnitin/cover sheet pages.
+    Guarantees that genuine academic titles are prioritized over student author names and file artifacts.
     """
-    titles: List[str] = []
+    from reports.criteria import is_student_or_filename_title
+
+    substantive_titles: List[str] = []
+    fallback_titles: List[str] = []
 
     def _clean_str(raw: str) -> str:
         if not raw:
             return ""
-        c = re.sub(r'\.(docx|pdf|doc|txt|rtf|odt)$', '', raw, flags=re.IGNORECASE)
+        c = re.sub(r'^[“"\'\[\(]+|[”"\'\]\)]+$', '', raw.strip())
+        c = re.sub(r'\.(docx|pdf|doc|txt|rtf|odt)$', '', c, flags=re.IGNORECASE)
         c = re.sub(r'[_\-]+', ' ', c)
         c = re.sub(r'\s*\(\d+\)\s*', ' ', c)
         c = re.sub(r'\b\d{1,2}[\.\-\/]\d{1,2}[\.\-\/]\d{2,4}\b', '', c)
-        c = re.sub(r'\b(final|corrected|paper|revised|yellow|highlights|synopsis|template|draft|v\d+)\b', '', c, flags=re.IGNORECASE)
-        return ' '.join(c.split())
+        c = re.sub(r'\b(final|corrected|paper|revised|yellow|highlights|synopsis|template|draft|v\d+|part\s*\d+)\b', '', c, flags=re.IGNORECASE)
+        c = ' '.join(c.split()).strip(' “"\'[]()-:;')
+        return c
 
-    # 1. From document title & original filename
-    if target_document:
-        for attr in ['title', 'original_filename']:
-            raw = getattr(target_document, attr, None) or ""
-            cleaned = _clean_str(raw)
-            if cleaned and len(cleaned) >= 4 and cleaned not in titles:
-                titles.append(cleaned)
-
-    # 2. Extract from full text
+    # 1. Extract from full text FIRST (genuine title in heading before Abstract or top lines)
     if full_text:
-        # Check for metadata headers like "File Name: ...", "Title: ..." in the first 4000 characters
-        fn_match = re.search(r'(?:File Name|Title)\s*[:\s]\s*([A-Za-z0-9_\-\.\s]+?\.(?:docx|pdf|doc|txt))', full_text[:4000], re.IGNORECASE)
-        if fn_match:
-            c = _clean_str(fn_match.group(1))
-            if c and len(c) >= 4 and c not in titles:
-                titles.append(c)
-
         # Detect and skip cover / Turnitin overview sheet if present
         text_for_headings = full_text
         cover_indicators = ['submission id', 'turnitin', 'document details', 'integrity overview', 'page 1 of']
@@ -173,12 +164,12 @@ def extract_paper_titles(target_document=None, full_text: str = "") -> List[str]
             candidate_line = abs_split[0].strip()
             sub_lines = [l.strip() for l in candidate_line.split('\n') if l.strip()]
             for sl in reversed(sub_lines):
-                words = sl.split()
-                if 3 <= len(words) <= 28 and 12 <= len(sl) <= 220:
-                    clean_t = ' '.join(sl.split())
-                    if clean_t not in titles:
-                        titles.append(clean_t)
-                    break
+                clean_sl = _clean_str(sl)
+                words = clean_sl.split()
+                if 3 <= len(words) <= 28 and 14 <= len(clean_sl) <= 220:
+                    if not is_student_or_filename_title(clean_sl) and clean_sl not in substantive_titles:
+                        substantive_titles.append(clean_sl)
+                        break
 
         # Also scan top lines of text_for_headings
         lines = [l.strip() for l in text_for_headings[:3500].split('\n') if l.strip()]
@@ -192,16 +183,31 @@ def extract_paper_titles(target_document=None, full_text: str = "") -> List[str]
             l_lower = l.lower()
             if any(l_lower.startswith(p) for p in ignore_prefixes):
                 continue
-            words = l.split()
-            if 3 <= len(words) <= 28 and 12 <= len(l) <= 220:
-                alpha_ratio = sum(c.isalpha() or c.isspace() or ('\u0900' <= c <= '\u097F') for c in l) / max(len(l), 1)
-                if alpha_ratio >= 0.70:
-                    clean_text_title = ' '.join(l.split())
-                    if clean_text_title not in titles:
-                        titles.append(clean_text_title)
+            clean_l = _clean_str(l)
+            words = clean_l.split()
+            if 3 <= len(words) <= 28 and 14 <= len(clean_l) <= 220:
+                alpha_ratio = sum(c.isalpha() or c.isspace() or ('\u0900' <= c <= '\u097F') for c in clean_l) / max(len(clean_l), 1)
+                if alpha_ratio >= 0.70 and not is_student_or_filename_title(clean_l):
+                    if clean_l not in substantive_titles:
+                        substantive_titles.append(clean_l)
                     break
 
-    return titles
+    # 2. From document title & original filename
+    if target_document:
+        for attr in ['title', 'original_filename']:
+            raw = getattr(target_document, attr, None) or ""
+            cleaned = _clean_str(raw)
+            if cleaned and len(cleaned) >= 4:
+                if not is_student_or_filename_title(cleaned):
+                    if cleaned not in substantive_titles:
+                        substantive_titles.append(cleaned)
+                else:
+                    if cleaned not in fallback_titles:
+                        fallback_titles.append(cleaned)
+
+    # Return substantive academic titles first, followed by fallbacks
+    combined = substantive_titles + fallback_titles
+    return combined if combined else ["Academic Submission"]
 
 
 class PlaywrightPlagiarismChecker:
@@ -236,9 +242,10 @@ class PlaywrightPlagiarismChecker:
 
         # Step 1: Paper Title Queries (Highest Priority for Google Search)
         if paper_titles:
+            from reports.criteria import is_student_or_filename_title
             for title in paper_titles:
-                clean_t = title.strip()
-                if len(clean_t) >= 6:
+                clean_t = re.sub(r'^[“"\'\[\(]+|[”"\'\]\)]+$', '', title.strip()).strip()
+                if len(clean_t) >= 12 and not is_student_or_filename_title(clean_t):
                     # Exact quoted search
                     queries.append({
                         'query': f'"{clean_t}"',
@@ -251,7 +258,17 @@ class PlaywrightPlagiarismChecker:
                         'type': 'title_broad',
                         'raw_title': clean_t
                     })
-                    break
+                    break  # Primary substantive candidate title added
+
+            # If no substantive title qualified, use primary non-empty title as broad query
+            if not queries and paper_titles:
+                primary = re.sub(r'^[“"\'\[\(]+|[”"\'\]\)]+$', '', paper_titles[0].strip()).strip()
+                if len(primary) >= 8:
+                    queries.append({
+                        'query': primary,
+                        'type': 'title_broad',
+                        'raw_title': primary
+                    })
 
         # Step 2: Distinctive body sentence queries
         if full_text and len(full_text.split()) >= min_words:
@@ -265,7 +282,8 @@ class PlaywrightPlagiarismChecker:
             ]
 
             for s in raw_sentences:
-                s_clean = s.strip()
+                s_clean = re.sub(r'[“"\'\[\]\(\)]', ' ', s.strip()).strip()
+                s_clean = ' '.join(s_clean.split())
                 words = s_clean.split()
                 if len(words) < min_words or len(words) > 50:
                     continue
@@ -277,8 +295,9 @@ class PlaywrightPlagiarismChecker:
                 candidates.append(s_clean)
 
             if candidates:
-                step = max(1, len(candidates) // 2)
-                for i in range(0, len(candidates), step)[:2]:
+                # Distribute sentence queries across quartiles
+                step = max(1, len(candidates) // 4)
+                for i in range(step // 2, len(candidates), step)[:3]:
                     sentence_snippet = " ".join(candidates[i].split()[:14])
                     queries.append({
                         'query': sentence_snippet,
@@ -286,13 +305,13 @@ class PlaywrightPlagiarismChecker:
                         'raw_title': ''
                     })
 
-        return queries[:max_queries + 2]
+        return queries[:max_queries + 3]
 
     def search_and_retrieve_sources(
         self,
         full_text: str,
         min_words: int = 14,
-        max_sources: int = 8,
+        max_sources: int = 15,
         target_document=None
     ) -> List[ReferenceSource]:
         """
@@ -304,7 +323,7 @@ class PlaywrightPlagiarismChecker:
             full_text=full_text,
             paper_titles=paper_titles,
             min_words=min_words,
-            max_queries=4
+            max_queries=12
         )
 
         if not queries:
@@ -328,10 +347,10 @@ class PlaywrightPlagiarismChecker:
                 headless=self.headless,
                 user_agent=self.USER_AGENT,
             )
-            harvested_pages = future.result(timeout=18)
+            harvested_pages = future.result(timeout=45)
             pool.shutdown(wait=False)
         except FuturesTimeoutError:
-            logger.warning("Playwright harvest timed out after 18s — continuing with partial web sources")
+            logger.warning("Playwright harvest timed out after 45s — continuing with partial web sources")
             try:
                 pool.shutdown(wait=False, cancel_futures=True)
             except Exception:
@@ -545,6 +564,9 @@ class PlaywrightPlagiarismChecker:
                         search_page.keyboard.press("Enter")
                         search_page.wait_for_timeout(2500)
 
+                        google_found = 0
+
+                        # Method A: Standard DOM selectors for <a> with <h3>
                         google_cards = search_page.query_selector_all("a:has(h3)")
                         for card in google_cards:
                             h3 = card.query_selector("h3")
@@ -566,46 +588,50 @@ class PlaywrightPlagiarismChecker:
                             elif raw_href.startswith("http") and "google.com" not in raw_href:
                                 target_url = raw_href
 
-                            # Check if title matches or top result
                             is_match = True
                             if q_type.startswith("title"):
                                 is_match = _is_title_match(title, paper_titles) or len(discovered_urls) < 3
 
-                            if is_match:
-                                if target_url:
-                                    discovered_urls[target_url] = title
-                                elif raw_href.startswith("/goto?url=") or "google.com/goto?url=" in raw_href:
-                                    # Directly crawl Google redirect card
-                                    if len(pages_content) < max_sources:
-                                        full_goto = f"https://www.google.com{raw_href}" if raw_href.startswith("/") else raw_href
-                                        scrape_p = context.new_page()
-                                        try:
-                                            scrape_p.goto(full_goto, timeout=timeout_ms, wait_until="domcontentloaded")
-                                            scrape_p.wait_for_timeout(1000)
-                                            landed_url = scrape_p.url
-                                            landed_title = scrape_p.title() or title
-                                            if landed_url and "google.com" not in landed_url:
-                                                raw_text = scrape_p.evaluate('''() => {
-                                                    const removals = document.querySelectorAll(
-                                                        'script, style, noscript, nav, footer, header, aside, .ad, .ads, .sidebar, #comments, .cookie-banner, .modal'
-                                                    );
-                                                    removals.forEach(el => el.remove());
-                                                    return document.body ? document.body.innerText : '';
-                                                }''')
-                                                cleaned_text = cls._clean_scraped_text(raw_text)
-                                                words = len(cleaned_text.split())
-                                                if words >= 28 and not any(p['url'] == landed_url for p in pages_content):
-                                                    pages_content.append({
-                                                        'url': landed_url,
-                                                        'title': landed_title[:400],
-                                                        'text': cleaned_text,
-                                                        'words': words,
-                                                    })
-                                                    logger.info(f"Playwright: Crawled from Google search '{landed_title}' ({words} words)")
-                                        except Exception as c_err:
-                                            logger.debug(f"Google card crawl error: {c_err}")
-                                        finally:
-                                            scrape_p.close()
+                            if is_match and target_url:
+                                discovered_urls[target_url] = title
+                                google_found += 1
+
+                        # Method B: Fallback — parse raw HTML for Google's embedded JSON data
+                        # Google renders results as JS data blobs containing [null,"domain","url","title",...]
+                        if google_found == 0:
+                            try:
+                                raw_html = search_page.content()
+                                # Pattern matches Google's internal JSON: [null,"domain","https://...","Title..."]
+                                json_pattern = re.compile(
+                                    r'\[null,\"[^\"]+\",\"(https?://[^\"]+)\",\"([^\"]+)\"'
+                                )
+                                json_matches = json_pattern.findall(raw_html)
+                                seen_urls = set()
+                                for j_url, j_title in json_matches:
+                                    if j_url in seen_urls:
+                                        continue
+                                    seen_urls.add(j_url)
+                                    # Skip Google/YouTube/social media
+                                    if any(d in j_url.lower() for d in [
+                                        'google.', 'gstatic.', 'youtube.com', 'facebook.com',
+                                        'twitter.com', 'instagram.com', 'tiktok.com',
+                                        'googleadservices.com', 'googleapis.com'
+                                    ]):
+                                        continue
+                                    # Decode unicode escapes in title
+                                    try:
+                                        j_title_clean = j_title.encode('utf-8').decode('unicode_escape', 'ignore')
+                                    except Exception:
+                                        j_title_clean = j_title
+                                    is_match = True
+                                    if q_type.startswith("title"):
+                                        is_match = _is_title_match(j_title_clean, paper_titles) or len(discovered_urls) < 3
+                                    if is_match:
+                                        discovered_urls[j_url] = j_title_clean
+                                        google_found += 1
+                                logger.info(f"Playwright: Google HTML fallback extracted {google_found} URLs")
+                            except Exception as html_err:
+                                logger.debug(f"Google HTML fallback extraction error: {html_err}")
 
                     search_page.close()
                 except Exception as g_err:

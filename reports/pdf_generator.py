@@ -510,11 +510,11 @@ def build_turnitin_overview_elements(criteria, styles=None, f_reg='Helvetica', f
             icon_circle = _build_match_group_icon(mg)
             title_p = Paragraph(
                 f"{mg.get('count', 0)} {mg.get('name', '')} &nbsp;{mg.get('percent', '0%')}",
-                ParagraphStyle('MgTitle', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919'))
+                ParagraphStyle('MgTitle', fontName=f_reg, fontSize=7.8, leading=11.0, textColor=colors.HexColor('#191919'))
             )
             desc_p = Paragraph(
                 mg.get('description', ''),
-                ParagraphStyle('MgDesc', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#636363'))
+                ParagraphStyle('MgDesc', fontName=f_reg, fontSize=7.8, leading=10.5, textColor=colors.HexColor('#636363'))
             )
             row_content = Table([[icon_circle, [title_p, desc_p]]], colWidths=[18, 243.64])
             row_content.setStyle(TableStyle([
@@ -522,7 +522,7 @@ def build_turnitin_overview_elements(criteria, styles=None, f_reg='Helvetica', f
                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                 ('TOPPADDING', (0, 0), (-1, -1), 0),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
             ]))
             mg_left_rows.append([row_content])
 
@@ -539,16 +539,16 @@ def build_turnitin_overview_elements(criteria, styles=None, f_reg='Helvetica', f
     def _create_top_sources_db_table():
         ts_right_rows = [[Paragraph("<b>Top Sources</b>", h2_style)]]
         for db in criteria.get('database_sources', []):
-            pct_p = Paragraph(f"{db.get('percent', '0%')}", ParagraphStyle('DbPct', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919')))
+            pct_p = Paragraph(f"{db.get('percent', '0%')}", ParagraphStyle('DbPct', fontName=f_reg, fontSize=7.8, leading=11.5, textColor=colors.HexColor('#191919')))
             icon_d = _build_database_source_icon(db)
-            name_p = Paragraph(db.get('name', ''), ParagraphStyle('DbName', fontName=f_reg, fontSize=7.8, leading=9.5, textColor=colors.HexColor('#191919')))
+            name_p = Paragraph(db.get('name', ''), ParagraphStyle('DbName', fontName=f_reg, fontSize=7.8, leading=11.5, textColor=colors.HexColor('#191919')))
             row_t = Table([[pct_p, icon_d, name_p]], colWidths=[24, 16, 221.64])
             row_t.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-                ('TOPPADDING', (0, 0), (-1, -1), 0),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
             ts_right_rows.append([row_t])
 
@@ -763,7 +763,7 @@ def generate_pdf_report(report):
     matched_passages = report.matched_passages.filter(is_excluded=False).order_by('submitted_char_start')
 
     story.append(Paragraph(report.document.title, doc_title_style))
-    story.append(HRFlowable(width="100%", thickness=1.2, color=colors.HexColor('#0084ff'), spaceAfter=14))
+    story.append(HRFlowable(width="100%", thickness=1.2, color=colors.HexColor('#191919'), spaceAfter=14))
 
     # Pre-map passages to paragraph content
 
