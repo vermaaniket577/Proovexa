@@ -232,17 +232,17 @@ def _build_source_table_rows(s):
     src_url = s.get('url') or s.get('source_url') or ''
     escaped_title = str(s['title']).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     if src_url and (src_url.startswith('http://') or src_url.startswith('https://')):
-        title_content = f'<a href="{src_url}" color="#0284c7"><b>{escaped_title}</b></a>'
+        title_content = f'<a href="{src_url}" color="#191919"><b>{escaped_title}</b></a>'
     elif src_url and src_url.startswith('/'):
-        title_content = f'<a href="http://127.0.0.1:8000{src_url}" color="#0284c7"><b>{escaped_title}</b></a>'
+        title_content = f'<a href="http://127.0.0.1:8000{src_url}" color="#191919"><b>{escaped_title}</b></a>'
     elif src_url:
-        title_content = f'<a href="{src_url}" color="#0284c7"><b>{escaped_title}</b></a>'
+        title_content = f'<a href="{src_url}" color="#191919"><b>{escaped_title}</b></a>'
     else:
         title_content = f"<b>{escaped_title}</b>"
 
     title_p = Paragraph(
         title_content,
-        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=9.0, leading=12.5, textColor=colors.HexColor('#0284c7' if src_url else '#1e293b'))
+        ParagraphStyle('SrcTitle', fontName=f_bold, fontSize=9.0, leading=12.5, textColor=colors.HexColor('#191919'))
     )
 
     # Percentage (Line 2 Right: width 50 pt)

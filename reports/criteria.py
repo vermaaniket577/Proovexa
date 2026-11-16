@@ -409,7 +409,7 @@ def _ensure_minimum_10_top_sources(top_sources, report, doc, doc_ident, word_cou
                 'semantic_paraphrase_pct': 0.0,
                 'exact_matched_shingles': [],
                 'flagged_sentences': [],
-                'sample_sentence': f"Evidence, methodology and analytical findings related to {item['title']}.",
+                'sample_sentence': f"Evidence, methodology and analytical findings related to {ref_t}.",
             })
             existing_titles.add(ref_t_low)
             existing_urls.add(ref_u_low)
@@ -1140,7 +1140,7 @@ def compute_report_criteria(report):
                 'semantic_paraphrase_pct': 0.0,
                 'exact_matched_shingles': [],
                 'flagged_sentences': [],
-                'sample_sentence': f"Evidence, methodology and analytical findings related to {item['title']}.",
+                'sample_sentence': sample_sent,
             })
 
     if is_zero_report:

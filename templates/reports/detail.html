@@ -515,7 +515,7 @@
     font-weight: 600;
     font-size: 12px;
     line-height: 1.35;
-    color: #1e293b;
+    color: #000000 !important;
     letter-spacing: -0.01em;
     flex: 1 1 auto;
     min-width: 0;
@@ -523,14 +523,18 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.source-title-link {
-    color: #1e293b;
-    text-decoration: none;
+.source-title-text a,
+.source-title-link,
+.source-title-link:link,
+.source-title-link:visited,
+.source-title-link:active {
+    color: #000000 !important;
+    text-decoration: none !important;
     transition: color 0.15s ease;
 }
 .source-title-link:hover {
-    color: #0284c7;
-    text-decoration: underline;
+    color: #000000 !important;
+    text-decoration: underline !important;
 }
 .source-pct-text {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -1246,15 +1250,15 @@ mark.turnitin-highlight:hover {
                 <div class="source-line-2">
                     <div class="source-title-text text-truncate pe-2">
                         {% if s.category == 'Submitted works' or 'submitted' in s.title|lower %}
-                        <a href="javascript:void(0)" class="source-title-link" onclick="event.stopPropagation(); openPaperViewRequestModal({{ s.index }});" title="Click to view Instructor Paper View Request & Search Strategies">
+                        <a href="javascript:void(0)" class="source-title-link" style="color: #000000 !important; text-decoration: none;" onclick="event.stopPropagation(); openPaperViewRequestModal({{ s.index }});" title="Click to view Instructor Paper View Request & Search Strategies">
                             {{ s.title }}
                         </a>
                         {% elif s.url and s.url|slice:":4" == "http" %}
-                        <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer" class="source-title-link" onclick="event.stopPropagation();" title="{{ s.url }}">
+                        <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer" class="source-title-link" style="color: #000000 !important; text-decoration: none;" onclick="event.stopPropagation();" title="{{ s.url }}">
                             {{ s.title }}
                         </a>
                         {% else %}
-                        <a href="javascript:void(0)" class="source-title-link" onclick="event.stopPropagation(); openPaperViewRequestModal({{ s.index }});" title="Click to inspect source details and attribution">
+                        <a href="javascript:void(0)" class="source-title-link" style="color: #000000 !important; text-decoration: none;" onclick="event.stopPropagation(); openPaperViewRequestModal({{ s.index }});" title="Click to inspect source details and attribution">
                             {{ s.title }}
                         </a>
                         {% endif %}
