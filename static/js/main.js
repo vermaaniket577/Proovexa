@@ -156,26 +156,74 @@ document.addEventListener('DOMContentLoaded', function() {
         PageTopLoader.done();
     });
 
-    // Sidebar toggle & backdrop
+    // Sidebar hover-to-open (desktop) & click toggle/backdrop (mobile)
     const sidebar = document.getElementById('sidebar');
     const sidebarOpen = document.getElementById('sidebarOpen');
     const sidebarClose = document.getElementById('sidebarClose');
     const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+    const sidebarHoverTrigger = document.getElementById('sidebarHoverTrigger');
+    let sidebarHoverCloseTimer = null;
+
+    function openSidebarHover() {
+        if (sidebarHoverCloseTimer) {
+            clearTimeout(sidebarHoverCloseTimer);
+            sidebarHoverCloseTimer = null;
+        }
+        if (sidebar) sidebar.classList.add('hover-open');
+        if (sidebarHoverTrigger) sidebarHoverTrigger.classList.add('hidden');
+    }
+
+    function scheduleCloseSidebarHover() {
+        if (sidebarHoverCloseTimer) clearTimeout(sidebarHoverCloseTimer);
+        sidebarHoverCloseTimer = setTimeout(function() {
+            if (sidebar) sidebar.classList.remove('hover-open');
+            if (sidebarHoverTrigger) sidebarHoverTrigger.classList.remove('hidden');
+        }, 140);
+    }
 
     function openSidebar() {
         if (sidebar) sidebar.classList.add('show');
         if (sidebarBackdrop) sidebarBackdrop.classList.add('show');
+        if (sidebarHoverTrigger) sidebarHoverTrigger.classList.add('hidden');
         document.body.classList.add('sidebar-open');
     }
 
     function closeSidebar() {
-        if (sidebar) sidebar.classList.remove('show');
+        if (sidebar) {
+            sidebar.classList.remove('show');
+            sidebar.classList.remove('hover-open');
+        }
         if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
+        if (sidebarHoverTrigger) sidebarHoverTrigger.classList.remove('hidden');
         document.body.classList.remove('sidebar-open');
     }
 
+    // Desktop hover-only auto-open & auto-close
+    if (sidebar) {
+        if (sidebarHoverTrigger) {
+            sidebarHoverTrigger.addEventListener('mouseenter', openSidebarHover);
+            sidebarHoverTrigger.addEventListener('mouseleave', scheduleCloseSidebarHover);
+        }
+        if (sidebarOpen) {
+            sidebarOpen.addEventListener('mouseenter', function() {
+                if (window.innerWidth >= 992) openSidebarHover();
+            });
+            sidebarOpen.addEventListener('mouseleave', function() {
+                if (window.innerWidth >= 992) scheduleCloseSidebarHover();
+            });
+        }
+        sidebar.addEventListener('mouseenter', openSidebarHover);
+        sidebar.addEventListener('mouseleave', scheduleCloseSidebarHover);
+    }
+
     if (sidebarOpen) {
-        sidebarOpen.addEventListener('click', openSidebar);
+        sidebarOpen.addEventListener('click', function() {
+            if (sidebar && (sidebar.classList.contains('show') || sidebar.classList.contains('hover-open'))) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
     }
     if (sidebarClose) {
         sidebarClose.addEventListener('click', closeSidebar);
@@ -184,11 +232,12 @@ document.addEventListener('DOMContentLoaded', function() {
         sidebarBackdrop.addEventListener('click', closeSidebar);
     }
 
-    // Close sidebar on overlay or outside click (mobile/tablet)
+    // Close sidebar on overlay or outside click
     document.addEventListener('click', function(e) {
-        if (sidebar && sidebar.classList.contains('show') &&
+        if (sidebar && (sidebar.classList.contains('show') || sidebar.classList.contains('hover-open')) &&
             !sidebar.contains(e.target) &&
-            sidebarOpen && !sidebarOpen.contains(e.target)) {
+            (!sidebarOpen || !sidebarOpen.contains(e.target)) &&
+            (!sidebarHoverTrigger || !sidebarHoverTrigger.contains(e.target))) {
             closeSidebar();
         }
     });

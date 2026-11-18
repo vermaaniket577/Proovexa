@@ -14,7 +14,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="{% static 'css/main.css' %}?v=2.3" rel="stylesheet">
+    <link href="{% static 'css/main.css' %}?v=2.4" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -44,6 +44,13 @@
     {% if user.is_authenticated %}
     <!-- Sidebar Navigation -->
     <div class="app-wrapper">
+        <!-- Left-Edge Hover Trigger for Auto-Hide Sidebar -->
+        <div class="sidebar-hover-trigger" id="sidebarHoverTrigger" aria-label="Open navigation menu" title="Hover to open navigation">
+            <div class="sidebar-edge-tab">
+                <i class="bi bi-chevron-right"></i>
+            </div>
+        </div>
+
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <a href="{% url 'dashboard:home' %}" class="sidebar-brand">
@@ -174,7 +181,7 @@
         <main class="main-content">
             <header class="top-bar">
                 <div class="top-bar-left d-flex align-items-center gap-3">
-                    <button class="sidebar-toggle d-lg-none" id="sidebarOpen">
+                    <button class="sidebar-toggle" id="sidebarOpen" title="Hover or click to open menu" aria-label="Open navigation menu">
                         <i class="bi bi-list fs-4 text-dark"></i>
                     </button>
                     <div class="top-bar-title">
@@ -300,7 +307,7 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
-    <script src="{% load static %}{% static 'js/main.js' %}" defer></script>
+    <script src="{% load static %}{% static 'js/main.js' %}?v=2.4" defer></script>
     <script src="{% static 'js/report_poller.js' %}" defer></script>
     {% block extra_js %}{% endblock %}
 </body>

@@ -83,7 +83,55 @@ body {
     min-height: 100vh;
 }
 
-/* Sidebar */
+/* Left-Edge Hover Trigger for Auto-Hide Sidebar */
+.sidebar-hover-trigger {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 14px;
+    height: 100vh;
+    z-index: 1039;
+    background: transparent;
+}
+
+.sidebar-edge-tab {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 52px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: none;
+    border-radius: 0 10px 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 0.78rem;
+    box-shadow: 2px 0 10px rgba(15, 23, 42, 0.08);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.sidebar-hover-trigger:hover .sidebar-edge-tab {
+    color: #2563eb;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    width: 24px;
+}
+
+.sidebar-hover-trigger.hidden {
+    pointer-events: none;
+}
+
+.sidebar-hover-trigger.hidden .sidebar-edge-tab {
+    opacity: 0;
+    transform: translate(-100%, -50%);
+}
+
+/* Sidebar (Closed by default; opens smoothly on mouse hover) */
 .sidebar {
     width: var(--sidebar-width);
     height: 100vh;
@@ -94,13 +142,20 @@ body {
     background: #ffffff;
     display: flex;
     flex-direction: column;
-    transition: transform var(--transition-base);
+    transform: translateX(-100%);
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
     border-right: 1px solid #e2e8f0;
-    box-shadow: 1px 0 3px rgba(15, 23, 42, 0.02);
+    box-shadow: none;
+}
+
+.sidebar.hover-open,
+.sidebar.show {
+    transform: translateX(0);
+    box-shadow: 6px 0 32px rgba(15, 23, 42, 0.16);
 }
 
 .sidebar::-webkit-scrollbar {
@@ -379,16 +434,17 @@ body {
     pointer-events: auto;
 }
 
-/* Main Content */
+/* Main Content (Full width while sidebar is closed) */
 .main-content {
     flex: 1;
-    margin-left: var(--sidebar-width);
+    margin-left: 0;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    width: calc(100% - var(--sidebar-width));
-    max-width: calc(100% - var(--sidebar-width));
+    width: 100%;
+    max-width: 100%;
+    transition: margin-left var(--transition-base);
 }
 
 /* Top Bar */
@@ -1006,6 +1062,10 @@ body {
    Responsive
    ============================================================== */
 @media (max-width: 991.98px) {
+    .sidebar-hover-trigger {
+        display: none;
+    }
+
     .sidebar {
         transform: translateX(-100%);
     }
