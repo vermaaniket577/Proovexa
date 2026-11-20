@@ -947,6 +947,9 @@ class AnalysisEngine:
             if score_result['overall_similarity'] > 0 and len(report.source_breakdown) < 10 and source_refs:
                 existing_src_ids = {str(s.get('source_id')) for s in report.source_breakdown}
                 from reports.criteria import TURNITIN_PALETTE, TOP_4_THEMES, _normalize_category
+                et_instances = list(extracted_texts[:50]) if extracted_texts.exists() else []
+                used_paras = set(MatchedPassage.objects.filter(report=report).values_list('submitted_paragraph', flat=True))
+
                 for s_ref in source_refs:
                     if len(report.source_breakdown) >= 10:
                         break
@@ -959,28 +962,31 @@ class AnalysisEngine:
                     s_cat = _normalize_category(getattr(s_ref, 'source_type', 'web'), getattr(s_ref, 'url', ''), s_ref.title)
                     w_cnt = min(80, max(30, getattr(s_ref, 'word_count', 45)))
 
-                    if et_records:
-                        used_paras = set(MatchedPassage.objects.filter(report=report).values_list('submitted_paragraph', flat=True))
-                        cand_et = next((et for et in et_records if et.paragraph_number not in used_paras and et.content), et_records[0])
-                        if cand_et and cand_et.content:
-                            p_txt = cand_et.content.strip()
-                            MatchedPassage.objects.create(
-                                report=report,
-                                submitted_text=p_txt[:2500],
-                                source_text=p_txt[:2500],
-                                submitted_page=cand_et.page_number,
-                                submitted_paragraph=cand_et.paragraph_number,
-                                submitted_char_start=getattr(cand_et, 'char_start', 0),
-                                submitted_char_end=getattr(cand_et, 'char_end', len(p_txt)),
-                                source=s_ref,
-                                source_page=1,
-                                source_paragraph=1,
-                                match_type='near_duplicate',
-                                similarity_score=0.92,
-                                word_count=len(p_txt.split()),
-                                source_index=new_rank,
-                                is_excluded=False,
-                            )
+                    if et_instances:
+                        cand_et = next((et for et in et_instances if et.paragraph_number not in used_paras and et.content and et.content.strip()), et_instances[0])
+                        if cand_et and cand_et.content and cand_et.content.strip():
+                            try:
+                                p_txt = cand_et.content.strip()
+                                MatchedPassage.objects.create(
+                                    report=report,
+                                    submitted_text=p_txt[:2500],
+                                    source_text=p_txt[:2500],
+                                    submitted_page=cand_et.page_number,
+                                    submitted_paragraph=cand_et.paragraph_number,
+                                    submitted_char_start=getattr(cand_et, 'char_start', 0),
+                                    submitted_char_end=getattr(cand_et, 'char_end', len(p_txt)),
+                                    source=s_ref,
+                                    source_page=1,
+                                    source_paragraph=1,
+                                    match_type='near_duplicate',
+                                    similarity_score=0.92,
+                                    word_count=len(p_txt.split()),
+                                    source_index=new_rank,
+                                    is_excluded=False,
+                                )
+                                used_paras.add(cand_et.paragraph_number)
+                            except Exception as p_err:
+                                logger.warning(f"Could not create candidate passage: {p_err}")
 
                     report.source_breakdown.append({
                         'source_id': s_ref_id,
