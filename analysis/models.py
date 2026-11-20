@@ -98,13 +98,17 @@ class SimilarityReport(models.Model):
         """Return formatted similarity string; displays '*' if 0% as per Turnitin specification."""
         if self.overall_similarity == 0 or self.overall_similarity <= 0.0:
             return '*'
-        return f"{self.overall_similarity:.1f}%"
+        if self.overall_similarity < 0.999:
+            return '<1%'
+        return f"{int(round(self.overall_similarity))}%"
 
     @property
     def similarity_int_display(self):
         """Return integer formatted similarity string; displays '*' if 0%."""
         if self.overall_similarity == 0 or self.overall_similarity <= 0.0:
             return '*'
+        if self.overall_similarity < 0.999:
+            return '<1%'
         return f"{int(round(self.overall_similarity))}%"
 
     @property

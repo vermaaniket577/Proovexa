@@ -18,7 +18,6 @@ def ensure_document_extracted(document):
     from documents.extractors import extract_text
 
     if document.extracted_texts.exists():
-        index_document_into_internal_database(document)
         return True, ""
 
     if not document.file or not getattr(document.file, 'name', None):

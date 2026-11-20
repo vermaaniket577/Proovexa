@@ -746,10 +746,10 @@ def compute_report_criteria(report):
 
     is_zero_report = (report.overall_similarity <= 0.0 and (report.matched_words or 0) == 0 and len(passages) == 0)
     sim_val = float(report.overall_similarity or 0.0)
-    if is_zero_report:
+    if is_zero_report or sim_val <= 0.0:
         score_display = "0%"
         total_sim = 0
-    elif sim_val < 0.5:
+    elif sim_val < 0.999:
         score_display = "<1%"
         total_sim = 1
     else:

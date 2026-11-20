@@ -176,9 +176,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function scheduleCloseSidebarHover() {
         if (sidebarHoverCloseTimer) clearTimeout(sidebarHoverCloseTimer);
         sidebarHoverCloseTimer = setTimeout(function() {
-            if (sidebar) sidebar.classList.remove('hover-open');
+            if (sidebar) {
+                sidebar.classList.remove('hover-open');
+                sidebar.classList.remove('show');
+            }
+            if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
             if (sidebarHoverTrigger) sidebarHoverTrigger.classList.remove('hidden');
-        }, 140);
+            document.body.classList.remove('sidebar-open');
+        }, 220);
     }
 
     function openSidebar() {

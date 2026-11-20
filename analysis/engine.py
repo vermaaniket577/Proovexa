@@ -1391,9 +1391,13 @@ class AnalysisEngine:
                     continue
                 if s.url and doc_id_str in s.url:
                     continue
+            if document.file_hash and s.document and s.document.file_hash == document.file_hash:
+                continue
             if user_doc_ids and s.document_id and str(s.document_id) in user_doc_ids:
                 continue
             if s.url and any(f'urn:proovexa:doc:{uid}' in s.url for uid in user_doc_ids):
+                continue
+            if s.url and any(f'/documents/{uid}/' in s.url for uid in user_doc_ids):
                 continue
             s_title_clean = (s.title or '').strip().lower()
             if s_title_clean and s_title_clean == doc_title_clean:

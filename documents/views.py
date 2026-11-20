@@ -238,11 +238,20 @@ def document_detail_view(request, doc_id):
     # Check if analysis has been run - always ensure similarity report exists also
     from analysis.models import SimilarityReport
     reports = SimilarityReport.objects.filter(document=doc).order_by('-created_at')
-    if not reports.filter(status=SimilarityReport.Status.COMPLETED).exists() and doc.status in [Document.Status.EXTRACTED, Document.Status.COMPLETED]:
+    completed_report = reports.filter(status=SimilarityReport.Status.COMPLETED).first()
+    if completed_report and doc.status == Document.Status.FAILED:
+        doc.status = Document.Status.COMPLETED
+        doc.error_message = ''
+        doc.save(update_fields=['status', 'error_message'])
+    elif not completed_report and doc.status in [Document.Status.EXTRACTED, Document.Status.COMPLETED]:
         try:
             from analysis.services import generate_similarity_report
             new_sim = generate_similarity_report(doc, user=request.user)
             reports = SimilarityReport.objects.filter(document=doc).order_by('-created_at')
+            if new_sim and new_sim.status == SimilarityReport.Status.COMPLETED:
+                doc.status = Document.Status.COMPLETED
+                doc.error_message = ''
+                doc.save(update_fields=['status', 'error_message'])
         except Exception:
             pass
 

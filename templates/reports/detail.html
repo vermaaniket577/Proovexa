@@ -886,7 +886,7 @@ mark.turnitin-highlight:hover {
             <!-- 1-Click Toggle: Plagiarism vs AI Report Segmented Control -->
             <div class="btn-group shadow-sm p-1 bg-light rounded-pill border" role="group" aria-label="Report View Selector">
                 <button type="button" class="btn btn-sm btn-primary active fw-semibold px-3 py-1.5 rounded-pill" id="btn-tab-plag" onclick="switchMainReport('plag')">
-                    <i class="bi bi-shield-check me-1"></i> Plagiarism Report <span class="badge bg-white text-primary ms-1 fw-bold">{{ report.overall_similarity|floatformat:0 }}%</span>
+                    <i class="bi bi-shield-check me-1"></i> Plagiarism Report <span class="badge bg-white text-primary ms-1 fw-bold">{{ report.similarity_display }}</span>
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-info fw-semibold px-3 py-1.5 rounded-pill" id="btn-tab-ai" onclick="switchMainReport('ai')">
                     <i class="bi bi-robot me-1"></i> AI Writing Report <span class="badge bg-info text-white ms-1 fw-bold">{{ overall_ai_display }}</span>
